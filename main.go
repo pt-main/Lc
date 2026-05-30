@@ -6,7 +6,7 @@ import (
 	"github.com/pt-main/lc/system"
 )
 
-const Version = "0.1.1"
+const Version = "0.1.5"
 
 func NewEngine(
 	generator_res_type int,
