@@ -17,14 +17,14 @@ type ParserConfig struct {
 	Brackets            []string
 }
 
-type Parser struct {
+type Parser1 struct {
 	grammar     []GrammarRule
 	config      ParserConfig
 	openToClose map[rune]rune
 	closeToOpen map[rune]rune
 }
 
-func NewParser(rules []GrammarRule, config ParserConfig) *Parser {
+func NewParser(rules []GrammarRule, config ParserConfig) *Parser1 {
 	openToClose := make(map[rune]rune)
 	closeToOpen := make(map[rune]rune)
 	for _, pair := range config.Brackets {
@@ -35,7 +35,7 @@ func NewParser(rules []GrammarRule, config ParserConfig) *Parser {
 			closeToOpen[close] = open
 		}
 	}
-	return &Parser{
+	return &Parser1{
 		grammar:     rules,
 		config:      config,
 		openToClose: openToClose,
@@ -43,7 +43,7 @@ func NewParser(rules []GrammarRule, config ParserConfig) *Parser {
 	}
 }
 
-func (p *Parser) Parse(code string) ([]ParsedNode, error) {
+func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
 	lines := strings.Split(code, "\n")
 	var result []ParsedNode
 
@@ -115,7 +115,7 @@ func (p *Parser) Parse(code string) ([]ParsedNode, error) {
 	return result, nil
 }
 
-func (p *Parser) matchGrammar(block string) (ParsedNode, error) {
+func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 	block = strings.TrimSpace(block)
 	if block == "" {
 		return ParsedNode{Parsed: nil}, nil
