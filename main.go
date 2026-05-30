@@ -12,7 +12,7 @@ func NewEngine(
 	generator_res_type int,
 	pipeline []string,
 	add_default_events bool,
-	parser parsing.Parser,
+	parser parsing.ParserInterface,
 ) *system.Engine {
 	e := &system.Engine{
 		Scope:     make(system.ScopeType),

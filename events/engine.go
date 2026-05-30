@@ -10,7 +10,7 @@ import (
 
 type DefaultEvents struct{}
 
-func (de *DefaultEvents) ParsingEvent(parser parsing.Parser) system.EventType {
+func (de *DefaultEvents) ParsingEvent(parser parsing.ParserInterface) system.EventType {
 	return func(e *system.Engine) error {
 		input, ok := e.Scope["input_string"].(string)
 		if !ok {

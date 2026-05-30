@@ -7,7 +7,7 @@ type Engine struct {
 	Commands  map[string]CommandMeta
 	Generator Generator
 	Event     Events
-	Parser    parsing.Parser
+	Parser    parsing.ParserInterface
 }
 
 func (e *Engine) Process(input string) error {
