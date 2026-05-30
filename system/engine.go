@@ -1,10 +1,13 @@
 package system
 
+import "github.com/pt-main/lc/parsing"
+
 type Engine struct {
 	Scope     ScopeType
 	Commands  map[string]CommandMeta
 	Generator Generator
 	Event     Events
+	Parser    parsing.Parser
 }
 
 func (e *Engine) Process(input string) error {

@@ -112,9 +112,13 @@ func (g *Generator) GetStringRes(sep string) (string, error) {
 }
 
 func NewGenerator(res_type int, pipeline []string) *Generator {
-	return &Generator{
+	g := &Generator{
 		code:     map[string][]codetype{},
 		Pipeline: pipeline,
 		res_type: res_type,
 	}
+	for _, point := range pipeline {
+		g.code[point] = []codetype{}
+	}
+	return g
 }
