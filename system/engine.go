@@ -26,12 +26,3 @@ func (e *Engine) NewCommand(cmd_switch string, handler CommandType, doc string) 
 		Doc:     doc,
 	}
 }
-
-func NewEngine(generator_res_type int, pipeline []string) *Engine {
-	return &Engine{
-		Scope:     make(ScopeType),
-		Commands:  make(map[string]CommandMeta),
-		Generator: *NewGenerator(generator_res_type, pipeline),
-		Event:     *NewEvents(),
-	}
-}
