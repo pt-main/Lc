@@ -34,7 +34,7 @@ func (de *DefaultEvents) CallEvent(e *system.Engine) error {
 	for _, node := range parsed {
 		cmd_switch := node.Switch
 		handler, ok := e.Commands[cmd_switch]
-		err := errors.New("")
+		var err error = nil
 		if ok {
 			err = handler.Handler(e, node)
 		}

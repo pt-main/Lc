@@ -14,7 +14,9 @@ type GrammarRule struct {
 type ParserConfig struct {
 	UseLineContinuation bool
 	UseBracketBalance   bool
+	SkipEmptyLines      bool
 	Brackets            []string
+	TrimBlocksSpace     bool
 }
 
 type Parser1 struct {
@@ -116,8 +118,11 @@ func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
 }
 
 func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
-	block = strings.TrimSpace(block)
-	if block == "" {
+	absolutely_raw := block
+	if p.config.TrimBlocksSpace {
+		block = strings.TrimSpace(block)
+	}
+	if block == "" && p.config.SkipEmptyLines {
 		return ParsedNode{Parsed: nil}, nil
 	}
 	for _, rule := range p.grammar {
@@ -132,7 +137,7 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 				}
 			}
 
-			meta["__raw"] = block
+			meta["__raw"] = absolutely_raw
 
 			return ParsedNode{
 				Parsed:   []string{block},
