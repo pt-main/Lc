@@ -1,7 +1,7 @@
 package parsing
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/dlclark/regexp2"
 )
@@ -19,24 +19,37 @@ func NewLexer(rules []LexerRule) *Lexer {
 	return &Lexer{rules: rules}
 }
 
+func snippet(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
+
 func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 	var nodes []ParsedNode
+	runes := []rune(code)
 	pos := 0
-	length := len(code)
+	length := len(runes)
 
 	for pos < length {
 		matched := false
 		for _, rule := range lp.rules {
-			m, err := rule.Pattern.FindStringMatch(code[pos:])
+
+			subStr := string(runes[pos:])
+			m, err := rule.Pattern.FindStringMatch(subStr)
 			if err != nil {
 				return nil, err
 			}
 			if m != nil && m.Index == 0 {
-				tokenValue := code[pos : pos+m.Length]
+				tokenRunes := runes[pos : pos+m.Length]
+				tokenValue := string(tokenRunes)
+
 				meta := map[string]interface{}{
 					"__raw": tokenValue,
 					"value": tokenValue,
 				}
+
 				groupNames := rule.Pattern.GetGroupNames()
 				for _, name := range groupNames {
 					if name != "0" {
@@ -57,7 +70,7 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 			}
 		}
 		if !matched {
-			return nil, errors.New("lexer error: unexpected sequence at position " + string(rune(pos)))
+			return nil, fmt.Errorf("lexer error: unexpected sequence near '%s' position %v", snippet(string(runes[pos:]), 20), pos)
 		}
 	}
 	return nodes, nil
