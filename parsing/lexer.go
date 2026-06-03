@@ -2,23 +2,24 @@ package parsing
 
 import (
 	"errors"
-	"regexp"
+
+	"github.com/dlclark/regexp2"
 )
 
 type LexerRule struct {
 	Type    string
-	Pattern *regexp.Regexp
+	Pattern *regexp2.Regexp
 }
 
-type LexerParser struct {
+type Lexer struct {
 	rules []LexerRule
 }
 
-func NewLexerParser(rules []LexerRule) *LexerParser {
-	return &LexerParser{rules: rules}
+func NewLexer(rules []LexerRule) *Lexer {
+	return &Lexer{rules: rules}
 }
 
-func (lp *LexerParser) Parse(code string) ([]ParsedNode, error) {
+func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 	var nodes []ParsedNode
 	pos := 0
 	length := len(code)
@@ -26,20 +27,22 @@ func (lp *LexerParser) Parse(code string) ([]ParsedNode, error) {
 	for pos < length {
 		matched := false
 		for _, rule := range lp.rules {
-			loc := rule.Pattern.FindStringIndex(code[pos:])
-			if loc != nil && loc[0] == 0 {
-				tokenValue := code[pos : pos+loc[1]]
+			m, err := rule.Pattern.FindStringMatch(code[pos:])
+			if err != nil {
+				return nil, err
+			}
+			if m != nil && m.Index == 0 {
+				tokenValue := code[pos : pos+m.Length]
 				meta := map[string]interface{}{
 					"__raw": tokenValue,
 					"value": tokenValue,
 				}
-
-				matches := rule.Pattern.FindStringSubmatch(code[pos:])
-				if matches != nil {
-					names := rule.Pattern.SubexpNames()
-					for i, name := range names {
-						if name != "" && i < len(matches) {
-							meta[name] = matches[i]
+				groupNames := rule.Pattern.GetGroupNames()
+				for _, name := range groupNames {
+					if name != "0" {
+						grp := m.GroupByName(name)
+						if grp != nil {
+							meta[name] = grp.String()
 						}
 					}
 				}
@@ -48,7 +51,7 @@ func (lp *LexerParser) Parse(code string) ([]ParsedNode, error) {
 					Switch:   rule.Type,
 					Metadata: meta,
 				})
-				pos += loc[1]
+				pos += m.Length
 				matched = true
 				break
 			}

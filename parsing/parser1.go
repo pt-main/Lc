@@ -26,7 +26,7 @@ type Parser1 struct {
 	closeToOpen map[rune]rune
 }
 
-func NewParser(rules []GrammarRule, config ParserConfig) *Parser1 {
+func NewParser1(rules []GrammarRule, config ParserConfig) *Parser1 {
 	openToClose := make(map[rune]rune)
 	closeToOpen := make(map[rune]rune)
 	for _, pair := range config.Brackets {
