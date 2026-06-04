@@ -5,8 +5,8 @@ import "github.com/pt-main/lc/byteParsing"
 type ByteEngine struct {
 	Scope     ScopeType
 	Commands  map[int]CommandMeta
-	Generator Generator
-	Event     Events
+	Generator *Generator
+	Event     *Events
 	Parser    byteParsing.ParserInterface
 }
 

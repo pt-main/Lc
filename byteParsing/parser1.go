@@ -16,7 +16,7 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := Utils{}
 	result := []ParsedBytes{}
 	idx := 0
-	shiftStruct := u.ShiftStruct(code)
+	shiftStruct := u.ShiftStruct(code, &idx)
 	shift := shiftStruct.ShiftError
 	for idx < len(code) {
 		idx_start := idx

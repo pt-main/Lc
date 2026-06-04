@@ -18,14 +18,14 @@ func NewStringEngine(
 	e := &system.StringEngine{
 		Scope:     make(system.ScopeType),
 		Commands:  make(map[string]system.CommandMeta),
-		Generator: *system.NewGenerator(generator_res_type, pipeline),
-		Event:     *system.NewEvents(),
+		Generator: system.NewGenerator(generator_res_type, pipeline),
+		Event:     system.NewEvents(),
 		Parser:    parser,
 	}
 	if add_default_events {
 		de := events.DefaultEvents{}
-		e.Event.NewEvent(system.ParseEvent, de.StringParsingEvent(parser))
-		e.Event.NewEvent(system.ParseEvent, de.StringCallEvent)
+		e.Event.NewEvent(system.StringParseEvent, de.StringParsingEvent(parser))
+		e.Event.NewEvent(system.StringCallEvent, de.StringCallEvent)
 	}
 	return e
 }
@@ -36,11 +36,17 @@ func NewByteEngine(
 	add_default_events bool,
 	parser byteParsing.ParserInterface,
 ) *system.ByteEngine {
+	e := system.NewEvents()
+	if add_default_events {
+		de := events.DefaultEvents{}
+		e.NewEvent(system.ByteParseEvent, de.ByteParsingEvent(parser))
+		e.NewEvent(system.ByteCallEvent, de.ByteCallEvent)
+	}
 	return &system.ByteEngine{
 		Scope:     make(system.ScopeType),
 		Commands:  make(map[int]system.CommandMeta),
-		Generator: *system.NewGenerator(generator_res_type, pipeline),
-		Event:     *system.NewEvents(),
+		Generator: system.NewGenerator(generator_res_type, pipeline),
+		Event:     e,
 		Parser:    parser,
 	}
 }

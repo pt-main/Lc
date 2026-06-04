@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/stringParsing"
 )
 
@@ -30,4 +31,27 @@ func (c Converts) ConvertStringCommandTypeArgs(args []interface{},
 		)
 	}
 	return stringEngine, parsedNode, nil
+}
+
+func (c Converts) ConvertByteCommandTypeArgs(args []interface{},
+) (*ByteEngine, byteParsing.ParsedBytes, error) {
+	if len(args) != 2 {
+		return nil, byteParsing.ParsedBytes{}, errors.New(
+			"Can't convert args: len of args is " + strconv.Itoa(len(args)) +
+				" (must be 2)",
+		)
+	}
+	byteEngine, ok1 := args[0].(*ByteEngine)
+	if !ok1 {
+		return nil, byteParsing.ParsedBytes{}, errors.New(
+			"Can't get a *ByteEngine from invalid interface.",
+		)
+	}
+	parsedBytes, ok2 := args[1].(byteParsing.ParsedBytes)
+	if !ok2 {
+		return nil, byteParsing.ParsedBytes{}, errors.New(
+			"Can't get a ParsedBytes from invalid interface.",
+		)
+	}
+	return byteEngine, parsedBytes, nil
 }

@@ -5,8 +5,8 @@ import "github.com/pt-main/lc/stringParsing"
 type StringEngine struct {
 	Scope     ScopeType
 	Commands  map[string]CommandMeta
-	Generator Generator
-	Event     Events
+	Generator *Generator
+	Event     *Events
 	Parser    stringParsing.ParserInterface
 }
 
