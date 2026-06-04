@@ -41,10 +41,15 @@ func (e *Events) NewEvent(name string, event EventType) {
 	e.events.Set(name, append(list, event))
 }
 
-func (e *Events) CallEvents(engine interface{}, name string) error {
+func (e *Events) CallEvents(engine interface{}, name string,
+	canWorkWithoutHandler bool) error {
 	res, err := e.GetEvents(name)
 	if err != nil {
-		return nil
+		if canWorkWithoutHandler {
+			return nil
+		} else {
+			return errors.New("Event '" + name + "' not found.")
+		}
 	}
 	for _, event := range res {
 		err := event(engine)

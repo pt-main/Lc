@@ -1,8 +1,10 @@
 package system
 
 const (
-	ParseEvent = "input_string->parsed_[]ParsedNode"
-	CallEvent  = "call(parsed_[]ParsedNode)"
+	StringParseEvent = "input_string->parsed_[]ParsedNode"
+	StringCallEvent  = "call(parsed_[]ParsedNode)"
+	ByteParseEvent   = "input_[]byte->parsed_[]ParsedBytes"
+	ByteCallEvent    = "call(parsed_[]ParsedBytes)"
 )
 
 type CommandType func([]interface{}) error

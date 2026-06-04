@@ -10,7 +10,7 @@ const (
 	StringResType
 )
 
-type codetype interface{}
+type codetype any
 
 type Generator struct {
 	mu       sync.RWMutex

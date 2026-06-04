@@ -14,19 +14,22 @@ func (u *Utils) BytesToInt(bytes []byte) int {
 
 type shift struct {
 	code []byte
-	idx  int
+	Idx  int
 }
 
-func (u *Utils) ShiftStruct(code []byte) {
-
+func (u *Utils) ShiftStruct(code []byte) *shift {
+	return &shift{
+		code: code,
+		Idx:  0,
+	}
 }
 
 func (s *shift) ShiftError(length int) ([]byte, error) {
-	if s.idx+length > len(s.code) {
+	if s.Idx+length > len(s.code) {
 		return nil, errors.New("Unexpected end of data")
 	}
-	res := s.code[s.idx : s.idx+length]
-	s.idx += length
+	res := s.code[s.Idx : s.Idx+length]
+	s.Idx += length
 	return res, nil
 }
 

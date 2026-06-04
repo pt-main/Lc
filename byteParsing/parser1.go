@@ -16,14 +16,8 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := Utils{}
 	result := []ParsedBytes{}
 	idx := 0
-	shift := func(length int) ([]byte, error) {
-		if idx+length > len(code) {
-			return nil, errors.New("unexpected end of data")
-		}
-		res := code[idx : idx+length]
-		idx += length
-		return res, nil
-	}
+	shiftStruct := u.ShiftStruct(code)
+	shift := shiftStruct.ShiftError
 	for idx < len(code) {
 		idx_start := idx
 		command, err := shift(p.Config.CommandBytelen)
@@ -42,6 +36,9 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 				return nil, err
 			}
 			arglen := u.BytesToInt(arglenBytes)
+			if arglen == 0 {
+				return nil, errors.New("Can't form args with 0 argument length")
+			}
 			arg, err := shift(arglen)
 			if err != nil {
 				return nil, err

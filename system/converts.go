@@ -23,7 +23,7 @@ func (c Converts) ConvertStringCommandTypeArgs(args []interface{},
 			"Can't get a *StringEngine from invalid interface.",
 		)
 	}
-	parsedNode, ok2 := args[0].(stringParsing.ParsedNode)
+	parsedNode, ok2 := args[1].(stringParsing.ParsedNode)
 	if !ok2 {
 		return nil, stringParsing.ParsedNode{}, errors.New(
 			"Can't get a ParsedNode from invalid interface.",

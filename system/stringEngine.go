@@ -12,11 +12,11 @@ type StringEngine struct {
 
 func (e *StringEngine) Process(input string) error {
 	e.Scope["input_string"] = input
-	err1 := e.Event.CallEvents(e, ParseEvent)
+	err1 := e.Event.CallEvents(e, StringParseEvent, false)
 	if err1 != nil {
 		return err1
 	}
-	err2 := e.Event.CallEvents(e, CallEvent)
+	err2 := e.Event.CallEvents(e, StringCallEvent, false)
 	if err2 != nil {
 		return err2
 	}
