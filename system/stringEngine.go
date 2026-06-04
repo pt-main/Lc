@@ -1,16 +1,16 @@
 package system
 
-import "github.com/pt-main/lc/parsing"
+import "github.com/pt-main/lc/stringParsing"
 
-type Engine struct {
+type StringEngine struct {
 	Scope     ScopeType
 	Commands  map[string]CommandMeta
 	Generator Generator
 	Event     Events
-	Parser    parsing.ParserInterface
+	Parser    stringParsing.ParserInterface
 }
 
-func (e *Engine) Process(input string) error {
+func (e *StringEngine) Process(input string) error {
 	e.Scope["input_string"] = input
 	err1 := e.Event.CallEvents(e, ParseEvent)
 	if err1 != nil {
@@ -23,7 +23,7 @@ func (e *Engine) Process(input string) error {
 	return nil
 }
 
-func (e *Engine) NewCommand(cmd_switch string, handler CommandType, doc string) {
+func (e *StringEngine) NewCommand(cmd_switch string, handler CommandType, doc string) {
 	e.Commands[cmd_switch] = CommandMeta{
 		Handler: handler,
 		Doc:     doc,

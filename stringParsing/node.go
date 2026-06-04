@@ -1,4 +1,4 @@
-package parsing
+package stringParsing
 
 type ParsedNode struct {
 	Parsed   []string

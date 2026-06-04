@@ -4,14 +4,13 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/stringParsing"
 	"github.com/pt-main/lc/system"
 )
 
-type DefaultEvents struct{}
-
-func (de *DefaultEvents) ParsingEvent(parser parsing.ParserInterface) system.EventType {
-	return func(e *system.Engine) error {
+func (de *DefaultEvents) StringParsingEvent(parser stringParsing.ParserInterface) system.EventType {
+	return func(_e interface{}) error {
+		e := _e.(*system.StringEngine)
 		input, ok := e.Scope["input_string"].(string)
 		if !ok {
 			return errors.New("no input in scope")
@@ -25,9 +24,10 @@ func (de *DefaultEvents) ParsingEvent(parser parsing.ParserInterface) system.Eve
 	}
 }
 
-func (de *DefaultEvents) CallEvent(e *system.Engine) error {
+func (de *DefaultEvents) StringCallEvent(_e interface{}) error {
+	e := _e.(*system.StringEngine)
 	_parsed, _ := e.Scope["parsed_[]ParsedNode"]
-	parsed, ok := _parsed.([]parsing.ParsedNode)
+	parsed, ok := _parsed.([]stringParsing.ParsedNode)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
@@ -36,7 +36,7 @@ func (de *DefaultEvents) CallEvent(e *system.Engine) error {
 		handler, ok := e.Commands[cmd_switch]
 		var err error = nil
 		if ok {
-			err = handler.Handler(e, node)
+			err = handler.Handler([]interface{}{e, node})
 		}
 		_raw, ok := node.Metadata["__raw"]
 		if !ok {

@@ -1,4 +1,4 @@
-package parsing
+package stringParsing
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ type GrammarRule struct {
 	Pattern *regexp.Regexp
 }
 
-type ParserConfig struct {
+type Parser1Config struct {
 	UseLineContinuation bool
 	UseBracketBalance   bool
 	SkipEmptyLines      bool
@@ -21,12 +21,12 @@ type ParserConfig struct {
 
 type Parser1 struct {
 	grammar     []GrammarRule
-	config      ParserConfig
+	config      Parser1Config
 	openToClose map[rune]rune
 	closeToOpen map[rune]rune
 }
 
-func NewParser1(rules []GrammarRule, config ParserConfig) *Parser1 {
+func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	openToClose := make(map[rune]rune)
 	closeToOpen := make(map[rune]rune)
 	for _, pair := range config.Brackets {
