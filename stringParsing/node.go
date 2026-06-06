@@ -1,7 +1,7 @@
 package stringParsing
 
 type ParsedNode struct {
-	Parsed   []string
+	Raw      string
 	Switch   string
 	Metadata map[string]interface{}
 }

@@ -59,7 +59,7 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 					}
 				}
 				nodes = append(nodes, ParsedNode{
-					Parsed:   []string{tokenValue},
+					Raw:      tokenValue,
 					Switch:   rule.Type,
 					Metadata: meta,
 				})

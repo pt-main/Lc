@@ -1,10 +1,10 @@
-package system
+package engine
 
 import (
 	"fmt"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/stringParsing"
-	"github.com/pt-main/lc/system/core"
 )
 
 type StringEngine struct {

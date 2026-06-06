@@ -80,7 +80,7 @@ func (s *shift) ShiftError(length int) ([]byte, error) {
 	return res, nil
 }
 
-func (s *shift) SiftPanic(length int) []byte {
+func (s *shift) ShiftPanic(length int) []byte {
 	bytes, err := s.ShiftError(length)
 	if err != nil {
 		panic("Can't continue shifting, error: " + err.Error())

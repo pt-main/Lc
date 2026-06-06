@@ -2,14 +2,18 @@ package events
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/stringParsing"
-	"github.com/pt-main/lc/system"
 )
 
 func (de *DefaultEvents) StringParsingEvent(_e interface{}) error {
-	e := _e.(*system.StringEngine)
+	e, ok := _e.(*engine.StringEngine)
+	if !ok {
+		return fmt.Errorf("Can't get byte engine: invalid iput")
+	}
 	input, ok := e.UEP.Scope["input_string"].(string)
 	if !ok {
 		return errors.New("No input in scope or invalid input")
@@ -23,7 +27,10 @@ func (de *DefaultEvents) StringParsingEvent(_e interface{}) error {
 }
 
 func (de *DefaultEvents) StringCallEvent(_e interface{}) error {
-	e := _e.(*system.StringEngine)
+	e, ok := _e.(*engine.StringEngine)
+	if !ok {
+		return fmt.Errorf("Can't get byte engine: invalid iput")
+	}
 	_parsed, _ := e.UEP.Scope["parsed_[]ParsedNode"]
 	parsed, ok := _parsed.([]stringParsing.ParsedNode)
 	if !ok {

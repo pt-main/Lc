@@ -66,9 +66,9 @@ func (e *Events) callEvents(input interface{}, name string,
 
 func (e *Events) CallEvents(input interface{}, name string,
 	canWorkWithoutHandler bool) error {
-	e.Scope["event_input"] = input
+	e.Scope["call_name"] = name
 	var err error
-	err = e.callEvents(name, CallEventsEvent, true)
+	err = e.callEvents(input, CallEventsEvent, true)
 	if err != nil {
 		return err
 	}

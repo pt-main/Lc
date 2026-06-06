@@ -1,10 +1,10 @@
-package system
+package engine
 
 import (
 	"fmt"
 
 	"github.com/pt-main/lc/byteParsing"
-	"github.com/pt-main/lc/system/core"
+	"github.com/pt-main/lc/engine/core"
 )
 
 type ByteEngine struct {

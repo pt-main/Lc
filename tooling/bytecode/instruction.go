@@ -1,13 +1,13 @@
 package bytecode
 
-type InstructionsGenrator struct {
+type InstructionsGenerator struct {
 	OpcodeLen    int
 	ArglenLen    int
 	ArgscountLen int
 	Endianess    int
 }
 
-func (ig *InstructionsGenrator) Generate(
+func (ig *InstructionsGenerator) Generate(
 	opcode int, args [][]byte,
 ) []byte {
 	u := Utils{}

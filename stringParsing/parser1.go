@@ -57,7 +57,7 @@ func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
 		if err != nil {
 			return err
 		}
-		if node.Parsed != nil {
+		if node.Raw != "" {
 			result = append(result, node)
 		}
 		return nil
@@ -123,7 +123,7 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 		block = strings.TrimSpace(block)
 	}
 	if block == "" && p.config.SkipEmptyLines {
-		return ParsedNode{Parsed: nil}, nil
+		return ParsedNode{Raw: ""}, nil
 	}
 	for _, rule := range p.grammar {
 		if rule.Pattern.MatchString(block) {
@@ -140,7 +140,7 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 			meta["__raw"] = absolutely_raw
 
 			return ParsedNode{
-				Parsed:   []string{block},
+				Raw:      block,
 				Switch:   rule.Type,
 				Metadata: meta,
 			}, nil

@@ -31,7 +31,7 @@ func (p *Parser2) Parse(code string) ([]ParsedNode, error) {
 		}
 
 		node := ParsedNode{
-			Parsed:   []string{rawLine},
+			Raw:      rawLine,
 			Switch:   command,
 			Metadata: meta,
 		}

@@ -25,7 +25,7 @@ func (l *Logger) GetStatusForm(status string) string {
 
 func (l *Logger) PrintLog(status string, message string) {
 	format := l.GetStatusForm(status)
-	line := fmt.Sprintf(format, time.Now().UTC(), message)
+	line := fmt.Sprintf(format, status, time.Now().UTC(), message)
 	fmt.Print(line)
 	l.mu.Lock()
 	l.Log = append(l.Log, line)
@@ -34,4 +34,15 @@ func (l *Logger) PrintLog(status string, message string) {
 
 func (l *Logger) GetLog() string {
 	return strings.Join(l.Log, "\n")
+}
+
+func NewLogger(defaultStatusForm string) *Logger {
+	if defaultStatusForm == "" {
+		defaultStatusForm = "%v [%v] [%s]"
+	}
+	return &Logger{
+		Log:               make([]string, 0),
+		Statuses:          make(map[string]string),
+		DefaultStatusForm: defaultStatusForm,
+	}
 }
