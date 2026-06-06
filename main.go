@@ -8,7 +8,7 @@ import (
 	"github.com/pt-main/lc/stringParsing"
 )
 
-const Version = "0.8.8"
+const Version = "0.9.1"
 
 func NewStringEngine(
 	generator_res_type int,
