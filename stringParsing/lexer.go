@@ -45,8 +45,8 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 				tokenValue := string(tokenRunes)
 
 				meta := map[string]interface{}{
-					"__raw": tokenValue,
-					"value": tokenValue,
+					"__raw":   tokenValue,
+					"__value": tokenValue,
 				}
 
 				groupNames := rule.Pattern.GetGroupNames()
