@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	CallEventsEvent = "call(Events.CallEvents)"
+	CallEventsStartEvent = "->call(Events.CallEvents)"
+	CallEventsEndEvent   = "call(Events.CallEvents)->"
 )
 
 type Events struct {
@@ -68,11 +69,16 @@ func (e *Events) CallEvents(input interface{}, name string,
 	canWorkWithoutHandler bool) error {
 	e.Scope["call_name"] = name
 	var err error
-	err = e.callEvents(input, CallEventsEvent, true)
+	err = e.callEvents(input, CallEventsStartEvent, true)
 	if err != nil {
 		return err
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
+	e.Scope["call_error"] = name
+	err1 := e.callEvents(input, CallEventsEndEvent, true)
+	if err1 != nil {
+		return err1
+	}
 	if err != nil {
 		return err
 	}
