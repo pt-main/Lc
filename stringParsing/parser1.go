@@ -114,7 +114,7 @@ func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
 		}
 	}
 
-	return result, nil
+	return addPrevNextNodes(result), nil
 }
 
 func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {

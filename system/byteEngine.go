@@ -1,30 +1,33 @@
 package system
 
-import "github.com/pt-main/lc/byteParsing"
+import (
+	"fmt"
+
+	"github.com/pt-main/lc/byteParsing"
+	"github.com/pt-main/lc/system/core"
+)
 
 type ByteEngine struct {
-	Scope     ScopeType
-	Commands  map[int]CommandMeta
-	Generator *Generator
-	Event     *Events
-	Parser    byteParsing.ParserInterface
+	Commands map[int]core.CommandMeta
+	Parser   byteParsing.ParserInterface
+	UEP      core.UniversalEngineParams
 }
 
 func (e *ByteEngine) Process(input []byte) error {
-	e.Scope["input_[]byte"] = input
-	err1 := e.Event.CallEvents(e, ByteParseEvent, false)
+	e.UEP.Scope["input_[]byte"] = input
+	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)
 	if err1 != nil {
-		return err1
+		return fmt.Errorf("Calling 'ByteParseEvent' event error: %v", err1.Error())
 	}
-	err2 := e.Event.CallEvents(e, ByteCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(e, core.ByteCallEvent, false)
 	if err2 != nil {
-		return err2
+		return fmt.Errorf("Calling 'ByteCallEvent' event error: %v", err2.Error())
 	}
 	return nil
 }
 
-func (e *ByteEngine) NewCommand(cmd_switch int, handler CommandType, doc string) {
-	e.Commands[cmd_switch] = CommandMeta{
+func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, doc string) {
+	e.Commands[cmd_switch] = core.CommandMeta{
 		Handler: handler,
 		Doc:     doc,
 	}

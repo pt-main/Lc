@@ -1,10 +1,14 @@
-package system
+package core
 
 import (
 	"errors"
 	"sync"
 
 	"github.com/iancoleman/orderedmap"
+)
+
+const (
+	CallEventsEvent = "call(Events.CallEvents)"
 )
 
 type Events struct {
@@ -41,7 +45,7 @@ func (e *Events) NewEvent(name string, event EventType) {
 	e.events.Set(name, append(list, event))
 }
 
-func (e *Events) CallEvents(engine interface{}, name string,
+func (e *Events) callEvents(input interface{}, name string,
 	canWorkWithoutHandler bool) error {
 	res, err := e.GetEvents(name)
 	if err != nil {
@@ -52,12 +56,28 @@ func (e *Events) CallEvents(engine interface{}, name string,
 		}
 	}
 	for _, event := range res {
-		err := event(engine)
+		err := event(input)
 		if err != nil {
 			return errors.New("Event error: " + err.Error())
 		}
 	}
 	return nil
+}
+
+func (e *Events) CallEvents(input interface{}, name string,
+	canWorkWithoutHandler bool) error {
+	e.Scope["event_input"] = input
+	var err error
+	err = e.callEvents(name, CallEventsEvent, true)
+	if err != nil {
+		return err
+	}
+	err = e.callEvents(input, name, canWorkWithoutHandler)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func NewEvents() *Events {

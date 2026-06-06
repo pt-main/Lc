@@ -5,9 +5,10 @@ import (
 	"github.com/pt-main/lc/events"
 	"github.com/pt-main/lc/stringParsing"
 	"github.com/pt-main/lc/system"
+	"github.com/pt-main/lc/system/core"
 )
 
-const Version = "0.6.3"
+const Version = "0.8.8"
 
 func NewStringEngine(
 	generator_res_type int,
@@ -15,19 +16,21 @@ func NewStringEngine(
 	add_default_events bool,
 	parser stringParsing.ParserInterface,
 ) *system.StringEngine {
-	e := &system.StringEngine{
-		Scope:     make(system.ScopeType),
-		Commands:  make(map[string]system.CommandMeta),
-		Generator: system.NewGenerator(generator_res_type, pipeline),
-		Event:     system.NewEvents(),
-		Parser:    parser,
-	}
+	e := core.NewEvents()
 	if add_default_events {
 		de := events.DefaultEvents{}
-		e.Event.NewEvent(system.StringParseEvent, de.StringParsingEvent(parser))
-		e.Event.NewEvent(system.StringCallEvent, de.StringCallEvent)
+		e.NewEvent(core.StringParseEvent, de.StringParsingEvent)
+		e.NewEvent(core.StringCallEvent, de.StringCallEvent)
 	}
-	return e
+	return &system.StringEngine{
+		UEP: core.UniversalEngineParams{
+			Scope:     make(core.ScopeType),
+			Generator: core.NewGenerator(generator_res_type, pipeline),
+			Event:     e,
+		},
+		Commands: make(map[string]core.CommandMeta),
+		Parser:   parser,
+	}
 }
 
 func NewByteEngine(
@@ -35,18 +38,21 @@ func NewByteEngine(
 	pipeline []string,
 	add_default_events bool,
 	parser byteParsing.ParserInterface,
+	endianess int,
 ) *system.ByteEngine {
-	e := system.NewEvents()
+	e := core.NewEvents()
 	if add_default_events {
 		de := events.DefaultEvents{}
-		e.NewEvent(system.ByteParseEvent, de.ByteParsingEvent(parser))
-		e.NewEvent(system.ByteCallEvent, de.ByteCallEvent)
+		e.NewEvent(core.ByteParseEvent, de.ByteParsingEvent)
+		e.NewEvent(core.ByteCallEvent, de.ByteCallEvent)
 	}
 	return &system.ByteEngine{
-		Scope:     make(system.ScopeType),
-		Commands:  make(map[int]system.CommandMeta),
-		Generator: system.NewGenerator(generator_res_type, pipeline),
-		Event:     e,
-		Parser:    parser,
+		UEP: core.UniversalEngineParams{
+			Scope:     core.ScopeType{"endianess": endianess},
+			Generator: core.NewGenerator(generator_res_type, pipeline),
+			Event:     e,
+		},
+		Commands: make(map[int]core.CommandMeta),
+		Parser:   parser,
 	}
 }

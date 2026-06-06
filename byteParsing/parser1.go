@@ -1,11 +1,16 @@
 package byteParsing
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/pt-main/lc/tooling/bytecode"
+)
 
 type Parser1Config struct {
 	CommandBytelen   int
 	ArglenBytelen    int
 	ArgscountBytelen int
+	Endianess        int
 }
 
 type Parser1 struct {
@@ -13,7 +18,7 @@ type Parser1 struct {
 }
 
 func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
-	u := Utils{}
+	u := bytecode.Utils{}
 	result := []ParsedBytes{}
 	idx := 0
 	shiftStruct := u.ShiftStruct(code, &idx)
@@ -28,14 +33,14 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 		if err != nil {
 			return nil, err
 		}
-		argscount := u.BytesToInt(argscountBytes)
+		argscount := u.BytesToInt(argscountBytes, p.Config.Endianess)
 		args := [][]byte{}
 		for range argscount {
 			arglenBytes, err := shift(p.Config.ArglenBytelen)
 			if err != nil {
 				return nil, err
 			}
-			arglen := u.BytesToInt(arglenBytes)
+			arglen := u.BytesToInt(arglenBytes, p.Config.Endianess)
 			if arglen == 0 {
 				return nil, errors.New("Can't form args with 0 argument length")
 			}

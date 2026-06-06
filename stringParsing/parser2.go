@@ -39,7 +39,7 @@ func (p *Parser2) Parse(code string) ([]ParsedNode, error) {
 	}
 
 	if len(result) == 0 {
-		return nil, errors.New("no valid lines found")
+		return nil, errors.New("No valid lines found")
 	}
 	return result, nil
 }

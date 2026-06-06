@@ -1,30 +1,33 @@
 package system
 
-import "github.com/pt-main/lc/stringParsing"
+import (
+	"fmt"
+
+	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/system/core"
+)
 
 type StringEngine struct {
-	Scope     ScopeType
-	Commands  map[string]CommandMeta
-	Generator *Generator
-	Event     *Events
-	Parser    stringParsing.ParserInterface
+	Commands map[string]core.CommandMeta
+	Parser   stringParsing.ParserInterface
+	UEP      core.UniversalEngineParams
 }
 
 func (e *StringEngine) Process(input string) error {
-	e.Scope["input_string"] = input
-	err1 := e.Event.CallEvents(e, StringParseEvent, false)
+	e.UEP.Scope["input_string"] = input
+	err1 := e.UEP.Event.CallEvents(e, core.StringParseEvent, false)
 	if err1 != nil {
-		return err1
+		return fmt.Errorf("Calling 'StringParseEvent' event error: %v", err1.Error())
 	}
-	err2 := e.Event.CallEvents(e, StringCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(e, core.StringCallEvent, false)
 	if err2 != nil {
-		return err2
+		return fmt.Errorf("Calling 'StringCallEvent' event error: %v", err2.Error())
 	}
 	return nil
 }
 
-func (e *StringEngine) NewCommand(cmd_switch string, handler CommandType, doc string) {
-	e.Commands[cmd_switch] = CommandMeta{
+func (e *StringEngine) NewCommand(cmd_switch string, handler core.CommandType, doc string) {
+	e.Commands[cmd_switch] = core.CommandMeta{
 		Handler: handler,
 		Doc:     doc,
 	}

@@ -35,7 +35,6 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 	for pos < length {
 		matched := false
 		for _, rule := range lp.rules {
-
 			subStr := string(runes[pos:])
 			m, err := rule.Pattern.FindStringMatch(subStr)
 			if err != nil {
@@ -73,5 +72,5 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 			return nil, fmt.Errorf("lexer error: unexpected sequence near '%s' position %v", snippet(string(runes[pos:]), 20), pos)
 		}
 	}
-	return nodes, nil
+	return addPrevNextNodes(nodes), nil
 }

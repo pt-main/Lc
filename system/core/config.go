@@ -1,4 +1,4 @@
-package system
+package core
 
 const (
 	StringParseEvent = "input_string->parsed_[]ParsedNode"

@@ -8,25 +8,23 @@ import (
 	"github.com/pt-main/lc/system"
 )
 
-func (de *DefaultEvents) StringParsingEvent(parser stringParsing.ParserInterface) system.EventType {
-	return func(_e interface{}) error {
-		e := _e.(*system.StringEngine)
-		input, ok := e.Scope["input_string"].(string)
-		if !ok {
-			return errors.New("no input in scope")
-		}
-		nodes, err := parser.Parse(input)
-		if err != nil {
-			return err
-		}
-		e.Scope["parsed_[]ParsedNode"] = nodes
-		return nil
+func (de *DefaultEvents) StringParsingEvent(_e interface{}) error {
+	e := _e.(*system.StringEngine)
+	input, ok := e.UEP.Scope["input_string"].(string)
+	if !ok {
+		return errors.New("No input in scope or invalid input")
 	}
+	nodes, err := e.Parser.Parse(input)
+	if err != nil {
+		return err
+	}
+	e.UEP.Scope["parsed_[]ParsedNode"] = nodes
+	return nil
 }
 
 func (de *DefaultEvents) StringCallEvent(_e interface{}) error {
 	e := _e.(*system.StringEngine)
-	_parsed, _ := e.Scope["parsed_[]ParsedNode"]
+	_parsed, _ := e.UEP.Scope["parsed_[]ParsedNode"]
 	parsed, ok := _parsed.([]stringParsing.ParsedNode)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
