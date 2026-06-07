@@ -13,10 +13,22 @@ type Parser1Config struct {
 	Endianess        int
 }
 
+// Parser1 decodes a binary stream according to a fixed‑length field layout.
+// Each bytecode instruction consists of:
+//
+//	command (CommandBytelen bytes)
+//	argscount (ArgscountBytelen bytes)
+//	for each argument: arglen (ArglenBytelen bytes) followed by arg data.
+//
+// Endianess (Little/BigEndian) is used to decode integer fields.
 type Parser1 struct {
 	Config Parser1Config
 }
 
+// Parse reads the byte slice and returns a slice of ParsedBytes.
+// Each ParsedBytes contains the raw command bytes, the raw arguments,
+// and the original slice of the whole instruction. The ShiftStruct utility
+// is used internally for safe bounds checking. Returns error on malformed data.
 func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}

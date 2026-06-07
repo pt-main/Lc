@@ -9,6 +9,10 @@ import (
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
+// EngineBuilder is a fluent builder for constructing universal engines.
+// It allows to configure pipeline stages, event handling, logging,
+// custom parsers, scope variables, and byte order before calling Build().
+// Use NewEngineBuilder to create a builder instance.
 type EngineBuilder struct {
 	engineType       int
 	pipeline         []string
@@ -20,6 +24,15 @@ type EngineBuilder struct {
 	endianess        int
 }
 
+// NewEngineBuilder creates a new EngineBuilder for the given engine type.
+// engineType must be either ByteEngineType or StringEngineType.
+// Defaults: pipeline = []string{"main"}, default events enabled,
+// endianess = bytecode.LittleEndian, empty scope.
+// Example:
+//
+//	builder := lc.NewEngineBuilder(lc.StringEngineType).
+//	            WithPipeline([]string{"pre","main"}).
+//	            WithStringParser(myParser)
 func NewEngineBuilder(engineType int) *EngineBuilder {
 	return &EngineBuilder{
 		engineType:       engineType,
@@ -67,6 +80,10 @@ func (b *EngineBuilder) WithEndianess(endianess int) *EngineBuilder {
 	return b
 }
 
+// Build constructs and returns an engineUniversal or an error if
+// required components are missing (e.g., a string parser for a StringEngine).
+// The returned engineUniversal can process strings or bytes depending
+// on its type and provides methods to register commands.
 func (b *EngineBuilder) Build() (*engineUniversal, error) {
 	switch b.engineType {
 	case StringEngineType:

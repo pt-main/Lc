@@ -7,12 +7,17 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
+// ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
+// It uses a byte parser to decode raw bytes into ParsedBytes structures.
+// The Process method triggers ByteParseEvent and ByteCallEvent in order.
 type ByteEngine struct {
 	Commands map[int]core.CommandMeta
 	Parser   byteParsing.ParserInterface
 	UEP      core.UniversalEngineParams
 }
 
+// Process transforms a byte slice by parsing it and invoking the registered
+// bytecode handlers. The parsed result is stored in scope["parsed_[]ParsedBytes"].
 func (e *ByteEngine) Process(input []byte) error {
 	e.UEP.Scope["input_[]byte"] = input
 	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)

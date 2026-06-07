@@ -10,6 +10,15 @@ import (
 
 const Version = "0.9.1"
 
+// NewStringEngine creates a ready-to-use string-based engine.
+// Parameters:
+//
+//	generator_res_type – core.StringResType (usually) for text generation.
+//	pipeline – ordered list of generation points (e.g., []string{"pre","main"}).
+//	add_default_events – if true, registers standard parsing and call events.
+//	parser – an implementation of stringParsing.ParserInterface.
+//
+// Returns a StringEngine with empty command map and initialized UEP.
 func NewStringEngine(
 	generator_res_type int,
 	pipeline []string,
@@ -33,6 +42,10 @@ func NewStringEngine(
 	}
 }
 
+// NewByteEngine creates a byte-oriented engine for binary formats or bytecode.
+// The endianess parameter (e.g., bytecode.LittleEndian) is stored in scope.
+// It registers default events when add_default_events is true.
+// The parser must implement byteParsing.ParserInterface.
 func NewByteEngine(
 	generator_res_type int,
 	pipeline []string,

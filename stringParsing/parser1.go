@@ -19,6 +19,10 @@ type Parser1Config struct {
 	TrimBlocksSpace     bool
 }
 
+// Parser1 implements a regex‑based grammar parser with line continuation
+// and bracket balancing support. It splits input into blocks and matches each
+// block against a set of GrammarRule patterns. The result is a slice of
+// ParsedNode with captured named groups stored in Metadata.
 type Parser1 struct {
 	grammar     []GrammarRule
 	config      Parser1Config
@@ -26,6 +30,14 @@ type Parser1 struct {
 	closeToOpen map[rune]rune
 }
 
+// NewParser1 constructs a Parser1 with given grammar rules and configuration.
+// Config fields:
+//
+//	UseLineContinuation – join lines ending with '\'.
+//	UseBracketBalance – accumulate lines until brackets are balanced.
+//	SkipEmptyLines – ignore empty blocks.
+//	Brackets – list of bracket pairs, e.g., []string{"()","[]"}.
+//	TrimBlocksSpace – trim whitespace from block before matching.
 func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	openToClose := make(map[rune]rune)
 	closeToOpen := make(map[rune]rune)
@@ -45,6 +57,10 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	}
 }
 
+// Parse splits the input code into logical blocks (handling continuation and
+// brackets) and applies grammar rules to each block. Returns a slice of
+// ParsedNode with Metadata containing regexp named groups and the original raw
+// line under "__raw". Errors if no rule matches a block.
 func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
 	lines := strings.Split(code, "\n")
 	var result []ParsedNode

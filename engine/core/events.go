@@ -12,6 +12,10 @@ const (
 	CallEventsEndEvent   = "call(Events.CallEvents)->"
 )
 
+// Events manages an ordered collection of event handlers. Each event has a
+// name (string) and a list of EventType functions. The CallEvents method
+// invokes all handlers of an event in registration order. Events can also
+// automatically wrap calls with start/end events for logging.
 type Events struct {
 	Scope  ScopeType
 	mu     sync.RWMutex
@@ -86,6 +90,9 @@ func (e *Events) CallEvents(input interface{}, name string,
 
 }
 
+// NewEvents creates an empty Events instance with an ordered map.
+// The Scope map is initially empty but can be used to pass data between
+// event handlers.
 func NewEvents() *Events {
 	return &Events{
 		Scope:  make(ScopeType),

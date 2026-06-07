@@ -12,6 +12,10 @@ const (
 
 type codetype any
 
+// Generator accumulates code fragments (strings or bytes) into named points
+// (e.g., "pre", "main"). The Pipeline defines the order in which points are
+// emitted. It supports both text and binary generation modes via res_type.
+// Thread‑safe due to internal mutex.
 type Generator struct {
 	mu       sync.RWMutex
 	code     map[string][]codetype
@@ -111,6 +115,9 @@ func (g *Generator) GetStringRes(sep string) (string, error) {
 	return res, nil
 }
 
+// NewGenerator initializes a Generator with a given resource type
+// (StringResType or ByteResType) and a pipeline slice. Empty code slices are
+// pre‑created for each pipeline point.
 func NewGenerator(res_type int, pipeline []string) *Generator {
 	g := &Generator{
 		code:     map[string][]codetype{},
