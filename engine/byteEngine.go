@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/pt-main/lc/byteParsing"
@@ -37,6 +38,17 @@ func (e *ByteEngine) Process(input []byte) error {
 	return nil
 }
 
+// Your handler MUST shift bytecode index!
+//
+// Usually it's like a:
+//
+//	AddToBytecodeIdx(1)
+//
+// Or:
+//
+//	SetBytecodeIdx(10) // jump
+//
+// * if index not shifted your program will be looped
 func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, doc string) {
 	e.Commands[cmd_switch] = core.CommandMeta{
 		Handler: handler,
@@ -49,5 +61,17 @@ func (e *ByteEngine) AddToBytecodeIdx(n int) {
 }
 
 func (e *ByteEngine) SetBytecodeIdx(n int) {
-	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = n
+	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = &n
+}
+
+func (e *ByteEngine) GetBytecodeIdx() (*int, error) {
+	_idx, ok := e.UEP.Scope[ByteEngineScopeBytecodeIdx]
+	if !ok {
+		return nil, errors.New("Can't get bytecode index: invalid scope")
+	}
+	idx, ok := _idx.(*int)
+	if !ok {
+		return nil, errors.New("Can't get bytecode index: invalid interface in scope")
+	}
+	return idx, nil
 }
