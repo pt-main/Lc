@@ -60,22 +60,22 @@ func (u *Utils) BytesToInt(bytes []byte, endianess int) int {
 }
 
 type Shift struct {
-	code []byte
+	Code []byte
 	Idx  *int
 }
 
-func (u *Utils) ShiftStruct(code []byte, idx *int) *Shift {
+func NewShift(code []byte, idx *int) *Shift {
 	return &Shift{
-		code: code,
+		Code: code,
 		Idx:  idx,
 	}
 }
 
 func (s *Shift) ShiftError(length int) ([]byte, error) {
-	if *s.Idx+length > len(s.code) {
+	if *s.Idx+length > len(s.Code) {
 		return nil, errors.New("Unexpected end of data")
 	}
-	res := s.code[*s.Idx : *s.Idx+length]
+	res := s.Code[*s.Idx : *s.Idx+length]
 	*s.Idx += length
 	return res, nil
 }

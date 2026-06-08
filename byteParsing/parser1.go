@@ -33,6 +33,7 @@ type Parser1 struct {
 func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}
+	p.Config.Shifter.Code = code
 	idx := 0
 	shift := p.Config.Shifter.ShiftError
 	for idx < len(code) {
