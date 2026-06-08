@@ -13,8 +13,7 @@ type UniversalEngineParams struct {
 	// Event *Events – allows hooking into parsing and command dispatch.
 	Event *Events
 	// Scope ScopeType – a map[string]interface{} that can be used to share
-	//   variables between events, parsers, and command handlers. Common keys:
-	//   "input_string", "input_[]byte", "parsed_[]ParsedNode", "parsed_[]ParsedBytes".
+	//   variables between events, parsers, and command handlers.
 	Scope ScopeType
 	// Logger *Logger – if set, logs internal steps (event calls, errors).
 	Logger *Logger

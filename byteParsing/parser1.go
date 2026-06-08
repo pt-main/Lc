@@ -33,8 +33,10 @@ type Parser1 struct {
 func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}
-	p.Config.Shifter.Code = code
+	_Idx := p.Config.Shifter.Idx
 	idx := 0
+	p.Config.Shifter.Idx = &idx
+	p.Config.Shifter.Code = code
 	shift := p.Config.Shifter.ShiftError
 	for idx < len(code) {
 		idx_start := idx
@@ -71,5 +73,6 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 			Metadata: make(map[string]interface{}),
 		})
 	}
+	p.Config.Shifter.Idx = _Idx
 	return result, nil
 }

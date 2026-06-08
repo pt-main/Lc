@@ -7,6 +7,12 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
+const (
+	ByteEngineScopeEndianess   = "ENDIANESS int"
+	ByteEngineScopeBytecodeIdx = "BYECODE_IDX *int"
+	ByteEngineScopeInput       = "INPUT []byte"
+)
+
 // ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
 // It uses a byte parser to decode raw bytes into ParsedBytes structures.
 // The Process method triggers ByteParseEvent and ByteCallEvent in order.
@@ -19,7 +25,7 @@ type ByteEngine struct {
 // Process transforms a byte slice by parsing it and invoking the registered
 // bytecode handlers. The parsed result is stored in scope["parsed_[]ParsedBytes"].
 func (e *ByteEngine) Process(input []byte) error {
-	e.UEP.Scope["input_[]byte"] = input
+	e.UEP.Scope[ByteEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)
 	if err1 != nil {
 		return fmt.Errorf("Calling 'ByteParseEvent' event error: %v", err1.Error())
@@ -36,4 +42,12 @@ func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, doc st
 		Handler: handler,
 		Doc:     doc,
 	}
+}
+
+func (e *ByteEngine) AddToBytecodeIdx(n int) {
+	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = *e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) + n
+}
+
+func (e *ByteEngine) SetBytecodeIdx(n int) {
+	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = n
 }

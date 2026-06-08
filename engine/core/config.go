@@ -1,10 +1,10 @@
 package core
 
 const (
-	StringParseEvent = "input_string->parsed_[]ParsedNode"
-	StringCallEvent  = "call(parsed_[]ParsedNode)"
-	ByteParseEvent   = "input_[]byte->parsed_[]ParsedBytes"
-	ByteCallEvent    = "call(parsed_[]ParsedBytes)"
+	StringParseEvent = "input string->parsed []ParsedNode"
+	StringCallEvent  = "call(parsed []ParsedNode)"
+	ByteParseEvent   = "input []byte->parsed []ParsedBytes"
+	ByteCallEvent    = "call(parsed []ParsedBytes)"
 )
 
 type CommandType func([]interface{}) error

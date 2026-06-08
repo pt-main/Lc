@@ -9,12 +9,14 @@ import (
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
+const ByteEngineScopeParsed = "parsed []ParsedBytes"
+
 func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid iput")
 	}
-	input, ok := e.UEP.Scope["input_[]byte"].([]byte)
+	input, ok := e.UEP.Scope[engine.ByteEngineScopeInput].([]byte)
 	if !ok {
 		return errors.New("no input in scope")
 	}
@@ -22,7 +24,7 @@ func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
 	if err != nil {
 		return err
 	}
-	e.UEP.Scope["parsed_[]ParsedBytes"] = nodes
+	e.UEP.Scope[ByteEngineScopeParsed] = nodes
 	return nil
 }
 
@@ -31,17 +33,22 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}) error {
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid iput")
 	}
-	_parsed, _ := e.UEP.Scope["parsed_[]ParsedBytes"]
+	_parsed, _ := e.UEP.Scope[ByteEngineScopeParsed]
 	parsed, ok := _parsed.([]byteParsing.ParsedBytes)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
 	u := bytecode.Utils{}
-	endianess, ok := e.UEP.Scope["endianess"].(int)
+	endianess, ok := e.UEP.Scope[engine.ByteEngineScopeEndianess].(int)
 	if !ok {
-		return fmt.Errorf("Can't get endianess: not declarated in scope")
+		return fmt.Errorf("Can't get endianess: not declarated in scope or invalid value")
 	}
-	for _, node := range parsed {
+	idx, ok := e.UEP.Scope[engine.ByteEngineScopeBytecodeIdx].(*int)
+	if !ok {
+		return errors.New("Can't get bytecode index: not declarated in scope or invalid value")
+	}
+	for *(idx) < len(parsed) {
+		node := parsed[*(idx)]
 		cmd_switch := u.BytesToInt(node.Switch, endianess)
 		handler, ok := e.Commands[cmd_switch]
 		var err error = nil

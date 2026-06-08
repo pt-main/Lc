@@ -73,7 +73,7 @@ func NewShift(code []byte, idx *int) *Shift {
 
 func (s *Shift) ShiftError(length int) ([]byte, error) {
 	if *s.Idx+length > len(s.Code) {
-		return nil, errors.New("Unexpected end of data")
+		return nil, errors.New("Shift error: Unexpected end of data")
 	}
 	res := s.Code[*s.Idx : *s.Idx+length]
 	*s.Idx += length

@@ -8,7 +8,7 @@ import (
 	"github.com/pt-main/lc/stringParsing"
 )
 
-const Version = "0.9.9"
+const Version = "0.9.11"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -53,6 +53,7 @@ func NewByteEngine(
 	parser byteParsing.ParserInterface,
 	endianess int,
 ) *engine.ByteEngine {
+	idx := 0
 	e := core.NewEvents()
 	if add_default_events {
 		de := events.DefaultEvents{}
@@ -61,7 +62,10 @@ func NewByteEngine(
 	}
 	return &engine.ByteEngine{
 		UEP: core.UniversalEngineParams{
-			Scope:     core.ScopeType{"endianess": endianess},
+			Scope: core.ScopeType{
+				engine.ByteEngineScopeEndianess:   endianess,
+				engine.ByteEngineScopeBytecodeIdx: &idx,
+			},
 			Generator: core.NewGenerator(generator_res_type, pipeline),
 			Event:     e,
 		},
