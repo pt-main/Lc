@@ -11,6 +11,7 @@ type Parser1Config struct {
 	ArglenBytelen    int
 	ArgscountBytelen int
 	Endianess        int
+	Shifter          bytecode.Shift
 }
 
 // Parser1 decodes a binary stream according to a fixed‑length field layout.
@@ -33,8 +34,7 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}
 	idx := 0
-	shiftStruct := u.ShiftStruct(code, &idx)
-	shift := shiftStruct.ShiftError
+	shift := p.Config.Shifter.ShiftError
 	for idx < len(code) {
 		idx_start := idx
 		command, err := shift(p.Config.CommandBytelen)

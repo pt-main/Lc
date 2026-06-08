@@ -80,11 +80,11 @@ func (b *EngineBuilder) WithEndianess(endianess int) *EngineBuilder {
 	return b
 }
 
-// Build constructs and returns an engineUniversal or an error if
+// Build constructs and returns an EngineUniversal or an error if
 // required components are missing (e.g., a string parser for a StringEngine).
 // The returned engineUniversal can process strings or bytes depending
 // on its type and provides methods to register commands.
-func (b *EngineBuilder) Build() (*engineUniversal, error) {
+func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 	switch b.engineType {
 	case StringEngineType:
 		if b.stringParser == nil {
@@ -102,7 +102,7 @@ func (b *EngineBuilder) Build() (*engineUniversal, error) {
 		for k, v := range b.scope {
 			strEngine.UEP.Scope[k] = v
 		}
-		return &engineUniversal{
+		return &EngineUniversal{
 			Type:         StringEngineType,
 			StringEngine: strEngine,
 			another:      engineAnother{opcode_counter: 0},
@@ -125,7 +125,7 @@ func (b *EngineBuilder) Build() (*engineUniversal, error) {
 		for k, v := range b.scope {
 			byteEngine.UEP.Scope[k] = v
 		}
-		return &engineUniversal{
+		return &EngineUniversal{
 			Type:       ByteEngineType,
 			ByteEngine: byteEngine,
 			another:    engineAnother{opcode_counter: 0},

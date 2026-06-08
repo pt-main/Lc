@@ -16,7 +16,7 @@ type engineAnother struct {
 	opcode_counter int
 }
 
-type engineUniversal struct {
+type EngineUniversal struct {
 	Type         int
 	StringEngine *engine.StringEngine
 	ByteEngine   *engine.ByteEngine
@@ -26,7 +26,7 @@ type engineUniversal struct {
 // ProcessString feeds a string input into the engine.
 // It works only for engines of type StringEngineType; otherwise returns an error.
 // Internally triggers the parse and call events, executing registered handlers.
-func (e *engineUniversal) ProcessString(input string) error {
+func (e *EngineUniversal) ProcessString(input string) error {
 	if e.Type != StringEngineType {
 		return errors.New("can't process string in byte engine")
 	}
@@ -35,14 +35,14 @@ func (e *engineUniversal) ProcessString(input string) error {
 
 // ProcessBytes feeds a byte slice into the engine (ByteEngineType only).
 // The input is passed via scope under key "input_[]byte", then parsed and processed.
-func (e *engineUniversal) ProcessBytes(input []byte) error {
+func (e *EngineUniversal) ProcessBytes(input []byte) error {
 	if e.Type != ByteEngineType {
 		return errors.New("can't process bytes in string engine")
 	}
 	return e.ByteEngine.Process(input)
 }
 
-func (e *engineUniversal) GetUEP() core.UniversalEngineParams {
+func (e *EngineUniversal) GetUEP() core.UniversalEngineParams {
 	if e.Type == StringEngineType {
 		return e.StringEngine.UEP
 	}
@@ -53,7 +53,7 @@ func (e *engineUniversal) GetUEP() core.UniversalEngineParams {
 // If opcode == -1, the engine automatically assigns the next available opcode.
 // handler receives (*ByteEngine, ParsedBytes).
 // doc documents the instruction.
-func (e *engineUniversal) NewCommandByte(opcode int, handler core.CommandType, doc string) error {
+func (e *EngineUniversal) NewCommandByte(opcode int, handler core.CommandType, doc string) error {
 	if e.Type != ByteEngineType {
 		return errors.New("can't add byte command to string engine")
 	}
@@ -74,7 +74,7 @@ func (e *engineUniversal) NewCommandByte(opcode int, handler core.CommandType, d
 // cmdSwitch is the command name (e.g., "print"). handler must have signature
 // func([]interface{}) error where arguments are (*StringEngine, ParsedNode).
 // doc is an optional documentation string.
-func (e *engineUniversal) NewCommandString(cmdSwitch string, handler core.CommandType, doc string) error {
+func (e *EngineUniversal) NewCommandString(cmdSwitch string, handler core.CommandType, doc string) error {
 	if e.Type != StringEngineType {
 		return errors.New("can't add string command to byte engine")
 	}

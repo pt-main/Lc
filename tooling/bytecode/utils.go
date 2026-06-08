@@ -59,19 +59,19 @@ func (u *Utils) BytesToInt(bytes []byte, endianess int) int {
 	return u.BytesToIntLittleEndian(bytes)
 }
 
-type shift struct {
+type Shift struct {
 	code []byte
 	Idx  *int
 }
 
-func (u *Utils) ShiftStruct(code []byte, idx *int) *shift {
-	return &shift{
+func (u *Utils) ShiftStruct(code []byte, idx *int) *Shift {
+	return &Shift{
 		code: code,
 		Idx:  idx,
 	}
 }
 
-func (s *shift) ShiftError(length int) ([]byte, error) {
+func (s *Shift) ShiftError(length int) ([]byte, error) {
 	if *s.Idx+length > len(s.code) {
 		return nil, errors.New("Unexpected end of data")
 	}
@@ -80,7 +80,7 @@ func (s *shift) ShiftError(length int) ([]byte, error) {
 	return res, nil
 }
 
-func (s *shift) ShiftPanic(length int) []byte {
+func (s *Shift) ShiftPanic(length int) []byte {
 	bytes, err := s.ShiftError(length)
 	if err != nil {
 		panic("Can't continue shifting, error: " + err.Error())
