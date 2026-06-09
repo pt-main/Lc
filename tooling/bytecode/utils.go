@@ -2,6 +2,7 @@ package bytecode
 
 import (
 	"errors"
+	"math"
 )
 
 type Utils struct{}
@@ -13,18 +14,20 @@ const (
 
 func (u *Utils) IntToBytesBigEndian(value int, size int) []byte {
 	result := make([]byte, size)
+	val := uint64(value)
 	for i := size - 1; i >= 0; i-- {
-		result[i] = byte(value & 0xFF)
-		value >>= 8
+		result[i] = byte(val & 0xFF)
+		val >>= 8
 	}
 	return result
 }
 
 func (u *Utils) IntToBytesLittleEndian(value int, size int) []byte {
 	result := make([]byte, size)
+	val := uint64(value)
 	for i := 0; i < size; i++ {
-		result[i] = byte(value & 0xFF)
-		value >>= 8
+		result[i] = byte(val & 0xFF)
+		val >>= 8
 	}
 	return result
 }
@@ -37,19 +40,27 @@ func (u *Utils) IntToBytes(value int, size int, endianess int) []byte {
 }
 
 func (u *Utils) BytesToIntBigEndian(bytes []byte) int {
-	result := 0
+	var val uint64 = 0
 	for _, b := range bytes {
-		result = (result << 8) | int(b)
+		val = (val << 8) | uint64(b)
 	}
-	return result
+	bits := uint(len(bytes) * 8)
+	if bits > 0 && (val>>(bits-1))&1 == 1 {
+		val |= ^uint64(0) << bits
+	}
+	return int(val)
 }
 
 func (u *Utils) BytesToIntLittleEndian(bytes []byte) int {
-	result := 0
+	var val uint64 = 0
 	for i, b := range bytes {
-		result |= int(b) << (8 * i)
+		val |= uint64(b) << (8 * i)
 	}
-	return result
+	bits := uint(len(bytes) * 8)
+	if bits > 0 && (val>>(bits-1))&1 == 1 {
+		val |= ^uint64(0) << bits
+	}
+	return int(val)
 }
 
 func (u *Utils) BytesToInt(bytes []byte, endianess int) int {
@@ -63,20 +74,15 @@ func (u *Utils) Float64ToBytes(value float64, size int, endianess int) []byte {
 	if size <= 0 {
 		panic("Float64ToBytes: size must be positive")
 	}
-
 	maxValue := uint64(1<<(uint(size)*8) - 1)
-
 	var scaledValue uint64
-
 	if value >= 0 {
-
 		if value > 1.0 {
 			scaledValue = maxValue
 		} else {
 			scaledValue = uint64(value * float64(maxValue))
 		}
 	} else {
-
 		if value < -1.0 {
 			scaledValue = 0
 		} else {
@@ -94,15 +100,11 @@ func (u *Utils) BytesToFloat64(bytes []byte, endianess int) float64 {
 	if size == 0 {
 		return 0.0
 	}
-
 	intValue := uint64(u.BytesToInt(bytes, endianess))
-
 	maxValue := uint64(1<<(uint(size)*8) - 1)
-
 	if maxValue == 0 {
 		return 0.0
 	}
-
 	return float64(intValue)/float64(maxValue)*2.0 - 1.0
 }
 
@@ -113,20 +115,15 @@ func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal floa
 	if minVal >= maxVal {
 		panic("Float64ToBytesRange: minVal must be less than maxVal")
 	}
-
 	if value < minVal {
 		value = minVal
 	}
 	if value > maxVal {
 		value = maxVal
 	}
-
 	normalized := (value - minVal) / (maxVal - minVal)
-
 	maxValue := uint64(1<<(uint(size)*8) - 1)
-
 	scaledValue := uint64(normalized * float64(maxValue))
-
 	return u.IntToBytes(int(scaledValue), size, endianess)
 }
 
@@ -138,17 +135,12 @@ func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endian
 	if minVal >= maxVal {
 		panic("BytesToFloat64Range: minVal must be less than maxVal")
 	}
-
 	intValue := uint64(u.BytesToInt(bytes, endianess))
-
 	maxValue := uint64(1<<(uint(size)*8) - 1)
-
 	if maxValue == 0 {
 		return minVal
 	}
-
 	normalized := float64(intValue) / float64(maxValue)
-
 	return minVal + normalized*(maxVal-minVal)
 }
 
@@ -225,4 +217,47 @@ func (s *Shift) ShiftFloat64RangePanic(size int, minVal, maxVal float64, endiane
 	bytes := s.ShiftPanic(size)
 	utils := &Utils{}
 	return utils.BytesToFloat64Range(bytes, minVal, maxVal, endianess)
+}
+
+func (u *Utils) AutoIntToBytes(value int, endianess int) []byte {
+	size := 1
+	temp := value
+	if temp < 0 {
+		temp = -temp
+	}
+	for temp > 0xFF {
+		temp >>= 8
+		size++
+	}
+	if value < 0 {
+		size = 8
+	}
+	return u.IntToBytes(value, size, endianess)
+}
+
+func (u *Utils) AutoFloat64ToBytes(value float64, endianess int) []byte {
+	size := 1
+	absValue := math.Abs(value)
+	if absValue > 1.0 {
+		if absValue <= 2 {
+			size = 2
+		} else if absValue <= 4 {
+			size = 3
+		} else if absValue <= 8 {
+			size = 4
+		} else {
+			size = 8
+		}
+	} else {
+		if absValue == 0 {
+			size = 1
+		} else if absValue < 0.01 {
+			size = 4
+		} else if absValue < 0.1 {
+			size = 3
+		} else if absValue < 0.5 {
+			size = 2
+		}
+	}
+	return u.Float64ToBytes(value, size, endianess)
 }

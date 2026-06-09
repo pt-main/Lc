@@ -49,19 +49,19 @@ func (e *ByteEngine) Process(input []byte) error {
 //	SetBytecodeIdx(10) // jump
 //
 // * if index not shifted your program will be looped
-func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, doc string) {
+func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, name string) {
 	e.Commands[cmd_switch] = core.CommandMeta{
 		Handler: handler,
-		Doc:     doc,
+		Doc:     name,
 	}
 }
 
 func (e *ByteEngine) AddToBytecodeIdx(n int) {
-	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = *e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) + n
+	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) += n
 }
 
 func (e *ByteEngine) SetBytecodeIdx(n int) {
-	e.UEP.Scope[ByteEngineScopeBytecodeIdx] = &n
+	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) = n
 }
 
 func (e *ByteEngine) GetBytecodeIdx() (*int, error) {

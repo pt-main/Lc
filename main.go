@@ -8,7 +8,7 @@ import (
 	"github.com/pt-main/lc/stringParsing"
 )
 
-const Version = "0.9.12"
+const Version = "0.9.15"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:

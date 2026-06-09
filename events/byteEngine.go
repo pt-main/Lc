@@ -18,7 +18,7 @@ func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
 	}
 	input, ok := e.UEP.Scope[engine.ByteEngineScopeInput].([]byte)
 	if !ok {
-		return errors.New("no input in scope")
+		return errors.New("No input in scope")
 	}
 	nodes, err := e.Parser.Parse(input)
 	if err != nil {
@@ -31,7 +31,7 @@ func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
 func (de *DefaultEvents) ByteCallEvent(_e interface{}) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid iput")
+		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
 	_parsed, _ := e.UEP.Scope[ByteEngineScopeParsed]
 	parsed, ok := _parsed.([]byteParsing.ParsedBytes)
@@ -47,7 +47,8 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}) error {
 	if !ok {
 		return errors.New("Can't get bytecode index: not declarated in scope or invalid value")
 	}
-	for *(idx) < len(parsed) {
+	for *(idx) < len(parsed) && *(idx) >= 0 {
+		println(*idx)
 		node := parsed[*(idx)]
 		cmd_switch := u.BytesToInt(node.Switch, endianess)
 		handler, ok := e.Commands[cmd_switch]

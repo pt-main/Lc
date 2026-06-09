@@ -69,16 +69,21 @@ func (e *Events) callEvents(input interface{}, name string,
 	return nil
 }
 
+const (
+	EventsScopeCallName  = "CALL_NAME string"
+	EventsScopeCallError = "CALL_ERROR error"
+)
+
 func (e *Events) CallEvents(input interface{}, name string,
 	canWorkWithoutHandler bool) error {
-	e.Scope["call_name"] = name
+	e.Scope[EventsScopeCallName] = name
 	var err error
-	err = e.callEvents(input, CallEventsStartEvent, true)
+	err = e.callEvents(name, CallEventsStartEvent, true)
 	if err != nil {
 		return err
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
-	e.Scope["call_error"] = name
+	e.Scope[EventsScopeCallError] = err
 	err1 := e.callEvents(input, CallEventsEndEvent, true)
 	if err1 != nil {
 		return err1
