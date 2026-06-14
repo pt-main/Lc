@@ -7,11 +7,8 @@ import (
 )
 
 type Parser1Config struct {
-	CommandBytelen   int
-	ArglenBytelen    int
-	ArgscountBytelen int
-	Endianess        int
-	Shifter          bytecode.Shift
+	GConfig bytecode.GenerationConfig
+	Shifter bytecode.Shift
 }
 
 // Parser1 decodes a binary stream according to a fixed‑length field layout.
@@ -40,22 +37,22 @@ func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
 	shift := p.Config.Shifter.ShiftError
 	for idx < len(code) {
 		idx_start := idx
-		command, err := shift(p.Config.CommandBytelen)
+		command, err := shift(p.Config.GConfig.CommandBytelen)
 		if err != nil {
 			return nil, err
 		}
-		argscountBytes, err := shift(p.Config.ArgscountBytelen)
+		argscountBytes, err := shift(p.Config.GConfig.ArgscountBytelen)
 		if err != nil {
 			return nil, err
 		}
-		argscount := u.BytesToInt(argscountBytes, p.Config.Endianess)
+		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianess)
 		args := [][]byte{}
 		for range argscount {
-			arglenBytes, err := shift(p.Config.ArglenBytelen)
+			arglenBytes, err := shift(p.Config.GConfig.ArglenBytelen)
 			if err != nil {
 				return nil, err
 			}
-			arglen := u.BytesToInt(arglenBytes, p.Config.Endianess)
+			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianess)
 			if arglen == 0 {
 				return nil, errors.New("Can't form args with 0 argument length")
 			}
