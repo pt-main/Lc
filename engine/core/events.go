@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -17,9 +18,10 @@ const (
 // invokes all handlers of an event in registration order. Events can also
 // automatically wrap calls with start/end events for logging.
 type Events struct {
-	Scope  ScopeType
-	mu     sync.RWMutex
-	events orderedmap.OrderedMap
+	Scope   ScopeType
+	Context context.Context
+	mu      sync.RWMutex
+	events  orderedmap.OrderedMap
 }
 
 func (e *Events) GetEvents(name string) ([]EventType, error) {
@@ -61,7 +63,7 @@ func (e *Events) callEvents(input interface{}, name string,
 		}
 	}
 	for _, event := range res {
-		err := event(input)
+		err := event(input, e)
 		if err != nil {
 			return errors.New("Event error: " + err.Error())
 		}
@@ -98,9 +100,10 @@ func (e *Events) CallEvents(input interface{}, name string,
 // NewEvents creates an empty Events instance with an ordered map.
 // The Scope map is initially empty but can be used to pass data between
 // event handlers.
-func NewEvents() *Events {
+func NewEvents(context context.Context) *Events {
 	return &Events{
-		Scope:  make(ScopeType),
-		events: *orderedmap.New(),
+		Scope:   make(ScopeType),
+		events:  *orderedmap.New(),
+		Context: context,
 	}
 }

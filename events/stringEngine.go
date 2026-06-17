@@ -6,15 +6,16 @@ import (
 	"strings"
 
 	"github.com/pt-main/lc/engine"
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/stringParsing"
 )
 
-func (de *DefaultEvents) StringParsingEvent(_e interface{}) error {
+func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.StringEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid iput")
 	}
-	input, ok := e.UEP.Scope["input_string"].(string)
+	input, ok := e.UEP.Scope[engine.StringEngineScopeInput].(string)
 	if !ok {
 		return errors.New("No input in scope or invalid input")
 	}
@@ -22,37 +23,42 @@ func (de *DefaultEvents) StringParsingEvent(_e interface{}) error {
 	if err != nil {
 		return err
 	}
-	e.UEP.Scope["parsed_[]ParsedNode"] = nodes
+	e.UEP.Scope[engine.StringEngineScopeParsed] = nodes
 	return nil
 }
 
-func (de *DefaultEvents) StringCallEvent(_e interface{}) error {
+func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.StringEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid iput")
 	}
-	_parsed, _ := e.UEP.Scope["parsed_[]ParsedNode"]
+	_parsed, _ := e.UEP.Scope[engine.StringEngineScopeParsed]
 	parsed, ok := _parsed.([]stringParsing.ParsedNode)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
+	var err error = nil
 	for _, node := range parsed {
+		ctx := e.UEP.GetContext()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		cmd_switch := node.Switch
 		handler, ok := e.Commands[cmd_switch]
-		var err error = nil
 		if ok {
-			err = handler.Handler([]interface{}{e, node})
-		}
-		_raw, ok := node.Metadata["__raw"]
-		if !ok {
-			return errors.New("Can't get raw string of code")
-		}
-		raw, ok := _raw.(string)
-		if !ok {
-			return errors.New("Can't get raw string of code")
+			err = handler.Handler(e, node)
 		}
 		if err != nil {
-			return errors.New("Handler error at '" + strings.ReplaceAll(raw, "\n", "\\n") + "': " + err.Error())
+			err = errors.New("Handler error: " + err.Error())
+		}
+		if err != nil {
+			raw := node.Raw
+			return fmt.Errorf("[?RD]Error at:[?RT]\n[?BBK]    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
+				strings.ReplaceAll(raw, "\n", "\n[?BBK]    |[?RT]"),
+				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+			)
 		}
 	}
 	return nil

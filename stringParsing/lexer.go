@@ -48,7 +48,7 @@ func snippet(s string, maxLen int) string {
 // Parse scans the entire input string and returns a slice of ParsedNode.
 // Each node's Switch field contains the token type, Raw contains the exact
 // matched substring, and Metadata includes all named groups from the regexp
-// plus the original raw value ("__raw") and the token value ("__value").
+// plus the token value ("__value").
 // If no rule matches at some position, an error is returned with a snippet.
 // The result is automatically enriched with __prev/__next links via
 // addPrevNextNodes.
@@ -71,7 +71,7 @@ func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
 				tokenValue := string(tokenRunes)
 
 				meta := map[string]interface{}{
-					"__raw":   string(runes[pos:]),
+					"__raw":   tokenValue,
 					"__value": tokenValue,
 				}
 

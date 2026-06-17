@@ -3,15 +3,17 @@ package events
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine"
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
-const ByteEngineScopeParsed = "parsed []ParsedBytes"
+const ByteEngineScopeParsed = "PARSED []ParsedBytes"
 
-func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
+func (de *DefaultEvents) ByteParsingEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid iput")
@@ -28,7 +30,7 @@ func (de *DefaultEvents) ByteParsingEvent(_e interface{}) error {
 	return nil
 }
 
-func (de *DefaultEvents) ByteCallEvent(_e interface{}) error {
+func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
@@ -47,18 +49,40 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}) error {
 	if !ok {
 		return errors.New("Can't get bytecode index: not declarated in scope or invalid value")
 	}
+	var err error = nil
+	var cmd_switch int
 	for *(idx) < len(parsed) && *(idx) >= 0 {
-		println(*idx)
+		ctx := e.UEP.GetContext()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		node := parsed[*(idx)]
-		cmd_switch := u.BytesToInt(node.Switch, endianess)
+		cmd_switch = u.BytesToInt(node.Switch, endianess)
 		handler, ok := e.Commands[cmd_switch]
-		var err error = nil
+
 		if ok {
-			err = handler.Handler([]interface{}{e, node})
+			err = handler.Handler(e, node)
 		}
 		if err != nil {
-			return errors.New("Handler error at: " + err.Error())
+			err = errors.New("[?BRD]Handler error:[?RT]\n" + err.Error())
+			break
 		}
+		val, ok := e.AutoBytecodeIndexShift[cmd_switch]
+		if !ok {
+			err = errors.New("Command not found in autoshift config.")
+			break
+		}
+		if val {
+			*idx += 1
+		}
+	}
+	if err != nil {
+		return fmt.Errorf(
+			"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
+			cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+		)
 	}
 	return nil
 }

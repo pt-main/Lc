@@ -7,13 +7,13 @@ const (
 	ByteCallEvent    = "call(parsed []ParsedBytes)"
 )
 
-type CommandType func([]interface{}) error
+type CommandType[E, N any] func(*E, N) error
 
-type CommandMeta struct {
-	Handler CommandType
+type CommandMeta[E, N any] struct {
+	Handler CommandType[E, N]
 	Doc     string
 }
 
 type ScopeType map[string]interface{}
 
-type EventType func(interface{}) error
+type EventType func(interface{}, *Events) error

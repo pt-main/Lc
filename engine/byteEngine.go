@@ -3,9 +3,11 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/tap/color"
 )
 
 const (
@@ -18,9 +20,11 @@ const (
 // It uses a byte parser to decode raw bytes into ParsedBytes structures.
 // The Process method triggers ByteParseEvent and ByteCallEvent in order.
 type ByteEngine struct {
-	Commands map[int]core.CommandMeta
-	Parser   byteParsing.ParserInterface
-	UEP      core.UniversalEngineParams
+	Commands               map[int]core.CommandMeta[ByteEngine, byteParsing.ParsedBytes]
+	Parser                 byteParsing.ParserInterface
+	AutoBytecodeIndexShift map[int]bool
+	UEP                    *core.UniversalEngineParams
+	mu                     sync.RWMutex
 }
 
 // Process transforms a byte slice by parsing it and invoking the registered
@@ -29,42 +33,52 @@ func (e *ByteEngine) Process(input []byte) error {
 	e.UEP.Scope[ByteEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)
 	if err1 != nil {
-		return fmt.Errorf("Calling 'ByteParseEvent' event error: %v", err1.Error())
+		return fmt.Errorf("[?RD]Calling [?YW]'ByteParseEvent'[?RD] event error:[?RT] \n%v", color.Set(err1.Error()))
 	}
 	err2 := e.UEP.Event.CallEvents(e, core.ByteCallEvent, false)
 	if err2 != nil {
-		return fmt.Errorf("Calling 'ByteCallEvent' event error: %v", err2.Error())
+		return fmt.Errorf("[?RD]Calling [?YW]'ByteCallEvent'[?RD] event error:[?RT] \n%v", color.Set(err2.Error()))
 	}
 	return nil
 }
 
-// Your handler MUST shift bytecode index!
+// Your handler MUST shift bytecode index if autoBytecodeIndexShift false!
 //
 // Usually it's like a:
 //
-//	AddToBytecodeIdx(1)
+//	AddToBytecodeIdx(1) // next instruction
 //
 // Or:
 //
 //	SetBytecodeIdx(10) // jump
-//
-// * if index not shifted your program will be looped
-func (e *ByteEngine) NewCommand(cmd_switch int, handler core.CommandType, name string) {
-	e.Commands[cmd_switch] = core.CommandMeta{
+//	AddToBytecodeIdx(-1) // prev instruction
+func (e *ByteEngine) NewCommand(
+	cmd_switch int, handler core.CommandType[ByteEngine, byteParsing.ParsedBytes],
+	name string, autoBytecodeIndexShift bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.Commands[cmd_switch] = core.CommandMeta[ByteEngine, byteParsing.ParsedBytes]{
 		Handler: handler,
 		Doc:     name,
 	}
+	e.AutoBytecodeIndexShift[cmd_switch] = autoBytecodeIndexShift
 }
 
 func (e *ByteEngine) AddToBytecodeIdx(n int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) += n
 }
 
 func (e *ByteEngine) SetBytecodeIdx(n int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) = n
 }
 
 func (e *ByteEngine) GetBytecodeIdx() (*int, error) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	_idx, ok := e.UEP.Scope[ByteEngineScopeBytecodeIdx]
 	if !ok {
 		return nil, errors.New("Can't get bytecode index: invalid scope")

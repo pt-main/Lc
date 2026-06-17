@@ -50,12 +50,12 @@ func (l *Logger) GetLog() string {
 }
 
 // NewLogger creates a new Logger with an optional defaultStatusForm.
-// The format uses three placeholders: %v for status, %v for timestamp,
-// and %s for the message. Example default: "%v [%v] [%s]"
+// The format uses three placeholders: %s for status, %v for timestamp,
+// and %s for the message. Example default: "%s [%v] [%s]"
 // If empty string is passed, the default format is used.
 func NewLogger(defaultStatusForm string) *Logger {
 	if defaultStatusForm == "" {
-		defaultStatusForm = "%v [%v] [%s]"
+		defaultStatusForm = "[?BE]%s[?RT] [?CN][%v][?RT] [?GN][%s][?RT]"
 	}
 	return &Logger{
 		Log:               make([]string, 0),

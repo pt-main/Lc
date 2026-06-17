@@ -1,6 +1,7 @@
 package lc
 
 import (
+	"context"
 	"errors"
 
 	"github.com/pt-main/lc/byteParsing"
@@ -22,6 +23,8 @@ type EngineBuilder struct {
 	stringParser     stringParsing.ParserInterface
 	byteParser       byteParsing.ParserInterface
 	endianess        int
+	colorEnabled     bool
+	context          context.Context
 }
 
 // NewEngineBuilder creates a new EngineBuilder for the given engine type.
@@ -40,11 +43,17 @@ func NewEngineBuilder(engineType int) *EngineBuilder {
 		addDefaultEvents: true,
 		endianess:        bytecode.LittleEndian,
 		scope:            make(core.ScopeType),
+		context:          context.Background(),
 	}
 }
 
 func (b *EngineBuilder) WithPipeline(pipeline []string) *EngineBuilder {
 	b.pipeline = pipeline
+	return b
+}
+
+func (b *EngineBuilder) WithContext(context context.Context) *EngineBuilder {
+	b.context = context
 	return b
 }
 
@@ -62,6 +71,11 @@ func (b *EngineBuilder) WithScope(scope core.ScopeType) *EngineBuilder {
 	for k, v := range scope {
 		b.scope[k] = v
 	}
+	return b
+}
+
+func (b *EngineBuilder) WithColors() *EngineBuilder {
+	b.colorEnabled = true
 	return b
 }
 
@@ -95,6 +109,8 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			b.pipeline,
 			b.addDefaultEvents,
 			b.stringParser,
+			b.colorEnabled,
+			b.context,
 		)
 		if b.logger != nil {
 			strEngine.UEP.Logger = b.logger
@@ -103,9 +119,9 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			strEngine.UEP.Scope[k] = v
 		}
 		return &EngineUniversal{
-			Type:         StringEngineType,
-			StringEngine: strEngine,
-			another:      engineAnother{opcode_counter: 0},
+			Type:           StringEngineType,
+			StringEngine:   strEngine,
+			opcode_counter: 0,
 		}, nil
 
 	case ByteEngineType:
@@ -118,6 +134,8 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			b.addDefaultEvents,
 			b.byteParser,
 			b.endianess,
+			b.colorEnabled,
+			b.context,
 		)
 		if b.logger != nil {
 			byteEngine.UEP.Logger = b.logger
@@ -126,9 +144,9 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			byteEngine.UEP.Scope[k] = v
 		}
 		return &EngineUniversal{
-			Type:       ByteEngineType,
-			ByteEngine: byteEngine,
-			another:    engineAnother{opcode_counter: 0},
+			Type:           ByteEngineType,
+			ByteEngine:     byteEngine,
+			opcode_counter: 0,
 		}, nil
 
 	default:
