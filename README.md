@@ -1,4 +1,6 @@
-# Lc - Language Toolkit for Go
+# <img alt="banner-low" src="https://github.com/user-attachments/assets/cd798499-aaa3-4de7-b5ae-4dbe39503453" />
+
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/pt-main/lc.svg)](https://pkg.go.dev/github.com/pt-main/lc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pt-main/lc)](https://goreportcard.com/report/github.com/pt-main/lc)
 [![License: MIT](https://img.shields.io/badge/License-Apache2.0-yellow.svg)](https://opensource.org/licenses/Apache2.0)
