@@ -1,6 +1,8 @@
 # Lc - Language Toolkit for Go
 [![Go Reference](https://pkg.go.dev/badge/github.com/pt-main/lc.svg)](https://pkg.go.dev/github.com/pt-main/lc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pt-main/lc)](https://goreportcard.com/report/github.com/pt-main/lc)
+[![License: MIT](https://img.shields.io/badge/License-Apache2.0-yellow.svg)](https://opensource.org/licenses/Apache2.0)
+[![Release](https://img.shields.io/github/v/release/pt-main/lc)](https://github.com/pt-main/lc/releases)
 
 ```bash
 go get github.com/pt-main/lc
@@ -242,6 +244,6 @@ go test ./...
 ```
 
 ## License
-MIT - see `LICENSE`.
+Apache 2.0 - see `LICENSE`.
 
 By Pt.
