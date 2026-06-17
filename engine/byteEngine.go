@@ -12,7 +12,7 @@ import (
 
 const (
 	ByteEngineScopeEndianess   = "ENDIANESS int"
-	ByteEngineScopeBytecodeIdx = "BYECODE_IDX *int"
+	ByteEngineScopeBytecodeIdx = "BYTECODE_IDX *int"
 	ByteEngineScopeInput       = "INPUT []byte"
 )
 
