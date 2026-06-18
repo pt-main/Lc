@@ -61,7 +61,7 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 // brackets) and applies grammar rules to each block. Returns a slice of
 // ParsedNode with Metadata containing regexp named groups and the original raw
 // line under "__raw". Errors if no rule matches a block.
-func (p *Parser1) Parse(code string) ([]ParsedNode, error) {
+func (p *Parser1) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
 	lines := strings.Split(code, "\n")
 	var result []ParsedNode
 

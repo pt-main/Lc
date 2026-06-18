@@ -4,11 +4,20 @@ import (
 	"context"
 	"errors"
 
-	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/tooling/plugin"
 )
+
+const (
+	EuPtrPluginsScope = "EuPtr"
+)
+
+type stringParser parsing.ParserInterface[string, stringParsing.ParsedNode]
+type byteParser parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
 
 // EngineBuilder is a fluent builder for constructing universal engines.
 // It allows to configure pipeline stages, event handling, logging,
@@ -20,11 +29,13 @@ type EngineBuilder struct {
 	addDefaultEvents bool
 	logger           *core.Logger
 	scope            core.ScopeType
-	stringParser     stringParsing.ParserInterface
-	byteParser       byteParsing.ParserInterface
+	stringParser     stringParser
+	byteParser       byteParser
 	endianess        int
 	colorEnabled     bool
 	context          context.Context
+	pm               bool
+	plugins          []*plugin.Plugin
 }
 
 // NewEngineBuilder creates a new EngineBuilder for the given engine type.
@@ -79,12 +90,12 @@ func (b *EngineBuilder) WithColors() *EngineBuilder {
 	return b
 }
 
-func (b *EngineBuilder) WithStringParser(parser stringParsing.ParserInterface) *EngineBuilder {
+func (b *EngineBuilder) WithStringParser(parser stringParser) *EngineBuilder {
 	b.stringParser = parser
 	return b
 }
 
-func (b *EngineBuilder) WithByteParser(parser byteParsing.ParserInterface) *EngineBuilder {
+func (b *EngineBuilder) WithByteParser(parser byteParser) *EngineBuilder {
 	b.byteParser = parser
 	return b
 }
@@ -94,11 +105,18 @@ func (b *EngineBuilder) WithEndianess(endianess int) *EngineBuilder {
 	return b
 }
 
+func (b *EngineBuilder) WithPluginManager(plugins ...*plugin.Plugin) *EngineBuilder {
+	b.pm = true
+	b.plugins = plugins
+	return b
+}
+
 // Build constructs and returns an EngineUniversal or an error if
 // required components are missing (e.g., a string parser for a StringEngine).
 // The returned engineUniversal can process strings or bytes depending
 // on its type and provides methods to register commands.
 func (b *EngineBuilder) Build() (*EngineUniversal, error) {
+	var eu *EngineUniversal
 	switch b.engineType {
 	case StringEngineType:
 		if b.stringParser == nil {
@@ -118,11 +136,12 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		for k, v := range b.scope {
 			strEngine.UEP.Scope[k] = v
 		}
-		return &EngineUniversal{
+		eu = &EngineUniversal{
+			Plugins:        &plugin.PluginManager{},
 			Type:           StringEngineType,
 			StringEngine:   strEngine,
 			opcode_counter: 0,
-		}, nil
+		}
 
 	case ByteEngineType:
 		if b.byteParser == nil {
@@ -143,13 +162,34 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		for k, v := range b.scope {
 			byteEngine.UEP.Scope[k] = v
 		}
-		return &EngineUniversal{
+		eu = &EngineUniversal{
+			Plugins:        &plugin.PluginManager{},
 			Type:           ByteEngineType,
 			ByteEngine:     byteEngine,
 			opcode_counter: 0,
-		}, nil
+		}
 
 	default:
-		return nil, errors.New("unknown engine type")
+		return nil, errors.New("EngineBuilder.Build: unknown engine type")
 	}
+	pm := &plugin.PluginManager{
+		Plugins: make(map[string]*plugin.Plugin),
+		Scope:   core.ScopeType{EuPtrPluginsScope: eu},
+	}
+	if b.pm {
+		if b.plugins != nil {
+			for _, plugin := range b.plugins {
+				err := pm.AddPlugin(plugin)
+				if err != nil {
+					return nil, errors.New("EngineBuilder.Build: " + err.Error())
+				}
+			}
+			for k, v := range eu.GetUEP().Scope {
+				pm.Scope[k] = v
+			}
+		}
+	}
+	eu.Plugins = pm
+	eu.GetUEP().Scope[PluginManagerEuScope] = pm
+	return eu, nil
 }

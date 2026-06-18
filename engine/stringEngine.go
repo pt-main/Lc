@@ -5,7 +5,8 @@ import (
 	"sync"
 
 	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/tap/color"
 )
 
@@ -19,7 +20,7 @@ const (
 // generator, events, scope, and logger. The Process method drives compilation.
 type StringEngine struct {
 	Commands map[string]core.CommandMeta[StringEngine, stringParsing.ParsedNode]
-	Parser   stringParsing.ParserInterface
+	Parser   parsing.ParserInterface[string, stringParsing.ParsedNode]
 	UEP      *core.UniversalEngineParams
 	mu       sync.RWMutex
 }
@@ -32,11 +33,15 @@ func (e *StringEngine) Process(input string) error {
 	e.UEP.Scope[StringEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(e, core.StringParseEvent, false)
 	if err1 != nil {
-		return fmt.Errorf("Calling 'StringParseEvent' event error: \n%v", color.Set(err1.Error()))
+		return fmt.Errorf(
+			color.Set("[?RD]Calling [?YW]'StringCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set(err1.Error()))
 	}
 	err2 := e.UEP.Event.CallEvents(e, core.StringCallEvent, false)
 	if err2 != nil {
-		return fmt.Errorf("Calling 'StringCallEvent' event error: \n%v", color.Set(err2.Error()))
+		return fmt.Errorf(
+			color.Set("[?RD]Calling [?YW]'StringCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set(err2.Error()))
 	}
 	return nil
 }

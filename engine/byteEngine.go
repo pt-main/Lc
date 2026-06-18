@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/tap/color"
 )
 
@@ -21,7 +22,7 @@ const (
 // The Process method triggers ByteParseEvent and ByteCallEvent in order.
 type ByteEngine struct {
 	Commands               map[int]core.CommandMeta[ByteEngine, byteParsing.ParsedBytes]
-	Parser                 byteParsing.ParserInterface
+	Parser                 parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
 	AutoBytecodeIndexShift map[int]bool
 	UEP                    *core.UniversalEngineParams
 	mu                     sync.RWMutex
@@ -33,11 +34,15 @@ func (e *ByteEngine) Process(input []byte) error {
 	e.UEP.Scope[ByteEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)
 	if err1 != nil {
-		return fmt.Errorf("[?RD]Calling [?YW]'ByteParseEvent'[?RD] event error:[?RT] \n%v", color.Set(err1.Error()))
+		return fmt.Errorf(
+			color.Set("[?RD]Calling [?YW]'ByteParseEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set(err1.Error()))
 	}
 	err2 := e.UEP.Event.CallEvents(e, core.ByteCallEvent, false)
 	if err2 != nil {
-		return fmt.Errorf("[?RD]Calling [?YW]'ByteCallEvent'[?RD] event error:[?RT] \n%v", color.Set(err2.Error()))
+		return fmt.Errorf(
+			color.Set("[?RD]Calling [?YW]'ByteCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set(err2.Error()))
 	}
 	return nil
 }

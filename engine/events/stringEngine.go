@@ -7,13 +7,13 @@ import (
 
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
 )
 
 func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.StringEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid iput")
+		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
 	input, ok := e.UEP.Scope[engine.StringEngineScopeInput].(string)
 	if !ok {
@@ -30,7 +30,7 @@ func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events)
 func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.StringEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid iput")
+		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
 	_parsed, _ := e.UEP.Scope[engine.StringEngineScopeParsed]
 	parsed, ok := _parsed.([]stringParsing.ParsedNode)

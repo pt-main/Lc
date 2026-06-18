@@ -4,7 +4,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/pt-main/lc.svg)](https://pkg.go.dev/github.com/pt-main/lc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pt-main/lc)](https://goreportcard.com/report/github.com/pt-main/lc)
-[![License: MIT](https://img.shields.io/badge/License-Apache2.0-yellow.svg)](https://opensource.org/licenses/Apache2.0)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache2.0-yellow.svg)](https://opensource.org/licenses/Apache2.0)
 [![Release](https://img.shields.io/github/v/release/pt-main/lc)](https://github.com/pt-main/lc/releases)
 
 ```bash
@@ -18,7 +18,7 @@ It is intentionally straightforward to adopt, while preserving industrial runtim
 - deterministic output assembly,
 - context-aware cancellation,
 - thread-safe core primitives,
-- clear extension contracts for parsers and command handlers.
+- clear extension contracts for parsers and command handlers, plugins.
 
 Lc does not enforce one grammar style or one VM model.  
 Instead, it gives you one runtime surface with two engine backends:
@@ -236,15 +236,13 @@ Lc provides core mechanisms for operational visibility:
 - `main.go` - public constructors for String/Byte engines.
 - `engine/` - concrete engine implementations.
 - `engine/core/` - generator, events, logger, shared params.
-- `events/` - default parse/call handlers.
-- `stringParsing/` - text parser ecosystem.
-- `byteParsing/` - byte parser ecosystem.
-- `tooling/bytecode/` - byte conversion and shift helpers.
-
-## Validation
-```bash
-go test ./...
-```
+- `engine/events/` - default parse/call handlers.
+- `parsing/` - basic parsing.
+- `parsing/stringParsing/` - text parser ecosystem.
+- `parsing/byteParsing/` - byte parser ecosystem.
+- `tooling/bytecode/` - byte conversion, shift helpers and instructions generation.
+- `tooling/plugins/` - plugins core.
+- `example/` - example languages and other examples.
 
 ## License
 Apache 2.0 - see `LICENSE`.

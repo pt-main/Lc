@@ -3,24 +3,63 @@ package lc
 import (
 	"context"
 	"errors"
+	"fmt"
+	"plugin"
 
-	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
+	lcplugin "github.com/pt-main/lc/tooling/plugin"
 )
 
 const (
 	ByteEngineType = iota
 	StringEngineType
 )
+const (
+	PluginManagerEuScope = "LC-PM"
+	pluginFileSymbolName = "PLUGIN"
+)
 
 type EngineUniversal struct {
+	Plugins        *lcplugin.PluginManager
 	Type           int
 	StringEngine   *engine.StringEngine
 	ByteEngine     *engine.ByteEngine
 	opcode_counter int
 	Context        context.Context
+}
+
+type NewPluginFunction func(*EngineUniversal) (*lcplugin.Plugin, error)
+
+func (e *EngineUniversal) LoadPluginFromFile(path string) error {
+	if e.Plugins == nil {
+		return errors.New("nil plugin manager")
+	}
+	plug, err := plugin.Open(path)
+	if err != nil {
+		return fmt.Errorf("open plugin: %w", err)
+	}
+	sym, err := plug.Lookup(pluginFileSymbolName)
+	if err != nil {
+		return fmt.Errorf("lookup symbol %s: %w", pluginFileSymbolName, err)
+	}
+	npf, ok := sym.(NewPluginFunction)
+	if !ok {
+		return errors.New("symbol type is not 'NewPluginFunction'")
+	}
+	p, err := npf(e)
+	if err != nil {
+		return fmt.Errorf("creating plugin from '%s': %w", path, err)
+	}
+	for key := range e.Plugins.Plugins {
+		if key == p.Name {
+			return errors.New("plugin already loaded: " + p.Name)
+		}
+	}
+	e.Plugins.AddPlugin(p)
+	return nil
 }
 
 func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) error {

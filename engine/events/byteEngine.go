@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
@@ -16,7 +16,7 @@ const ByteEngineScopeParsed = "PARSED []ParsedBytes"
 func (de *DefaultEvents) ByteParsingEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid iput")
+		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
 	input, ok := e.UEP.Scope[engine.ByteEngineScopeInput].([]byte)
 	if !ok {

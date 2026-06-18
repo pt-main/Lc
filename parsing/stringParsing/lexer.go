@@ -52,7 +52,7 @@ func snippet(s string, maxLen int) string {
 // If no rule matches at some position, an error is returned with a snippet.
 // The result is automatically enriched with __prev/__next links via
 // addPrevNextNodes.
-func (lp *Lexer) Parse(code string) ([]ParsedNode, error) {
+func (lp *Lexer) Parse(code string, i interface{}) ([]ParsedNode, error) {
 	var nodes []ParsedNode
 	runes := []rune(code)
 	pos := 0

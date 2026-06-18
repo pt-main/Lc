@@ -7,7 +7,7 @@ import (
 
 type Parser2 struct{}
 
-func (p *Parser2) Parse(code string) ([]ParsedNode, error) {
+func (p *Parser2) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
 	lines := strings.Split(code, "\n")
 	result := []ParsedNode{}
 

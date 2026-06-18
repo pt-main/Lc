@@ -1,10 +1,10 @@
 package core
 
 const (
-	StringParseEvent = "input string->parsed []ParsedNode"
-	StringCallEvent  = "call(parsed []ParsedNode)"
-	ByteParseEvent   = "input []byte->parsed []ParsedBytes"
-	ByteCallEvent    = "call(parsed []ParsedBytes)"
+	StringParseEvent = "INPUT string->PARSED []ParsedNode"
+	StringCallEvent  = "call(PARSED []ParsedNode)"
+	ByteParseEvent   = "INPUT []byte->PARSED []ParsedBytes"
+	ByteCallEvent    = "call(PARSED []ParsedBytes)"
 )
 
 type CommandType[E, N any] func(*E, N) error

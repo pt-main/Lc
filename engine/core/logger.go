@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pt-main/tap/color"
 )
 
 // Logger is a thread-safe structured logger for engine diagnostics.
@@ -13,6 +15,7 @@ import (
 // Typical usage: attach to UniversalEngineParams.Logger.
 type Logger struct {
 	mu                sync.RWMutex
+	Logging           map[string]bool
 	Log               []string
 	Statuses          map[string]string
 	DefaultStatusForm string
@@ -37,9 +40,11 @@ func (l *Logger) GetStatusForm(status string) string {
 func (l *Logger) PrintLog(status string, message string) {
 	format := l.GetStatusForm(status)
 	line := fmt.Sprintf(format, status, time.Now().UTC(), message)
-	fmt.Print(line)
+	if ok, val := l.Logging[status]; ok && val {
+		fmt.Println(color.Set(line))
+	}
 	l.mu.Lock()
-	l.Log = append(l.Log, line)
+	l.Log = append(l.Log, color.ReplaceColors(line))
 	l.mu.Unlock()
 }
 
@@ -51,11 +56,11 @@ func (l *Logger) GetLog() string {
 
 // NewLogger creates a new Logger with an optional defaultStatusForm.
 // The format uses three placeholders: %s for status, %v for timestamp,
-// and %s for the message. Example default: "%s [%v] [%s]"
+// and %s for the message. Example default: "%s [%v] [%s]\n"
 // If empty string is passed, the default format is used.
 func NewLogger(defaultStatusForm string) *Logger {
 	if defaultStatusForm == "" {
-		defaultStatusForm = "[?BE]%s[?RT] [?CN][%v][?RT] [?GN][%s][?RT]"
+		defaultStatusForm = "[?BE]%s[?RT] [?CN][%v][?RT] [?GN][%s][?RT]\n"
 	}
 	return &Logger{
 		Log:               make([]string, 0),

@@ -86,7 +86,7 @@ func (e *Events) CallEvents(input interface{}, name string,
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
 	e.Scope[EventsScopeCallError] = err
-	err1 := e.callEvents(input, CallEventsEndEvent, true)
+	err1 := e.callEvents(name, CallEventsEndEvent, true)
 	if err1 != nil {
 		return err1
 	}

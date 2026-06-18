@@ -27,7 +27,7 @@ type Parser1 struct {
 // Each ParsedBytes contains the raw command bytes, the raw arguments,
 // and the original slice of the whole instruction. The ShiftStruct utility
 // is used internally for safe bounds checking. Returns error on malformed data.
-func (p *Parser1) Parse(code []byte) ([]ParsedBytes, error) {
+func (p *Parser1) Parse(code []byte, i ...interface{}) ([]ParsedBytes, error) {
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}
 	_Idx := p.Config.Shifter.Idx

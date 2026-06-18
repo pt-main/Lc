@@ -3,15 +3,15 @@ package lc
 import (
 	"context"
 
-	"github.com/pt-main/lc/byteParsing"
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/events"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/engine/events"
+	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.0.0"
+const Version = "1.1.2"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -19,14 +19,14 @@ const Version = "1.0.0"
 //	generator_res_type – core.StringResType (usually) for text generation.
 //	pipeline – ordered list of generation points (e.g., []string{"pre","main"}).
 //	add_default_events – if true, registers standard parsing and call events.
-//	parser – an implementation of stringParsing.ParserInterface.
+//	parser – an implementation parser.ParserInterface.
 //
 // Returns a StringEngine with empty command map and initialized UEP.
 func NewStringEngine(
 	generator_res_type int,
 	pipeline []string,
 	add_default_events bool,
-	parser stringParsing.ParserInterface,
+	parser stringParser,
 	colorEnable bool,
 	context context.Context,
 ) *engine.StringEngine {
@@ -52,12 +52,12 @@ func NewStringEngine(
 //
 // It registers default events when add_default_events is true.
 //
-// The parser must implement byteParsing.ParserInterface.
+// The parser must implement paraing.ParserInterface.
 func NewByteEngine(
 	generator_res_type int,
 	pipeline []string,
 	add_default_events bool,
-	parser byteParsing.ParserInterface,
+	parser byteParser,
 	endianess int,
 	colorEnable bool,
 	context context.Context,
