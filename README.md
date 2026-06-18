@@ -1,3 +1,4 @@
+# Lc - "Language creator" and language adn dsl devkit
 # <img alt="banner-low" src="https://github.com/user-attachments/assets/cd798499-aaa3-4de7-b5ae-4dbe39503453" />
 
 
