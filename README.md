@@ -55,7 +55,7 @@ import (
 
 	"github.com/pt-main/lc"
 	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/stringParsing"
+	"github.com/pt-main/lc/parsing/stringParsing"
 )
 
 func main() {
@@ -102,7 +102,7 @@ import (
 	"fmt"
 
 	"github.com/pt-main/lc"
-	"github.com/pt-main/lc/byteParsing"
+	"github.com/pt-main/lc/parsing/byteParsing"
 	enginepkg "github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
