@@ -3,6 +3,7 @@ package events
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/pt-main/lc/engine"
@@ -61,10 +62,11 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) erro
 		node := parsed[*(idx)]
 		cmd_switch = u.BytesToInt(node.Switch, endianess)
 		handler, ok := e.Commands[cmd_switch]
-
-		if ok {
-			err = handler.Handler(e, node)
+		if !ok {
+			err = errors.New("Can't find bytecode op: " + strconv.Itoa(cmd_switch))
+			break
 		}
+		err = handler.Handler(e, node)
 		if err != nil {
 			err = errors.New("[?BRD]Handler error:[?RT]\n" + err.Error())
 			break

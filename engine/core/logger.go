@@ -66,5 +66,6 @@ func NewLogger(defaultStatusForm string) *Logger {
 		Log:               make([]string, 0),
 		Statuses:          make(map[string]string),
 		DefaultStatusForm: defaultStatusForm,
+		Logging:           make(map[string]bool),
 	}
 }
