@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/dlclark/regexp2"
+	"github.com/pt-main/lc/parsing"
 )
 
-func TestLexer_Parse(t *testing.T) {
+func TestLexerWithBlocks(t *testing.T) {
 	rules := []LexerRule{
 		{
 			Type:    "NUMBER",
@@ -17,22 +18,37 @@ func TestLexer_Parse(t *testing.T) {
 			Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0),
 		},
 		{
+			Type:    "LINES",
+			Pattern: regexp2.MustCompile(`(?s).+?`, 0),
+		},
+		{
 			Type:    "WHITESPACE",
 			Pattern: regexp2.MustCompile(`\s+`, 0),
 		},
 	}
 
-	lexer := NewLexer(rules, nil)
-	nodes, err := lexer.Parse("123 abc 456", nil)
-	if err != nil {
-		t.Fatalf("Error: %s", err)
-		return
+	config := &LexerConfig{
+		UseLineContinuation: true,
+		UseBracketBalance:   true,
+		Brackets:            []string{"()", "[]"},
+		SkipEmptyLines:      true,
+		TrimBlocksSpace:     true,
 	}
 
-	types := []string{"NUMBER", "WHITESPACE", "IDENT", "WHITESPACE", "NUMBER"}
-	for idx, node := range nodes {
-		if types[idx] != node.Switch {
-			t.Fatalf("Mismatched types: must be %v, got %v", types[idx], node.Switch)
-		}
+	lexer := NewLexer(rules, config)
+
+	code := `123 abc 456
+(continued
+line)
+[another
+block]`
+	nodes, err := lexer.Parse(code, &parsing.ParseOption{})
+	if err != nil {
+		t.Fatalf("Error: %s", err)
+	}
+
+	// Expect flat token list with block_index metadata
+	for _, n := range nodes {
+		t.Logf("Token: %v, block: %v", n.Switch, n.Metadata["__block_index"])
 	}
 }

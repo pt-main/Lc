@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	EuPtrPluginsScope = "EuPtr"
+	EuPtrPluginsScope = "EuPtr *EngineUniversal"
 )
 
 type stringParser parsing.ParserInterface[string, stringParsing.ParsedNode]
@@ -173,7 +173,7 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		return nil, errors.New("EngineBuilder.Build: unknown engine type")
 	}
 	pm := &plugin.PluginManager{
-		Plugins: make(map[string]*plugin.Plugin),
+		Plugins: make(map[string]plugin.PluginInterface),
 		Scope:   core.ScopeType{EuPtrPluginsScope: eu},
 	}
 	if b.pm {

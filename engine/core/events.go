@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/iancoleman/orderedmap"
@@ -50,6 +51,17 @@ func (e *Events) NewEvent(name string, event EventType) {
 		return
 	}
 	e.events.Set(name, append(list, event))
+}
+
+func (e *Events) NewEventBefore(name string, event EventType) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	list, err := e.GetEvents(name)
+	if err != nil {
+		return fmt.Errorf("Can't put new event before '%s': %v", name, err)
+	}
+	e.events.Set(name, append([]EventType{event}, list...))
+	return nil
 }
 
 func (e *Events) callEvents(input interface{}, name string,

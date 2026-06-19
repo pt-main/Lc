@@ -7,6 +7,7 @@ import (
 
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 )
 
@@ -23,7 +24,7 @@ func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events)
 		return errors.New("No input in scope or invalid input")
 	}
 	e.UEP.Logger.PrintLog("event", fmt.Sprintf("start parsing: [parser: %s]", e.Parser))
-	nodes, err := e.Parser.Parse(input, e.UEP)
+	nodes, err := e.Parser.Parse(input, &parsing.ParseOption{UEP: e.UEP})
 	if err != nil {
 		return err
 	}

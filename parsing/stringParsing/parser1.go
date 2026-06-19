@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/parsing"
 )
 
 type GrammarRule struct {
@@ -63,11 +63,13 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 // brackets) and applies grammar rules to each block. Returns a slice of
 // ParsedNode with Metadata containing regexp named groups and the original raw
 // line under "__raw". Errors if no rule matches a block.
-func (p *Parser1) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
+func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
 	log := func(text string) {
-		if len(i) > 0 {
-			if val, ok := i[0].(core.UniversalEngineParams); ok {
-				val.Logger.PrintLog("parsing", text)
+		text = "\n" + text
+		if len(opts) > 0 {
+			logger := opts[0].UEP.Logger
+			if logger != nil {
+				logger.PrintLog("parsing", text)
 			}
 		}
 	}

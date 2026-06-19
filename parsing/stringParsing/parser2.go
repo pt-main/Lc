@@ -3,11 +3,13 @@ package stringParsing
 import (
 	"errors"
 	"strings"
+
+	"github.com/pt-main/lc/parsing"
 )
 
 type Parser2 struct{}
 
-func (p *Parser2) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
+func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
 	lines := strings.Split(code, "\n")
 	result := []ParsedNode{}
 
