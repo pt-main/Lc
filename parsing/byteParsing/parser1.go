@@ -73,3 +73,7 @@ func (p *Parser1) Parse(code []byte, i ...interface{}) ([]ParsedBytes, error) {
 	p.Config.Shifter.Idx = _Idx
 	return result, nil
 }
+
+func (p *Parser1) String() string {
+	return "lc/parsing/byteParsing/Parser1"
+}

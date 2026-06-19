@@ -43,3 +43,7 @@ func (p *Parser2) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
 	}
 	return addPrevNextNodes(result), nil
 }
+
+func (p *Parser2) String() string {
+	return "lc/parsing/stringParsing/Parser2"
+}

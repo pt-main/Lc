@@ -169,3 +169,5 @@ func (p *configParser) consume() *stringParsing.ParsedNode {
 	p.pos++
 	return tok
 }
+
+func (p *configParser) String() string

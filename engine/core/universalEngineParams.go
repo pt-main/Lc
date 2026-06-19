@@ -54,7 +54,7 @@ func NewUniversalEngineParams(
 		if !ok {
 			return fmt.Errorf("LogEvent 'Start': Invalid event input: bad input interface")
 		}
-		logger.PrintLog("debug", "Start call '"+name+"' event")
+		logger.PrintLog("event", "Start call '"+name+"' event")
 		return nil
 	}
 	logE := func(_name interface{}, _ *Events) error {
@@ -63,7 +63,7 @@ func NewUniversalEngineParams(
 			return fmt.Errorf("LogEvent 'End': Invalid event input: bad input interface")
 		}
 		text := "End call '" + name + "' event"
-		logger.PrintLog("debug", text)
+		logger.PrintLog("event", text)
 		return nil
 	}
 	events.NewEvent(CallEventsStartEvent, logS)

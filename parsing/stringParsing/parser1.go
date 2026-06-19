@@ -4,6 +4,8 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+
+	"github.com/pt-main/lc/engine/core"
 )
 
 type GrammarRule struct {
@@ -62,6 +64,14 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 // ParsedNode with Metadata containing regexp named groups and the original raw
 // line under "__raw". Errors if no rule matches a block.
 func (p *Parser1) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
+	log := func(text string) {
+		if len(i) > 0 {
+			if val, ok := i[0].(core.UniversalEngineParams); ok {
+				val.Logger.PrintLog("parsing", text)
+			}
+		}
+	}
+	log("start parsing code " + code)
 	lines := strings.Split(code, "\n")
 	var result []ParsedNode
 
@@ -163,4 +173,8 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 		}
 	}
 	return ParsedNode{}, errors.New("syntax error: no rule matches block: " + block)
+}
+
+func (p *Parser1) String() string {
+	return "lc/parsing/stringParsing/Parser1"
 }

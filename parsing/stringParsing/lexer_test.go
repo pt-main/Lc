@@ -22,7 +22,7 @@ func TestLexer_Parse(t *testing.T) {
 		},
 	}
 
-	lexer := NewLexer(rules)
+	lexer := NewLexer(rules, nil)
 	nodes, err := lexer.Parse("123 abc 456", nil)
 	if err != nil {
 		t.Fatalf("Error: %s", err)

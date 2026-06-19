@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dlclark/regexp2"
+	"github.com/pt-main/lc/engine/core"
 )
 
 // LexerRule defines a single token type and its regular expression pattern.
@@ -20,22 +21,52 @@ type LexerRule struct {
 	Pattern *regexp2.Regexp
 }
 
+// LexerConfig holds configuration options for the lexer.
+type LexerConfig struct {
+	UseBracketBalance bool     // Enable bracket balancing
+	Brackets          []string // List of bracket pairs, e.g., []string{"()","[]","{}"}
+}
+
 // Lexer converts a source string into a sequence of ParsedNode objects.
 // It applies a set of LexerRule in order, picking the first matching rule
 // at each position. It supports capturing named groups from the regexp,
 // which become part of Metadata.
 type Lexer struct {
-	rules []LexerRule
+	rules       []LexerRule
+	config      LexerConfig
+	openToClose map[rune]rune
+	closeToOpen map[rune]rune
 }
 
-// NewLexer creates a lexer with the given rule set.
+// NewLexer creates a lexer with the given rule set and optional configuration.
 // Rules are tried in the order they are provided.
 // Typically used as the first stage in a string parser.
 // Example:
 //
-//	lex := NewLexer([]LexerRule{...})
-func NewLexer(rules []LexerRule) *Lexer {
-	return &Lexer{rules: rules}
+//	lex := NewLexer([]LexerRule{...}, LexerConfig{})
+func NewLexer(rules []LexerRule, config *LexerConfig) *Lexer {
+	cfg := LexerConfig{}
+	if config != nil {
+		cfg = *config
+	}
+
+	openToClose := make(map[rune]rune)
+	closeToOpen := make(map[rune]rune)
+	for _, pair := range cfg.Brackets {
+		runes := []rune(pair)
+		if len(runes) == 2 {
+			open, close := runes[0], runes[1]
+			openToClose[open] = close
+			closeToOpen[close] = open
+		}
+	}
+
+	return &Lexer{
+		rules:       rules,
+		config:      cfg,
+		openToClose: openToClose,
+		closeToOpen: closeToOpen,
+	}
 }
 
 func snippet(s string, maxLen int) string {
@@ -45,6 +76,27 @@ func snippet(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 }
 
+// isBracketBalanced checks if the accumulated text has balanced brackets.
+func (l *Lexer) isBracketBalanced(text string) bool {
+	if !l.config.UseBracketBalance {
+		return true
+	}
+
+	stack := []rune{}
+	for _, ch := range text {
+		if _, ok := l.openToClose[ch]; ok {
+			stack = append(stack, ch)
+		} else if closeOpen, ok := l.closeToOpen[ch]; ok {
+			if len(stack) > 0 && stack[len(stack)-1] == closeOpen {
+				stack = stack[:len(stack)-1]
+			} else {
+				return false // unmatched closing bracket
+			}
+		}
+	}
+	return len(stack) == 0
+}
+
 // Parse scans the entire input string and returns a slice of ParsedNode.
 // Each node's Switch field contains the token type, Raw contains the exact
 // matched substring, and Metadata includes all named groups from the regexp
@@ -52,13 +104,28 @@ func snippet(s string, maxLen int) string {
 // If no rule matches at some position, an error is returned with a snippet.
 // The result is automatically enriched with __prev/__next links via
 // addPrevNextNodes.
-func (lp *Lexer) Parse(code string, i interface{}) ([]ParsedNode, error) {
+func (lp *Lexer) Parse(code string, i ...interface{}) ([]ParsedNode, error) {
+	log := func(text string) {
+		text = "\n" + text
+		if len(i) > 0 {
+			if val, ok := i[0].(core.UniversalEngineParams); ok {
+				val.Logger.PrintLog("parsing", text)
+			}
+		}
+	}
+	log("start parsing code [" + code + "]")
+
+	if lp.config.UseBracketBalance && !lp.isBracketBalanced(code) {
+		return nil, fmt.Errorf("lexer error: unbalanced brackets in input")
+	}
+
 	var nodes []ParsedNode
 	runes := []rune(code)
 	pos := 0
 	length := len(runes)
 
 	for pos < length {
+		log(fmt.Sprintf("pos %v, length %v", pos, length))
 		matched := false
 		for _, rule := range lp.rules {
 			subStr := string(runes[pos:])
@@ -66,6 +133,7 @@ func (lp *Lexer) Parse(code string, i interface{}) ([]ParsedNode, error) {
 			if err != nil {
 				return nil, err
 			}
+			log(fmt.Sprintf("rule %v, pos %v, substrLen %v", rule, pos, len(subStr)))
 			if m != nil && m.Index == 0 {
 				tokenRunes := runes[pos : pos+m.Length]
 				tokenValue := string(tokenRunes)
@@ -84,6 +152,12 @@ func (lp *Lexer) Parse(code string, i interface{}) ([]ParsedNode, error) {
 						}
 					}
 				}
+
+				// Add bracket balance info to metadata if enabled
+				if lp.config.UseBracketBalance {
+					meta["__bracket_balanced"] = lp.isBracketBalanced(tokenValue)
+				}
+
 				nodes = append(nodes, ParsedNode{
 					Raw:      tokenValue,
 					Switch:   rule.Type,
@@ -99,4 +173,8 @@ func (lp *Lexer) Parse(code string, i interface{}) ([]ParsedNode, error) {
 		}
 	}
 	return addPrevNextNodes(nodes), nil
+}
+
+func (l *Lexer) String() string {
+	return "lc/parsing/stringParsing/Lexer"
 }

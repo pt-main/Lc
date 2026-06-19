@@ -23,7 +23,7 @@ func newLexer() *stringParsing.Lexer {
 		{Type: "BOOL", Pattern: regexp2.MustCompile(`true|false`, 0)},
 		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0)},
 	}
-	return stringParsing.NewLexer(rules)
+	return stringParsing.NewLexer(rules, &stringParsing.LexerConfig{})
 }
 
 type DataBase struct {
