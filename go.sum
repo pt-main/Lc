@@ -8,3 +8,5 @@ github.com/pt-main/tap v1.1.5 h1:BeV9Ur5GxfDE90OxHvHQoAjQJ/98EHWSrxkNXz7tC4g=
 github.com/pt-main/tap v1.1.5/go.mod h1:oL9GBibdabChx8EbP2M2+c22CnWBF+7xuZ40hIkHtnI=
 github.com/pt-main/tap v1.2.1 h1:rnCb61PGOCwN5VrwqzPsRQOyRRX6rh3TvaZ+/xV76bw=
 github.com/pt-main/tap v1.2.1/go.mod h1:oL9GBibdabChx8EbP2M2+c22CnWBF+7xuZ40hIkHtnI=
+github.com/pt-main/tap v1.3.0 h1:cI4d9pDXeMjjzbje0NUHKBMsI84sDQXGOxhmGZm3YNU=
+github.com/pt-main/tap v1.3.0/go.mod h1:oL9GBibdabChx8EbP2M2+c22CnWBF+7xuZ40hIkHtnI=
