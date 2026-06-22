@@ -8,21 +8,13 @@ import (
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/public"
 	lcplugin "github.com/pt-main/lc/tooling/plugin"
-)
-
-const (
-	ByteEngineType = iota
-	StringEngineType
-)
-const (
-	PluginManagerEuScope = "LC-PM"
-	pluginFileSymbolName = "PLUGIN"
 )
 
 type EngineUniversal struct {
 	Plugins        *lcplugin.PluginManager
-	Type           int
+	Type           public.EngineType
 	StringEngine   *engine.StringEngine
 	ByteEngine     *engine.ByteEngine
 	opcode_counter int
@@ -30,16 +22,16 @@ type EngineUniversal struct {
 }
 
 func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) error {
-	if e.Type != StringEngineType {
-		return errors.New("can't process string in byte engine")
+	if e.Type != public.StringEngineType {
+		return errors.New("Can't process string in byte engine")
 	}
 	e.GetUEP().Context = ctx
 	return e.StringEngine.Process(input)
 }
 
 func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) error {
-	if e.Type != ByteEngineType {
-		return errors.New("can't process bytes in string engine")
+	if e.Type != public.ByteEngineType {
+		return errors.New("Can't process bytes in string engine")
 	}
 	e.GetUEP().Context = ctx
 	return e.ByteEngine.Process(input)
@@ -59,7 +51,7 @@ func (e *EngineUniversal) ProcessBytes(input []byte) error {
 }
 
 func (e *EngineUniversal) GetUEP() *core.UniversalEngineParams {
-	if e.Type == StringEngineType {
+	if e.Type == public.StringEngineType {
 		return e.StringEngine.UEP
 	}
 	return e.ByteEngine.UEP
@@ -72,10 +64,9 @@ func (e *EngineUniversal) NewCommandByte(
 	opcode int, handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes], name string,
 	autoByecodeIdxShift bool,
 ) error {
-	if e.Type != ByteEngineType {
-		return errors.New("can't add byte command to string engine")
+	if e.Type != public.ByteEngineType {
+		return errors.New("Can't add byte command to string engine")
 	}
-
 	finalOpcode := opcode
 	if opcode == -1 {
 		finalOpcode = e.opcode_counter
@@ -95,8 +86,8 @@ func (e *EngineUniversal) NewCommandByte(
 func (e *EngineUniversal) NewCommandString(
 	cmdSwitch string, handler core.CommandType[engine.StringEngine, stringParsing.ParsedNode], doc string,
 ) error {
-	if e.Type != StringEngineType {
-		return errors.New("can't add string command to byte engine")
+	if e.Type != public.StringEngineType {
+		return errors.New("Can't add string command to byte engine")
 	}
 	e.StringEngine.NewCommand(cmdSwitch, handler, doc)
 	return nil

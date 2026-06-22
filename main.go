@@ -8,10 +8,11 @@ import (
 	"github.com/pt-main/lc/engine/events"
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.2.0"
+const Version = "1.3.2"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -23,7 +24,7 @@ const Version = "1.2.0"
 //
 // Returns a StringEngine with empty command map and initialized UEP.
 func NewStringEngine(
-	generator_res_type int,
+	generator_res_type public.ResType,
 	pipeline []string,
 	add_default_events bool,
 	parser stringParser,
@@ -34,8 +35,8 @@ func NewStringEngine(
 	e := core.NewEvents(context)
 	if add_default_events {
 		de := events.DefaultEvents{}
-		e.NewEvent(core.StringParseEvent, de.StringParsingEvent)
-		e.NewEvent(core.StringCallEvent, de.StringCallEvent)
+		e.NewEvent(public.StringParseEvent, de.StringParsingEvent)
+		e.NewEvent(public.StringCallEvent, de.StringCallEvent)
 	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(generator_res_type, pipeline),
 		e, make(core.ScopeType), core.NewLogger(""), context)
@@ -54,11 +55,11 @@ func NewStringEngine(
 //
 // The parser must implement paraing.ParserInterface.
 func NewByteEngine(
-	generator_res_type int,
+	generator_res_type public.ResType,
 	pipeline []string,
 	add_default_events bool,
 	parser byteParser,
-	endianess int,
+	endianess public.EndianType,
 	colorEnable bool,
 	context context.Context,
 ) *engine.ByteEngine {
@@ -67,14 +68,14 @@ func NewByteEngine(
 	e := core.NewEvents(context)
 	if add_default_events {
 		de := events.DefaultEvents{}
-		e.NewEvent(core.ByteParseEvent, de.ByteParsingEvent)
-		e.NewEvent(core.ByteCallEvent, de.ByteCallEvent)
+		e.NewEvent(public.ByteParseEvent, de.ByteParsingEvent)
+		e.NewEvent(public.ByteCallEvent, de.ByteCallEvent)
 	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(
 		generator_res_type, pipeline,
 	), e, core.ScopeType{
-		engine.ByteEngineScopeEndianess:   endianess,
-		engine.ByteEngineScopeBytecodeIdx: &idx,
+		public.ByteEngineScopeEndianess:   endianess,
+		public.ByteEngineScopeBytecodeIdx: &idx,
 	}, core.NewLogger(""), context)
 	return &engine.ByteEngine{
 		UEP:                    uep,

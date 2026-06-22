@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"fmt"
+
+	"github.com/pt-main/lc/public"
 )
 
 // UniversalEngineParams is a container shared by both StringEngine and ByteEngine.
@@ -66,8 +68,8 @@ func NewUniversalEngineParams(
 		logger.PrintLog("event", text)
 		return nil
 	}
-	events.NewEvent(CallEventsStartEvent, logS)
-	events.NewEvent(CallEventsEndEvent, logE)
+	events.NewEvent(public.CallEventsStartEvent, logS)
+	events.NewEvent(public.CallEventsEndEvent, logE)
 	return &UniversalEngineParams{
 		Generator: generator,
 		Event:     events,

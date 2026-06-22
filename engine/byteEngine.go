@@ -8,13 +8,8 @@ import (
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/tap/color"
-)
-
-const (
-	ByteEngineScopeEndianess   = "ENDIANESS int"
-	ByteEngineScopeBytecodeIdx = "BYTECODE_IDX *int"
-	ByteEngineScopeInput       = "INPUT []byte"
 )
 
 // ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
@@ -31,17 +26,17 @@ type ByteEngine struct {
 // Process transforms a byte slice by parsing it and invoking the registered
 // bytecode handlers. The parsed result is stored in scope["parsed_[]ParsedBytes"].
 func (e *ByteEngine) Process(input []byte) error {
-	e.UEP.Scope[ByteEngineScopeInput] = input
-	err1 := e.UEP.Event.CallEvents(e, core.ByteParseEvent, false)
+	e.UEP.Scope[public.ByteEngineScopeInput] = input
+	err1 := e.UEP.Event.CallEvents(e, public.ByteParseEvent, false)
 	if err1 != nil {
 		return fmt.Errorf(
-			color.Set("[?RD]Calling [?YW]'ByteParseEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
 			color.Set(err1.Error()))
 	}
-	err2 := e.UEP.Event.CallEvents(e, core.ByteCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(e, public.ByteCallEvent, false)
 	if err2 != nil {
 		return fmt.Errorf(
-			color.Set("[?RD]Calling [?YW]'ByteCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set("[?RD]Process error (2)[?RT]: \n%v"),
 			color.Set(err2.Error()))
 	}
 	return nil
@@ -72,19 +67,19 @@ func (e *ByteEngine) NewCommand(
 func (e *ByteEngine) AddToBytecodeIdx(n int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) += n
+	*e.UEP.Scope[public.ByteEngineScopeBytecodeIdx].(*int) += n
 }
 
 func (e *ByteEngine) SetBytecodeIdx(n int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	*e.UEP.Scope[ByteEngineScopeBytecodeIdx].(*int) = n
+	*e.UEP.Scope[public.ByteEngineScopeBytecodeIdx].(*int) = n
 }
 
 func (e *ByteEngine) GetBytecodeIdx() (*int, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	_idx, ok := e.UEP.Scope[ByteEngineScopeBytecodeIdx]
+	_idx, ok := e.UEP.Scope[public.ByteEngineScopeBytecodeIdx]
 	if !ok {
 		return nil, errors.New("Can't get bytecode index: invalid scope")
 	}

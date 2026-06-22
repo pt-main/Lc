@@ -3,9 +3,8 @@ package parsing
 import "github.com/pt-main/lc/engine/core"
 
 type ParseOption struct {
-	UEP   *core.UniversalEngineParams
-	Flags []string
-	Other map[string]interface{}
+	UEP    *core.UniversalEngineParams
+	Option core.Option
 }
 
 type ParserInterface[I any, P any] interface {

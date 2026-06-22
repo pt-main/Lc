@@ -7,11 +7,7 @@ import (
 	"sync"
 
 	"github.com/iancoleman/orderedmap"
-)
-
-const (
-	CallEventsStartEvent = "->call(Events.CallEvents)"
-	CallEventsEndEvent   = "call(Events.CallEvents)->"
+	"github.com/pt-main/lc/public"
 )
 
 // Events manages an ordered collection of event handlers. Each event has a
@@ -83,22 +79,17 @@ func (e *Events) callEvents(input interface{}, name string,
 	return nil
 }
 
-const (
-	EventsScopeCallName  = "CALL_NAME string"
-	EventsScopeCallError = "CALL_ERROR error"
-)
-
 func (e *Events) CallEvents(input interface{}, name string,
 	canWorkWithoutHandler bool) error {
-	e.Scope[EventsScopeCallName] = name
+	e.Scope[public.EventsScopeCallName] = name
 	var err error
-	err = e.callEvents(name, CallEventsStartEvent, true)
+	err = e.callEvents(name, public.CallEventsStartEvent, true)
 	if err != nil {
 		return err
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
-	e.Scope[EventsScopeCallError] = err
-	err1 := e.callEvents(name, CallEventsEndEvent, true)
+	e.Scope[public.EventsScopeCallError] = err
+	err1 := e.callEvents(name, public.CallEventsEndEvent, true)
 	if err1 != nil {
 		return err1
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/pt-main/lc"
 	enginepkg "github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/public"
 )
 
 func Process(config string) (string, error) {
@@ -34,7 +35,7 @@ func Process(config string) (string, error) {
 		TrimBlocksSpace:     true,
 	}
 	parser := stringParsing.NewParser1(grammar, cfgp)
-	engine, err := lc.NewEngineBuilder(lc.StringEngineType).
+	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).
 		WithPipeline([]string{"main"}).
 		WithStringParser(parser).
 		WithDefaultEvents(true).
@@ -44,7 +45,7 @@ func Process(config string) (string, error) {
 		return "", err
 	}
 	engine.GetUEP().Scope["config"] = make(map[string]map[string]interface{})
-	engine.GetUEP().Scope["current_section"] = ""
+	engine.GetUEP().Scope["current_section"] = "global"
 	_ = engine.NewCommandString("section", func(se *enginepkg.StringEngine, node stringParsing.ParsedNode) error {
 		name := node.Metadata["name"].(string)
 		se.UEP.Scope["current_section"] = name
@@ -59,9 +60,6 @@ func Process(config string) (string, error) {
 		rawVal := strings.TrimSpace(node.Metadata["value"].(string))
 		val := parseValue(rawVal)
 		sectionName, _ := se.UEP.Scope["current_section"].(string)
-		if sectionName == "" {
-			sectionName = "global"
-		}
 		cfg := se.UEP.Scope["config"].(map[string]map[string]interface{})
 		if _, ok := cfg[sectionName]; !ok {
 			cfg[sectionName] = make(map[string]interface{})

@@ -1,10 +1,12 @@
 package bytecode
 
+import "github.com/pt-main/lc/public"
+
 type GenerationConfig struct {
 	CommandBytelen   int
 	ArglenBytelen    int
 	ArgscountBytelen int
-	Endianess        int
+	Endianess        public.EndianType
 }
 
 type InstructionsGenerator struct {

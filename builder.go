@@ -8,12 +8,8 @@ import (
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/plugin"
-)
-
-const (
-	EuPtrPluginsScope = "EuPtr *EngineUniversal"
 )
 
 type stringParser parsing.ParserInterface[string, stringParsing.ParsedNode]
@@ -24,18 +20,19 @@ type byteParser parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
 // custom parsers, scope variables, and byte order before calling Build().
 // Use NewEngineBuilder to create a builder instance.
 type EngineBuilder struct {
-	engineType       int
+	engineType       public.EngineType
 	pipeline         []string
 	addDefaultEvents bool
 	logger           *core.Logger
 	scope            core.ScopeType
 	stringParser     stringParser
 	byteParser       byteParser
-	endianess        int
+	endianess        public.EndianType
 	colorEnabled     bool
 	context          context.Context
 	pm               bool
-	plugins          []*plugin.Plugin
+	plugins          []plugin.PluginInterface
+	resType          public.ResType
 }
 
 // NewEngineBuilder creates a new EngineBuilder for the given engine type.
@@ -47,12 +44,13 @@ type EngineBuilder struct {
 //	builder := lc.NewEngineBuilder(lc.StringEngineType).
 //	            WithPipeline([]string{"pre","main"}).
 //	            WithStringParser(myParser)
-func NewEngineBuilder(engineType int) *EngineBuilder {
+func NewEngineBuilder(engineType public.EngineType, resType public.ResType) *EngineBuilder {
 	return &EngineBuilder{
 		engineType:       engineType,
+		resType:          resType,
 		pipeline:         []string{"main"},
 		addDefaultEvents: true,
-		endianess:        bytecode.LittleEndian,
+		endianess:        public.LittleEndian,
 		scope:            make(core.ScopeType),
 		context:          context.Background(),
 	}
@@ -100,14 +98,14 @@ func (b *EngineBuilder) WithByteParser(parser byteParser) *EngineBuilder {
 	return b
 }
 
-func (b *EngineBuilder) WithEndianess(endianess int) *EngineBuilder {
+func (b *EngineBuilder) WithEndianess(endianess public.EndianType) *EngineBuilder {
 	b.endianess = endianess
 	return b
 }
 
-func (b *EngineBuilder) WithPluginManager(plugins ...*plugin.Plugin) *EngineBuilder {
+func (b *EngineBuilder) WithPlugins(plugins ...plugin.PluginInterface) *EngineBuilder {
 	b.pm = true
-	b.plugins = plugins
+	b.plugins = append(b.plugins, plugins...)
 	return b
 }
 
@@ -118,12 +116,12 @@ func (b *EngineBuilder) WithPluginManager(plugins ...*plugin.Plugin) *EngineBuil
 func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 	var eu *EngineUniversal
 	switch b.engineType {
-	case StringEngineType:
+	case public.StringEngineType:
 		if b.stringParser == nil {
 			return nil, errors.New("string parser is required for StringEngine")
 		}
 		strEngine := NewStringEngine(
-			core.StringResType,
+			b.resType,
 			b.pipeline,
 			b.addDefaultEvents,
 			b.stringParser,
@@ -138,17 +136,17 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		}
 		eu = &EngineUniversal{
 			Plugins:        &plugin.PluginManager{},
-			Type:           StringEngineType,
+			Type:           b.engineType,
 			StringEngine:   strEngine,
 			opcode_counter: 0,
 		}
 
-	case ByteEngineType:
+	case public.ByteEngineType:
 		if b.byteParser == nil {
 			return nil, errors.New("byte parser is required for ByteEngine")
 		}
 		byteEngine := NewByteEngine(
-			core.ByteResType,
+			b.resType,
 			b.pipeline,
 			b.addDefaultEvents,
 			b.byteParser,
@@ -164,7 +162,7 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		}
 		eu = &EngineUniversal{
 			Plugins:        &plugin.PluginManager{},
-			Type:           ByteEngineType,
+			Type:           b.engineType,
 			ByteEngine:     byteEngine,
 			opcode_counter: 0,
 		}
@@ -174,7 +172,7 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 	}
 	pm := &plugin.PluginManager{
 		Plugins: make(map[string]plugin.PluginInterface),
-		Scope:   core.ScopeType{EuPtrPluginsScope: eu},
+		Scope:   core.ScopeType{public.PluginsScopeEuPtr: eu},
 	}
 	if b.pm {
 		if b.plugins != nil {
@@ -190,6 +188,6 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		}
 	}
 	eu.Plugins = pm
-	eu.GetUEP().Scope[PluginManagerEuScope] = pm
+	eu.GetUEP().Scope[public.EuScopePmPtr] = pm
 	return eu, nil
 }

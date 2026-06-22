@@ -3,14 +3,11 @@ package bytecode
 import (
 	"errors"
 	"math"
+
+	"github.com/pt-main/lc/public"
 )
 
 type Utils struct{}
-
-const (
-	BigEndian = iota
-	LittleEndian
-)
 
 func (u *Utils) IntToBytesBigEndian(value int, size int) []byte {
 	result := make([]byte, size)
@@ -32,8 +29,8 @@ func (u *Utils) IntToBytesLittleEndian(value int, size int) []byte {
 	return result
 }
 
-func (u *Utils) IntToBytes(value int, size int, endianess int) []byte {
-	if endianess == BigEndian {
+func (u *Utils) IntToBytes(value int, size int, endianess public.EndianType) []byte {
+	if endianess == public.BigEndian {
 		return u.IntToBytesBigEndian(value, size)
 	}
 	return u.IntToBytesLittleEndian(value, size)
@@ -63,14 +60,14 @@ func (u *Utils) BytesToIntLittleEndian(bytes []byte) int {
 	return int(val)
 }
 
-func (u *Utils) BytesToInt(bytes []byte, endianess int) int {
-	if endianess == BigEndian {
+func (u *Utils) BytesToInt(bytes []byte, endianess public.EndianType) int {
+	if endianess == public.BigEndian {
 		return u.BytesToIntBigEndian(bytes)
 	}
 	return u.BytesToIntLittleEndian(bytes)
 }
 
-func (u *Utils) Float64ToBytes(value float64, size int, endianess int) []byte {
+func (u *Utils) Float64ToBytes(value float64, size int, endianess public.EndianType) []byte {
 	if size <= 0 {
 		panic("Float64ToBytes: size must be positive")
 	}
@@ -95,7 +92,7 @@ func (u *Utils) Float64ToBytes(value float64, size int, endianess int) []byte {
 	return u.IntToBytes(int(scaledValue), size, endianess)
 }
 
-func (u *Utils) BytesToFloat64(bytes []byte, endianess int) float64 {
+func (u *Utils) BytesToFloat64(bytes []byte, endianess public.EndianType) float64 {
 	size := len(bytes)
 	if size == 0 {
 		return 0.0
@@ -108,7 +105,7 @@ func (u *Utils) BytesToFloat64(bytes []byte, endianess int) float64 {
 	return float64(intValue)/float64(maxValue)*2.0 - 1.0
 }
 
-func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal float64, endianess int) []byte {
+func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal float64, endianess public.EndianType) []byte {
 	if size <= 0 {
 		panic("Float64ToBytesRange: size must be positive")
 	}
@@ -127,7 +124,7 @@ func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal floa
 	return u.IntToBytes(int(scaledValue), size, endianess)
 }
 
-func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endianess int) float64 {
+func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endianess public.EndianType) float64 {
 	size := len(bytes)
 	if size == 0 {
 		return minVal
@@ -145,19 +142,19 @@ func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endian
 }
 
 func (u *Utils) Float64ToBytesBigEndian(value float64, size int) []byte {
-	return u.Float64ToBytes(value, size, BigEndian)
+	return u.Float64ToBytes(value, size, public.BigEndian)
 }
 
 func (u *Utils) Float64ToBytesLittleEndian(value float64, size int) []byte {
-	return u.Float64ToBytes(value, size, LittleEndian)
+	return u.Float64ToBytes(value, size, public.LittleEndian)
 }
 
 func (u *Utils) BytesToFloat64BigEndian(bytes []byte) float64 {
-	return u.BytesToFloat64(bytes, BigEndian)
+	return u.BytesToFloat64(bytes, public.BigEndian)
 }
 
 func (u *Utils) BytesToFloat64LittleEndian(bytes []byte) float64 {
-	return u.BytesToFloat64(bytes, LittleEndian)
+	return u.BytesToFloat64(bytes, public.LittleEndian)
 }
 
 type Shift struct {
@@ -189,7 +186,7 @@ func (s *Shift) ShiftPanic(length int) []byte {
 	return bytes
 }
 
-func (s *Shift) ShiftFloat64Error(size int, endianess int) (float64, error) {
+func (s *Shift) ShiftFloat64Error(size int, endianess public.EndianType) (float64, error) {
 	bytes, err := s.ShiftError(size)
 	if err != nil {
 		return 0, err
@@ -198,13 +195,13 @@ func (s *Shift) ShiftFloat64Error(size int, endianess int) (float64, error) {
 	return utils.BytesToFloat64(bytes, endianess), nil
 }
 
-func (s *Shift) ShiftFloat64Panic(size int, endianess int) float64 {
+func (s *Shift) ShiftFloat64Panic(size int, endianess public.EndianType) float64 {
 	bytes := s.ShiftPanic(size)
 	utils := &Utils{}
 	return utils.BytesToFloat64(bytes, endianess)
 }
 
-func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endianess int) (float64, error) {
+func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endianess public.EndianType) (float64, error) {
 	bytes, err := s.ShiftError(size)
 	if err != nil {
 		return 0, err
@@ -213,13 +210,13 @@ func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endiane
 	return utils.BytesToFloat64Range(bytes, minVal, maxVal, endianess), nil
 }
 
-func (s *Shift) ShiftFloat64RangePanic(size int, minVal, maxVal float64, endianess int) float64 {
+func (s *Shift) ShiftFloat64RangePanic(size int, minVal, maxVal float64, endianess public.EndianType) float64 {
 	bytes := s.ShiftPanic(size)
 	utils := &Utils{}
 	return utils.BytesToFloat64Range(bytes, minVal, maxVal, endianess)
 }
 
-func (u *Utils) AutoIntToBytes(value int, endianess int) []byte {
+func (u *Utils) AutoIntToBytes(value int, endianess public.EndianType) []byte {
 	size := 1
 	temp := value
 	if temp < 0 {
@@ -235,7 +232,7 @@ func (u *Utils) AutoIntToBytes(value int, endianess int) []byte {
 	return u.IntToBytes(value, size, endianess)
 }
 
-func (u *Utils) AutoFloat64ToBytes(value float64, endianess int) []byte {
+func (u *Utils) AutoFloat64ToBytes(value float64, endianess public.EndianType) []byte {
 	size := 1
 	absValue := math.Abs(value)
 	if absValue > 1.0 {

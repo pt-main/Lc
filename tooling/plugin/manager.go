@@ -6,54 +6,6 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
-type PluginInterface interface {
-	Name() string
-	Init(scope core.ScopeType, pm *PluginManager) error
-	Close() error
-	Run(input any) (any, error)
-}
-
-type Plugin struct {
-	Events         *core.Events
-	ScopeResultKey string
-
-	InitEvent  string
-	CloseEvent string
-	MainEvent  string
-
-	name string
-}
-
-func NewPlugin(name, initEvent, mainEvent, closeEvent string) *Plugin {
-	return &Plugin{
-		Events:     core.NewEvents(nil),
-		name:       name,
-		InitEvent:  initEvent,
-		MainEvent:  mainEvent,
-		CloseEvent: closeEvent,
-	}
-}
-
-func (p *Plugin) Name() string {
-	return p.name
-}
-
-func (p *Plugin) Init(scope core.ScopeType, pm *PluginManager) error {
-	for key, val := range scope {
-		p.Events.Scope[key] = val
-	}
-	return p.Events.CallEvents(pm, p.InitEvent, true)
-}
-
-func (p *Plugin) Close() error {
-	return p.Events.CallEvents(p, p.CloseEvent, false)
-}
-
-func (p *Plugin) Run(input any) (any, error) {
-	err := p.Events.CallEvents(input, p.MainEvent, true)
-	return p.Events.Scope[p.ScopeResultKey], err
-}
-
 type PluginManager struct {
 	Plugins map[string]PluginInterface
 	Scope   core.ScopeType
@@ -103,4 +55,12 @@ func (pm *PluginManager) CallPlugin(name string, input any) (any, error) {
 		return nil, err
 	}
 	return plugin.Run(input)
+}
+
+func (pm *PluginManager) CallPluginMethod(name string, opts ...core.Option) (any, error) {
+	plugin, err := pm.GetPlugin(name)
+	if err != nil {
+		return nil, err
+	}
+	return plugin.Call(name, opts...)
 }

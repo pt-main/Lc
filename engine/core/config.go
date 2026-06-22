@@ -1,11 +1,6 @@
 package core
 
-const (
-	StringParseEvent = "INPUT string->PARSED []ParsedNode"
-	StringCallEvent  = "call(PARSED []ParsedNode)"
-	ByteParseEvent   = "INPUT []byte->PARSED []ParsedBytes"
-	ByteCallEvent    = "call(PARSED []ParsedBytes)"
-)
+import "slices"
 
 type CommandType[E, N any] func(*E, N) error
 
@@ -14,6 +9,14 @@ type CommandMeta[E, N any] struct {
 	Doc     string
 }
 
-type ScopeType map[string]interface{}
-
 type EventType func(interface{}, *Events) error
+
+type Option struct {
+	Inited []int
+	Flags  []string
+	Scope  ScopeType
+}
+
+func (o *Option) HasFlag(name string) bool {
+	return slices.Contains(o.Flags, name)
+}

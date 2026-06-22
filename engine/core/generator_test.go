@@ -3,10 +3,12 @@ package core
 import (
 	"reflect"
 	"testing"
+
+	"github.com/pt-main/lc/public"
 )
 
 func TestGenerator_AddAndGetString(t *testing.T) {
-	gen := NewGenerator(StringResType, []string{"pre", "main"})
+	gen := NewGenerator(public.StringResType, []string{"pre", "main"})
 
 	err := gen.AddString("hello", "pre")
 	if err != nil {
@@ -28,7 +30,7 @@ func TestGenerator_AddAndGetString(t *testing.T) {
 }
 
 func TestGenerator_AddBytes(t *testing.T) {
-	gen := NewGenerator(ByteResType, []string{"main"})
+	gen := NewGenerator(public.ByteResType, []string{"main"})
 	err := gen.AddBytes([]byte{0x01, 0x02}, "main")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -44,7 +46,7 @@ func TestGenerator_AddBytes(t *testing.T) {
 }
 
 func TestGenerator_WrongType(t *testing.T) {
-	gen := NewGenerator(StringResType, []string{"main"})
+	gen := NewGenerator(public.StringResType, []string{"main"})
 	err := gen.AddBytes([]byte{0x01}, "main")
 	if err == nil {
 		t.Error("expected error, got nil")

@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
@@ -13,7 +14,7 @@ func TestParser1_Parse(t *testing.T) {
 			CommandBytelen:   1,
 			ArgscountBytelen: 1,
 			ArglenBytelen:    1,
-			Endianess:        bytecode.LittleEndian,
+			Endianess:        public.LittleEndian,
 		},
 		Shifter: bytecode.Shift{},
 	}
@@ -45,7 +46,7 @@ func TestParser1_Parse_Error(t *testing.T) {
 			CommandBytelen:   1,
 			ArgscountBytelen: 1,
 			ArglenBytelen:    1,
-			Endianess:        bytecode.LittleEndian,
+			Endianess:        public.LittleEndian,
 		},
 		Shifter: bytecode.Shift{},
 	}

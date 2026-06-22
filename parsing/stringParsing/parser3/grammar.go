@@ -117,7 +117,6 @@ func (n NodeExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var raw string
 	for _, child := range children {
 		raw += child.Raw
@@ -128,6 +127,23 @@ func (n NodeExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 		Metadata: map[string]interface{}{
 			"children": children,
 		},
+	}
+	return []stringParsing.ParsedNode{node}, nil
+}
+
+type ActionExpr struct {
+	Expr   Expr
+	Action func([]stringParsing.ParsedNode) (stringParsing.ParsedNode, error)
+}
+
+func (a ActionExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
+	children, err := a.Expr.Parse(p)
+	if err != nil {
+		return nil, err
+	}
+	node, err := a.Action(children)
+	if err != nil {
+		return nil, err
 	}
 	return []stringParsing.ParsedNode{node}, nil
 }

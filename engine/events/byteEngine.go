@@ -9,49 +9,77 @@ import (
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
-
-const ByteEngineScopeParsed = "PARSED []ParsedBytes"
 
 func (de *DefaultEvents) ByteParsingEvent(_e interface{}, events *core.Events) error {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
-	input, ok := e.UEP.Scope[engine.ByteEngineScopeInput].([]byte)
-	if !ok {
-		return errors.New("No input in scope")
+	input, err := core.ScopeGet[[]byte](e.UEP.Scope, public.ByteEngineScopeInput)
+	if err != nil {
+		return errors.New("Can't get input: " + err.Error())
 	}
 	nodes, err := e.Parser.Parse(input)
 	if err != nil {
 		return err
 	}
-	e.UEP.Scope[ByteEngineScopeParsed] = nodes
+	e.UEP.Scope[public.ByteEngineScopeParsed] = nodes
 	return nil
 }
 
-func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) error {
+func (de *DefaultEvents) ByteCallEventIteration(
+	parsed []byteParsing.ParsedBytes, idx *int,
+	u bytecode.Utils, e *engine.ByteEngine,
+	endianess public.EndianType,
+) (int, error) {
+	node := parsed[*(idx)]
+	cmd_switch := u.BytesToInt(node.Switch, endianess)
+	handler, ok := e.Commands[cmd_switch]
+	if !ok {
+		return 0, errors.New("Can't find bytecode op: " + strconv.Itoa(cmd_switch))
+	}
+	err := handler.Handler(e, node)
+	if err != nil {
+		return 0, errors.New("[?BRD]Handler error:[?RT]\n  " + err.Error())
+	}
+	val, ok := e.AutoBytecodeIndexShift[cmd_switch]
+	if !ok {
+		return 0, errors.New("Command not found in autoshift config.")
+	}
+	if val {
+		*idx += 1
+	}
+	return cmd_switch, nil
+}
+
+func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) (err error) {
 	e, ok := _e.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
-	_parsed, _ := e.UEP.Scope[ByteEngineScopeParsed]
+	_parsed, _ := e.UEP.Scope[public.ByteEngineScopeParsed]
 	parsed, ok := _parsed.([]byteParsing.ParsedBytes)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
 	u := bytecode.Utils{}
-	endianess, ok := e.UEP.Scope[engine.ByteEngineScopeEndianess].(int)
+	endianess, ok := e.UEP.Scope[public.ByteEngineScopeEndianess].(public.EndianType)
 	if !ok {
 		return fmt.Errorf("Can't get endianess: not declarated in scope or invalid value")
 	}
-	idx, ok := e.UEP.Scope[engine.ByteEngineScopeBytecodeIdx].(*int)
-	if !ok {
-		return errors.New("Can't get bytecode index: not declarated in scope or invalid value")
+	idx, err := core.ScopeGet[*int](e.UEP.Scope, public.ByteEngineScopeBytecodeIdx)
+	if err != nil {
+		return fmt.Errorf("Can't get bytecode index: \n  %v", err)
 	}
-	var err error = nil
-	var cmd_switch int
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n  %v", r)
+		}
+	}()
+	var last_cmd_switch int
 	for *(idx) < len(parsed) && *(idx) >= 0 {
 		ctx := e.UEP.GetContext()
 		select {
@@ -59,31 +87,15 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) erro
 			return ctx.Err()
 		default:
 		}
-		node := parsed[*(idx)]
-		cmd_switch = u.BytesToInt(node.Switch, endianess)
-		handler, ok := e.Commands[cmd_switch]
-		if !ok {
-			err = errors.New("Can't find bytecode op: " + strconv.Itoa(cmd_switch))
-			break
-		}
-		err = handler.Handler(e, node)
+		last_cmd_switch, err = de.ByteCallEventIteration(parsed, idx, u, e, endianess)
 		if err != nil {
-			err = errors.New("[?BRD]Handler error:[?RT]\n" + err.Error())
-			break
-		}
-		val, ok := e.AutoBytecodeIndexShift[cmd_switch]
-		if !ok {
-			err = errors.New("Command not found in autoshift config.")
-			break
-		}
-		if val {
-			*idx += 1
+			return err
 		}
 	}
 	if err != nil {
 		return fmt.Errorf(
 			"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
-			cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+			last_cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
 		)
 	}
 	return nil

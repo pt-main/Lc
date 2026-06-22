@@ -48,7 +48,7 @@ func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsi
 		return nil, err
 	}
 
-	p.skipIgnored()
+	p.SkipIgnored()
 	if p.pos < len(p.tokens) {
 		return nil, fmt.Errorf("unexpected token at position %d: %v", p.pos, p.tokens[p.pos])
 	}
@@ -66,14 +66,14 @@ func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsi
 	return []stringParsing.ParsedNode{root}, nil
 }
 
-func (p *Parser) skipIgnored() {
+func (p *Parser) SkipIgnored() {
 	for p.pos < len(p.tokens) && p.ignore[p.tokens[p.pos].Switch] {
 		p.pos++
 	}
 }
 
-func (p *Parser) nextToken() (stringParsing.ParsedNode, error) {
-	p.skipIgnored()
+func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
+	p.SkipIgnored()
 	if p.pos >= len(p.tokens) {
 		return stringParsing.ParsedNode{}, fmt.Errorf("unexpected EOF")
 	}
@@ -83,7 +83,7 @@ func (p *Parser) nextToken() (stringParsing.ParsedNode, error) {
 }
 
 func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error) {
-	tok, err := p.nextToken()
+	tok, err := p.NextToken()
 	if err != nil {
 		return stringParsing.ParsedNode{}, err
 	}
@@ -94,7 +94,7 @@ func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error) {
 }
 
 func (p *Parser) Peek() (stringParsing.ParsedNode, error) {
-	p.skipIgnored()
+	p.SkipIgnored()
 	if p.pos >= len(p.tokens) {
 		return stringParsing.ParsedNode{}, fmt.Errorf("EOF")
 	}

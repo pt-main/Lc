@@ -7,12 +7,8 @@ import (
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/tap/color"
-)
-
-const (
-	StringEngineScopeInput  = "INPUT string"
-	StringEngineScopeParsed = "PARSED []ParsedNode"
 )
 
 // StringEngine is the core for text‑based languages. It holds command
@@ -30,17 +26,17 @@ type StringEngine struct {
 // StringParseEvent (to parse into []ParsedNode) and StringCallEvent
 // (to dispatch commands). Any error stops execution.
 func (e *StringEngine) Process(input string) error {
-	e.UEP.Scope[StringEngineScopeInput] = input
-	err1 := e.UEP.Event.CallEvents(e, core.StringParseEvent, false)
+	e.UEP.Scope[public.StringEngineScopeInput] = input
+	err1 := e.UEP.Event.CallEvents(e, public.StringParseEvent, false)
 	if err1 != nil {
 		return fmt.Errorf(
-			color.Set("[?RD]Calling [?YW]'StringCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
 			color.Set(err1.Error()))
 	}
-	err2 := e.UEP.Event.CallEvents(e, core.StringCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(e, public.StringCallEvent, false)
 	if err2 != nil {
 		return fmt.Errorf(
-			color.Set("[?RD]Calling [?YW]'StringCallEvent'[?RD] event error:[?RT] \n%v"),
+			color.Set("[?RD]Process error (2)[?RT]: \n%v"),
 			color.Set(err2.Error()))
 	}
 	return nil

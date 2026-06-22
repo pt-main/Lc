@@ -24,10 +24,7 @@ func main() {
 		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
 	}
 	lexer := stringParsing.NewLexer(rules, &stringParsing.LexerConfig{
-		TrimBlocksSpace:     true,
-		SkipEmptyLines:      true,
-		UseLineContinuation: false,
-		UseBracketBalance:   false,
+		UseBracketBalance: false,
 	})
 
 	grammar := parser3.Grammar{
@@ -106,22 +103,22 @@ func main() {
 	expression := "3 + 5 * (2 - 1)"
 	nodes, err := parser.Parse(expression)
 	if err != nil {
-		log.Fatalf("Ошибка парсинга: %v", err)
+		log.Fatalf("ParsingError: %v", err)
 	}
 	if len(nodes) == 0 {
-		fmt.Println("Нет узлов")
+		fmt.Println("Has no nodes")
 		return
 	}
 	root := nodes[0]
 
-	fmt.Printf("Исходное выражение: %q\n", expression)
-	fmt.Println("\nAST (текстовое представление):")
+	fmt.Printf("Raw expr: %q\n", expression)
+	fmt.Println("\nAST (as text):")
 	printAST(root, 0)
 
 	cleanRoot := cleanNode(root)
 	jsonData, err := json.MarshalIndent(cleanRoot, "", "  ")
 	if err != nil {
-		log.Fatalf("Ошибка сериализации JSON: %v", err)
+		log.Fatalf("Json error: %v", err)
 	}
 	fmt.Println("\nAST (JSON):")
 	fmt.Println(string(jsonData))
