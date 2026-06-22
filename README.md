@@ -237,12 +237,15 @@ Lc provides core mechanisms for operational visibility:
 - `engine/` - concrete engine implementations.
 - `engine/core/` - generator, events, logger, shared params.
 - `engine/events/` - default parse/call handlers.
+- `public/` - public constants or types (event names, scope keys, etc.)
 - `parsing/` - basic parsing.
 - `parsing/stringParsing/` - text parser ecosystem.
+- `parsing/stringParsing/parser3/` - ast parser with peg-like logics.
 - `parsing/byteParsing/` - byte parser ecosystem.
 - `tooling/bytecode/` - byte conversion, shift helpers and instructions generation.
 - `tooling/plugins/` - plugins core.
 - `example/` - example languages and other examples.
+- `backup/` - five2 backup files.
 
 ## License
 Apache 2.0 - see `LICENSE`.
