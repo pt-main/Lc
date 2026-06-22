@@ -27,7 +27,7 @@ Instead, it gives you one runtime surface with two engine backends:
 
 ## Engine model
 ### String Engine
-Best for command languages, script-like syntaxes, config runtimes, and text transformation flows.
+Input string (code) and process that - edit, execute, generate code, etc.
 
 Default lifecycle:
 1. store input in scope;
@@ -36,10 +36,10 @@ Default lifecycle:
 4. emit output through `UEP.Generator` (if need).
 
 ### Byte Engine
-Best for opcode streams, compact protocol runtimes, and binary execution loops.
+Input bytecode and process that.
 
 Default lifecycle:
-1. store input in scope (`INPUT []byte`);
+1. store input in scope;
 2. parse input to `[]ParsedBytes`;
 3. decode opcode from `ParsedBytes.Switch` bytes using configured endianness;
 4. dispatch opcode handler;
@@ -181,7 +181,8 @@ engine, err := lc.NewEngineBuilder(lc.StringEngineType).
   - line continuation support,
   - bracket-balance support.
 - `Parser2`: compact line-oriented `command args` parser.
-- `Lexer`: ordered regexp2 tokenizer with `__prev` / `__next` node links.
+- `Parser3/` package: Ast peg-like parser works with Lexer.
+- `Lexer`: ordered regexp2 tokenizer with prev/next node links and bracket balance.
 
 ### `byteParsing`
 - `Parser1`: binary parser with configurable field lengths and endianness.
@@ -206,11 +207,12 @@ engine, err := lc.NewEngineBuilder(lc.StringEngineType).
 ## Execution semantics
 - Event handlers run in registration order.
 - Generator result follows declared pipeline order.
-- `Process*WithCtx` respects cancellation/deadline.
+- `Process[*]WithCtx` respects cancellation/deadline.
 - Default String dispatch skips unknown commands.
 - Default Byte dispatch expects valid opcode/autoshift registration for processed commands.
 
 ## Reserved scope keys used by default events
+### Main
 String keys:
 - `INPUT string`
 - `PARSED []ParsedNode`
@@ -222,6 +224,8 @@ Byte keys:
 - `BYECODE_IDX *int`
 
 Treat these names as reserved runtime contract keys.
+
+Other keys you and names you can find in `public/`/
 
 ## Observability
 Lc provides core mechanisms for operational visibility:
