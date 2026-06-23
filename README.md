@@ -29,8 +29,8 @@ Instead, it gives you one runtime surface with two engine backends:
 - **String Engine** for text-first processing.
 - **Byte Engine** for binary instruction execution.
 
-## Engine model
-### String Engine
+# Engine model
+## String Engine
 Input string (code) and process that - edit, execute, generate code, etc.
 
 Default lifecycle:
@@ -39,7 +39,7 @@ Default lifecycle:
 3. dispatch handlers by `ParsedNode.Switch`;
 4. emit output through `UEP.Generator` (if need).
 
-### Byte Engine
+## Byte Engine
 Input bytecode and process that.
 
 Default lifecycle:
@@ -49,7 +49,7 @@ Default lifecycle:
 4. dispatch opcode handler;
 5. advance instruction pointer automatically or manually.
 
-## Quick start
+# Quick start
 <details> <summary>StringEngine Example</summary>
 
 ```go
@@ -67,7 +67,7 @@ import (
 func main() {
 	parser := &stringParsing.Parser2{}
 
-	engine, err := lc.NewEngineBuilder(lc.StringEngineType).
+	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).
 		WithPipeline([]string{"main"}).
 		WithStringParser(parser).
 		WithDefaultEvents(true).
@@ -121,13 +121,13 @@ func main() {
 				CommandBytelen:   1,
 				ArgscountBytelen: 1,
 				ArglenBytelen:    1,
-				Endianess:        bytecode.LittleEndian,
+				Endianess:        public.LittleEndian,
 			},
 			Shifter: bytecode.Shift{},
 		},
 	}
 
-	engine, err := lc.NewEngineBuilder(lc.ByteEngineType).
+	engine, err := lc.NewEngineBuilder(public.ByteEngineType, public.ByteResType).
 		WithPipeline([]string{"main"}).
 		WithByteParser(parser).
 		WithDefaultEvents(true).
@@ -161,81 +161,79 @@ func main() {
 ```
 </details>
 
-## Industrial setup pattern
-For production embedding, typical builder configuration includes:
-- explicit pipeline points (e.g. `bootstrap`, `main`, `finalize`);
-- shared service context;
-- structured logger instance;
-- preloaded scope values (tenant/env/runtime metadata);
-- custom events for audit/metrics/tracing.
 
-Example:
+
+
+# Tools and features
+## Powerfull core and UEP (Universal Engine Params)
+Engines core contains all necessary tools for runtime work. UEP contains then.
+
+You can use it like:
+
 ```go
-engine, err := lc.NewEngineBuilder(lc.StringEngineType).
-	WithPipeline([]string{"bootstrap", "main", "finalize"}).
-	WithContext(ctx).
-	WithDefaultEvents(true).
-	WithLogger(logger).
-	WithScope(scope).
-	WithStringParser(parser).
-	Build()
+engine, _ := lc.NewStringEngine(...)
+engine.UEP.Generator.AddString(...)
+engine.UEP...
 ```
 
-## Built-in parser modules
-### `stringParsing`
-- `Parser1`:
-  - regex grammar matching,
-  - named capture-group metadata,
-  - line continuation support,
-  - bracket-balance support.
-- `Parser2`: compact line-oriented `command args` parser.
-- `Parser3/` package: Ast peg-like parser works with Lexer.
-- `Lexer`: ordered regexp2 tokenizer with prev/next node links and bracket balance.
+Or:
 
-### `byteParsing`
-- `Parser1`: binary parser with configurable field lengths and endianness.
-- `ParsedBytes` model with `Switch`, `Args`, `Raw`, and `Metadata`.
+```go
+engine, _ := lc.NewEngineBuilder(...).
+	[...].
+	Build()
+engine.GetUEP().Generator.AddString(...)
+engine.GetUEP()...
+```
 
-## Public runtime API overview
-### Processing
-- `ProcessString(input string) error`
-- `ProcessStringWithCtx(input string, ctx context.Context) error`
-- `ProcessBytes(input []byte) error`
-- `ProcessBytesWithCtx(input []byte, ctx context.Context) error`
+### `Events`
+Engine arch is event-driven. Events can communicate with `Events.Scope`, work with context (`Events.Context`), call by pipeline. 
 
-### Command registration
-- `NewCommandString(cmdSwitch string, handler ..., doc string) error`
-- `NewCommandByte(opcode int, handler ..., name string, autoBytecodeIdxShift bool) error`
+Event handlers input `interface{}, *Events`.
 
-### Byte instruction pointer controls
-- `AddToBytecodeIdx(n int)`
-- `SetBytecodeIdx(n int)`
-- `GetBytecodeIdx() (*int, error)`
+#### Example
+```go
+events := core.NewEvents(context.Background()) // new manager
+events.NewEvent("event1", handler1) // create main handler in "event1" event
+events.NewEvent("event1", handler2) // append handler to end of "event1"
+events.NewEventBefore("event1", handler3) // append handler to start of "event1"
+// "event1" - [handler3, handler1, handler2]
+```
 
-## Execution semantics
+### `Generator`
+Powerfull tool for codegen. 
+
+Work with points pipeline for storing code in independent points. Can generate bytes or string.
+
+#### Example
+
+```go
+pipeline := []string{"pre", "main"}
+generator := core.NewGenerator([result-type], pipeline)
+generator.AddStrings([]string{ // add strings to main
+	"string1 ",
+	"string2.",
+}, "main")
+generator.AddStrings([]string{ // add strings to pre
+	"string3 ",
+	"string4. ",
+}, "main")
+res := core.GetStringRes(generator, "") // get code
+// res = string3 string4. string1 string2.
+```
+
+
+
+
+
+# Execution semantics
 - Event handlers run in registration order.
 - Generator result follows declared pipeline order.
 - `Process[*]WithCtx` respects cancellation/deadline.
 - Default String dispatch skips unknown commands.
 - Default Byte dispatch expects valid opcode/autoshift registration for processed commands.
 
-## Reserved scope keys used by default events
-### Main
-String keys:
-- `INPUT string`
-- `PARSED []ParsedNode`
-
-Byte keys:
-- `INPUT []byte`
-- `PARSED []ParsedBytes`
-- `ENDIANESS int`
-- `BYECODE_IDX *int`
-
-Treat these names as reserved runtime contract keys.
-
-Other keys you and names you can find in `public/`/
-
-## Observability
+# Observability
 Lc provides core mechanisms for operational visibility:
 - thread-safe `core.Logger`,
 - event lifecycle hooks (call start/call end),
