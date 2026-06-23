@@ -1,17 +1,20 @@
-# Lc - "Language creator" and language and dsl devkit
-# <img alt="banner-low" src="https://github.com/user-attachments/assets/cd798499-aaa3-4de7-b5ae-4dbe39503453" />
+<h1 align="center">Lc — Language Creator & Devkit</h1>
+<p align="center">
+  <img alt="banner-low" src="https://github.com/user-attachments/assets/cd798499-aaa3-4de7-b5ae-4dbe39503453" />
+</p>
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/pt-main/lc"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white"></a>
+  <a href="https://goreportcard.com/report/github.com/pt-main/lc"><img src="https://goreportcard.com/badge/github.com/pt-main/lc"></a>
+  <a href="https://github.com/pt-main/lc/releases"><img src="https://img.shields.io/github/v/release/pt-main/lc?color=blue"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow"></a>
+</p>
 
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/pt-main/lc.svg)](https://pkg.go.dev/github.com/pt-main/lc)
-[![Go Report Card](https://goreportcard.com/badge/github.com/pt-main/lc)](https://goreportcard.com/report/github.com/pt-main/lc)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache2.0-yellow.svg)](https://opensource.org/licenses/Apache2.0)
-[![Release](https://img.shields.io/github/v/release/pt-main/lc)](https://github.com/pt-main/lc/releases)
+> ```bash
+> go get github.com/pt-main/lc
+> ```
+> **Lc** is a production-oriented toolkit for building things like language tools, compiler, interpreters or bytecode-driven processors in Go.
 
-```bash
-go get github.com/pt-main/lc
-```
-
-**Lc** is a production-oriented toolkit for building language runtimes, compiler-like execution pipelines, command interpreters, and bytecode-driven processors in Go.
 
 It is intentionally straightforward to adopt, while preserving industrial runtime properties:
 - explicit execution lifecycle,
@@ -45,7 +48,9 @@ Default lifecycle:
 4. dispatch opcode handler;
 5. advance instruction pointer automatically or manually.
 
-## Quick start - String Engine
+## Quick start
+<details> <summary>StringEngine Example</summary>
+
 ```go
 package main
 
@@ -94,7 +99,8 @@ func main() {
 }
 ```
 
-## Quick start - Byte Engine
+</details> <details> <summary>ByteEngine Example</summary>
+
 ```go
 package main
 
@@ -152,6 +158,7 @@ func main() {
 	fmt.Printf("%x\n", out)
 }
 ```
+</details>
 
 ## Industrial setup pattern
 For production embedding, typical builder configuration includes:
@@ -233,23 +240,6 @@ Lc provides core mechanisms for operational visibility:
 - event lifecycle hooks (call start/call end),
 - centralized runtime scope for contextual metadata,
 - structured error wrapping in default event flows.
-
-## Repository structure
-- `builder.go` - fluent builder.
-- `engine.go` - universal runtime wrapper and command registration.
-- `main.go` - public constructors for String/Byte engines.
-- `engine/` - concrete engine implementations.
-- `engine/core/` - generator, events, logger, shared params.
-- `engine/events/` - default parse/call handlers.
-- `public/` - public constants or types (event names, scope keys, etc.)
-- `parsing/` - basic parsing.
-- `parsing/stringParsing/` - text parser ecosystem.
-- `parsing/stringParsing/parser3/` - ast parser with peg-like logics.
-- `parsing/byteParsing/` - byte parser ecosystem.
-- `tooling/bytecode/` - byte conversion, shift helpers and instructions generation.
-- `tooling/plugins/` - plugins core.
-- `example/` - example languages and other examples.
-- `backup/` - five2 backup files.
 
 ## License
 Apache 2.0 - see `LICENSE`.
