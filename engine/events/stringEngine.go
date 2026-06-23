@@ -49,6 +49,11 @@ func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) (e
 	var okExit bool = false
 	e.UEP.Logger.PrintLog("event", fmt.Sprintf("start call event: [parsed: %v]", parsed))
 	defer e.UEP.Logger.PrintLog("event", fmt.Sprintf("end call event: [ok: %v]", okExit))
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+		}
+	}()
 	var raw string
 	for _, node := range parsed {
 		ctx := e.UEP.GetContext()
@@ -58,18 +63,15 @@ func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) (e
 		default:
 		}
 		raw = node.Raw
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
-			}
-		}()
 		cmd_switch := node.Switch
 		handler, ok := e.Commands[cmd_switch]
 		if ok {
 			err = handler.Handler(e, node)
+			break
 		}
 		if err != nil {
 			err = errors.New("[?BRD]Handler error[?BRD]: \n" + err.Error())
+			break
 		}
 	}
 	if err != nil {
