@@ -13,8 +13,8 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
-func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events) error {
-	e, ok := _e.(*engine.StringEngine)
+func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventInput) error {
+	e, ok := i.Input.(*engine.StringEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
@@ -36,8 +36,13 @@ func (de *DefaultEvents) StringParsingEvent(_e interface{}, events *core.Events)
 	return nil
 }
 
-func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) (err error) {
-	e, ok := _e.(*engine.StringEngine)
+func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+		}
+	}()
+	e, ok := i.Input.(*engine.StringEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
@@ -49,11 +54,6 @@ func (de *DefaultEvents) StringCallEvent(_e interface{}, events *core.Events) (e
 	var okExit bool = false
 	e.UEP.Logger.PrintLog("event", fmt.Sprintf("start call event: [parsed: %v]", parsed))
 	defer e.UEP.Logger.PrintLog("event", fmt.Sprintf("end call event: [ok: %v]", okExit))
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
-		}
-	}()
 	var raw string
 	for _, node := range parsed {
 		ctx := e.UEP.GetContext()

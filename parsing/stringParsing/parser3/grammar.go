@@ -147,3 +147,203 @@ func (a ActionExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	}
 	return []stringParsing.ParsedNode{node}, nil
 }
+
+type NotExpr struct {
+	Expr Expr
+}
+
+func (n NotExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
+	savedPos := p.pos
+	_, err := n.Expr.Parse(p)
+	p.pos = savedPos
+	if err == nil {
+		return nil, p.Errorf("not: unexpected match")
+	}
+	return []stringParsing.ParsedNode{}, nil
+}
+
+type AndExpr struct {
+	Expr Expr
+}
+
+func (a AndExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
+	savedPos := p.pos
+	_, err := a.Expr.Parse(p)
+	p.pos = savedPos
+	if err != nil {
+		return nil, err
+	}
+	return []stringParsing.ParsedNode{}, nil
+}
+
+type PeekExpr struct {
+	TokenType string
+}
+
+func (p PeekExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, error) {
+	tok, err := prs.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tok.Switch != p.TokenType {
+		return nil, prs.Errorf("peek: expected %s, got %s", p.TokenType, tok.Switch)
+	}
+	return []stringParsing.ParsedNode{}, nil
+}
+
+type SeparatedRepeatExpr struct {
+	Element Expr
+	Sep     string
+	Min     int
+	Max     int
+}
+
+func (s SeparatedRepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
+	var all []stringParsing.ParsedNode
+	count := 0
+	firstPos := p.pos
+	firstNodes, err := s.Element.Parse(p)
+	if err != nil {
+		if s.Min == 0 {
+			return []stringParsing.ParsedNode{}, nil
+		}
+		p.pos = firstPos
+		return nil, p.Errorf("separated repeat: expected at least %d elements", s.Min)
+	}
+	all = append(all, firstNodes...)
+	count++
+	for {
+		if s.Max > 0 && count >= s.Max {
+			break
+		}
+		savedPos := p.pos
+		_, err := p.Expect(s.Sep)
+		if err != nil {
+			p.pos = savedPos
+			break
+		}
+		nodes, err := s.Element.Parse(p)
+		if err != nil {
+			p.pos = savedPos
+			break
+		}
+		all = append(all, nodes...)
+		count++
+	}
+	if count < s.Min {
+		return nil, p.Errorf("separated repeat: expected at least %d elements, got %d", s.Min, count)
+	}
+	return all, nil
+}
+
+type Associativity int
+
+const (
+	LeftAssoc Associativity = iota
+	RightAssoc
+	NonAssoc
+)
+
+type InfixInfo struct {
+	Precedence int
+	Assoc      Associativity
+}
+
+type PrattExpr struct {
+	Atom     Expr
+	Prefixes map[string]Expr
+	Infixes  map[string]InfixInfo
+}
+
+func (p *PrattExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, error) {
+	node, err := p.parseExpression(prs, 0)
+	if err != nil {
+		return nil, err
+	}
+	return []stringParsing.ParsedNode{node}, nil
+}
+
+func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.ParsedNode, error) {
+	var leftNode stringParsing.ParsedNode
+	tok, err := prs.Peek()
+	if err == nil {
+		if _, ok := p.Prefixes[tok.Switch]; ok {
+			_, err := prs.Expect(tok.Switch)
+			if err != nil {
+				return stringParsing.ParsedNode{}, err
+			}
+			rightNode, err := p.parseExpression(prs, 100)
+			if err != nil {
+				return stringParsing.ParsedNode{}, err
+			}
+			leftNode = stringParsing.ParsedNode{
+				Switch: "PrefixOp",
+				Raw:    tok.Raw + rightNode.Raw,
+				Metadata: map[string]interface{}{
+					"operator": tok.Switch,
+					"operand":  rightNode,
+				},
+			}
+		} else {
+			atomNodes, err := p.Atom.Parse(prs)
+			if err != nil {
+				return stringParsing.ParsedNode{}, err
+			}
+			if len(atomNodes) == 0 {
+				return stringParsing.ParsedNode{}, prs.Errorf("pratt: atom returned empty")
+			}
+			if len(atomNodes) == 1 {
+				leftNode = atomNodes[0]
+			} else {
+				var raw string
+				for _, n := range atomNodes {
+					raw += n.Raw
+				}
+				leftNode = stringParsing.ParsedNode{
+					Switch: "Sequence",
+					Raw:    raw,
+					Metadata: map[string]interface{}{
+						"children": atomNodes,
+					},
+				}
+			}
+		}
+	} else {
+		return stringParsing.ParsedNode{}, prs.Errorf("pratt: unexpected end of input")
+	}
+	for {
+		nextTok, err := prs.Peek()
+		if err != nil {
+			break
+		}
+		infix, ok := p.Infixes[nextTok.Switch]
+		if !ok {
+			break
+		}
+		if infix.Precedence < minPrec {
+			break
+		}
+		opTok, err := prs.Expect(nextTok.Switch)
+		if err != nil {
+			return stringParsing.ParsedNode{}, err
+		}
+		nextMinPrec := infix.Precedence
+		if infix.Assoc == LeftAssoc {
+			nextMinPrec = infix.Precedence + 1
+		}
+		rightNode, err := p.parseExpression(prs, nextMinPrec)
+		if err != nil {
+			return stringParsing.ParsedNode{}, err
+		}
+		leftNode = stringParsing.ParsedNode{
+			Switch: "BinaryOp",
+			Raw:    leftNode.Raw + opTok.Raw + rightNode.Raw,
+			Metadata: map[string]interface{}{
+				"operator": opTok.Switch,
+				"left":     leftNode,
+				"right":    rightNode,
+			},
+		}
+	}
+	return leftNode, nil
+}

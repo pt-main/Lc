@@ -49,7 +49,7 @@ func (pm *PluginManager) GetPlugin(name string) (PluginInterface, error) {
 	return plugin, nil
 }
 
-func (pm *PluginManager) CallPlugin(name string, input any) (any, error) {
+func (pm *PluginManager) RunPlugin(name string, input any) (any, error) {
 	plugin, err := pm.GetPlugin(name)
 	if err != nil {
 		return nil, err
@@ -57,10 +57,10 @@ func (pm *PluginManager) CallPlugin(name string, input any) (any, error) {
 	return plugin.Run(input)
 }
 
-func (pm *PluginManager) CallPluginMethod(name string, opts ...core.Option) (any, error) {
+func (pm *PluginManager) CallPluginMethod(name, method string, opts ...core.Option) (any, error) {
 	plugin, err := pm.GetPlugin(name)
 	if err != nil {
 		return nil, err
 	}
-	return plugin.Call(name, opts...)
+	return plugin.Call(method, opts...)
 }

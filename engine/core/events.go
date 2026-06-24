@@ -10,12 +10,20 @@ import (
 	"github.com/pt-main/lc/public"
 )
 
+type EventsInterface interface {
+	GetEvents(name string) ([]EventType, error)
+	NewEvent(name string, event EventType)
+	NewEventBefore(name string, event EventType) error
+	CallEvents(input *EventInput, name string, canWorkWithoutHandler bool) error
+	Scope() ScopeType
+}
+
 // Events manages an ordered collection of event handlers. Each event has a
 // name (string) and a list of EventType functions. The CallEvents method
 // invokes all handlers of an event in registration order. Events can also
 // automatically wrap calls with start/end events for logging.
 type Events struct {
-	Scope   ScopeType
+	scope   ScopeType
 	Context context.Context
 	mu      sync.RWMutex
 	events  orderedmap.OrderedMap
@@ -60,8 +68,7 @@ func (e *Events) NewEventBefore(name string, event EventType) error {
 	return nil
 }
 
-func (e *Events) callEvents(input interface{}, name string,
-	canWorkWithoutHandler bool) error {
+func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandler bool) error {
 	res, err := e.GetEvents(name)
 	if err != nil {
 		if canWorkWithoutHandler {
@@ -71,7 +78,7 @@ func (e *Events) callEvents(input interface{}, name string,
 		}
 	}
 	for _, event := range res {
-		err := event(input, e)
+		err := event(e, input)
 		if err != nil {
 			return errors.New("Event error: " + err.Error())
 		}
@@ -79,17 +86,17 @@ func (e *Events) callEvents(input interface{}, name string,
 	return nil
 }
 
-func (e *Events) CallEvents(input interface{}, name string,
+func (e *Events) CallEvents(input *EventInput, name string,
 	canWorkWithoutHandler bool) error {
-	e.Scope[public.EventsScopeCallName] = name
+	e.scope[public.EventsScopeCallName] = name
 	var err error
-	err = e.callEvents(name, public.CallEventsStartEvent, true)
+	err = e.callEvents(nil, public.CallEventsStartEvent, true)
 	if err != nil {
 		return err
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
-	e.Scope[public.EventsScopeCallError] = err
-	err1 := e.callEvents(name, public.CallEventsEndEvent, true)
+	e.scope[public.EventsScopeCallError] = err
+	err1 := e.callEvents(nil, public.CallEventsEndEvent, true)
 	if err1 != nil {
 		return err1
 	}
@@ -100,12 +107,16 @@ func (e *Events) CallEvents(input interface{}, name string,
 
 }
 
+func (e *Events) Scope() ScopeType {
+	return e.scope
+}
+
 // NewEvents creates an empty Events instance with an ordered map.
 // The Scope map is initially empty but can be used to pass data between
 // event handlers.
 func NewEvents(context context.Context) *Events {
 	return &Events{
-		Scope:   make(ScopeType),
+		scope:   make(ScopeType),
 		events:  *orderedmap.New(),
 		Context: context,
 	}

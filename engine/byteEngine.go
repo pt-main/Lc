@@ -27,13 +27,17 @@ type ByteEngine struct {
 // bytecode handlers. The parsed result is stored in scope["parsed_[]ParsedBytes"].
 func (e *ByteEngine) Process(input []byte) error {
 	e.UEP.Scope[public.ByteEngineScopeInput] = input
-	err1 := e.UEP.Event.CallEvents(e, public.ByteParseEvent, false)
+	err1 := e.UEP.Event.CallEvents(&core.EventInput{
+		Input: e,
+	}, public.ByteParseEvent, false)
 	if err1 != nil {
 		return fmt.Errorf(
 			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
 			color.Set(err1.Error()))
 	}
-	err2 := e.UEP.Event.CallEvents(e, public.ByteCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(&core.EventInput{
+		Input: e,
+	}, public.ByteCallEvent, false)
 	if err2 != nil {
 		return fmt.Errorf(
 			color.Set("[?RD]Process error (2)[?RT]: \n%v"),

@@ -13,8 +13,8 @@ import (
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
-func (de *DefaultEvents) ByteParsingEvent(_e interface{}, events *core.Events) error {
-	e, ok := _e.(*engine.ByteEngine)
+func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInput) error {
+	e, ok := i.Input.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
@@ -55,8 +55,13 @@ func (de *DefaultEvents) ByteCallEventIteration(
 	return cmd_switch, nil
 }
 
-func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) (err error) {
-	e, ok := _e.(*engine.ByteEngine)
+func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+		}
+	}()
+	e, ok := i.Input.(*engine.ByteEngine)
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
@@ -74,11 +79,6 @@ func (de *DefaultEvents) ByteCallEvent(_e interface{}, events *core.Events) (err
 	if err != nil {
 		return fmt.Errorf("Can't get bytecode index: \n  %v", err)
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n  %v", r)
-		}
-	}()
 	var last_cmd_switch int
 	for *(idx) < len(parsed) && *(idx) >= 0 {
 		ctx := e.UEP.GetContext()

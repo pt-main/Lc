@@ -97,7 +97,7 @@ func (g *Generator) GetStringArrRes() ([]string, error) {
 	return res, nil
 }
 
-func (g *Generator) GetStringRes(sep string) (string, error) {
+func GetStringRes(g *Generator, sep string) (string, error) {
 	res := ""
 	arr, err := g.GetStringArrRes()
 	if err != nil {

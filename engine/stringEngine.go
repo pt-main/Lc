@@ -27,13 +27,17 @@ type StringEngine struct {
 // (to dispatch commands). Any error stops execution.
 func (e *StringEngine) Process(input string) error {
 	e.UEP.Scope[public.StringEngineScopeInput] = input
-	err1 := e.UEP.Event.CallEvents(e, public.StringParseEvent, false)
+	err1 := e.UEP.Event.CallEvents(&core.EventInput{
+		Input: e,
+	}, public.StringParseEvent, false)
 	if err1 != nil {
 		return fmt.Errorf(
 			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
 			color.Set(err1.Error()))
 	}
-	err2 := e.UEP.Event.CallEvents(e, public.StringCallEvent, false)
+	err2 := e.UEP.Event.CallEvents(&core.EventInput{
+		Input: e,
+	}, public.StringCallEvent, false)
 	if err2 != nil {
 		return fmt.Errorf(
 			color.Set("[?RD]Process error (2)[?RT]: \n%v"),

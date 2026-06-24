@@ -19,7 +19,7 @@ func TestGenerator_AddAndGetString(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	res, err := gen.GetStringRes("")
+	res, err := GetStringRes(gen, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

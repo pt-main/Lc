@@ -16,7 +16,7 @@ type UniversalEngineParams struct {
 	// Generator *Generator - controls code/output generation across pipeline points.
 	Generator *Generator
 	// Event *Events - allows hooking into parsing and command dispatch.
-	Event *Events
+	Event EventsInterface
 	// Scope ScopeType - a map[string]interface{} that can be used to share
 	//   variables between events, parsers, and command handlers.
 	Scope ScopeType
@@ -51,18 +51,18 @@ func NewUniversalEngineParams(
 	if generator == nil || events == nil || logger == nil {
 		return nil, fmt.Errorf("Invalid input: nil refs")
 	}
-	logS := func(_name interface{}, _ *Events) error {
-		name, ok := _name.(string)
-		if !ok {
-			return fmt.Errorf("LogEvent 'Start': Invalid event input: bad input interface")
+	logS := func(e *Events, _ *EventInput) error {
+		name, err := ScopeGet[string](e.scope, public.EventsScopeCallName)
+		if err != nil {
+			return fmt.Errorf("LogEvent Start: %v", err)
 		}
 		logger.PrintLog("event", "Start call '"+name+"' event")
 		return nil
 	}
-	logE := func(_name interface{}, _ *Events) error {
-		name, ok := _name.(string)
-		if !ok {
-			return fmt.Errorf("LogEvent 'End': Invalid event input: bad input interface")
+	logE := func(e *Events, _ *EventInput) error {
+		name, err := ScopeGet[string](e.scope, public.EventsScopeCallName)
+		if err != nil {
+			return fmt.Errorf("LogEvent End: %v", err)
 		}
 		text := "End call '" + name + "' event"
 		logger.PrintLog("event", text)
