@@ -62,6 +62,7 @@ import (
 	"github.com/pt-main/lc"
 	enginepkg "github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/public"
 )
 
 func main() {
@@ -112,6 +113,7 @@ import (
 	"github.com/pt-main/lc/parsing/byteParsing"
 	enginepkg "github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/public"
 )
 
 func main() {
@@ -165,7 +167,8 @@ func main() {
 
 
 # Tools and features
-## Powerfull core and UEP (Universal Engine Params)
+
+## Powerful core and UEP (Universal Engine Params)
 Engines core contains all necessary tools for runtime work. UEP contains then.
 
 You can use it like:
@@ -189,7 +192,9 @@ engine.GetUEP()...
 ### `Events`
 Engine arch is event-driven. Events can communicate with `Events.Scope`, work with context (`Events.Context`), call by pipeline. 
 
-Event handlers input `interface{}, *Events`.
+Event handlers input `*Events, *EventInput`.
+
+You can override Events by implementing `core.EventsInterface`.
 
 #### Example
 ```go
@@ -201,7 +206,7 @@ events.NewEventBefore("event1", handler3) // append handler to start of "event1"
 ```
 
 ### `Generator`
-Powerfull tool for codegen. 
+Powerful tool for codegen.
 
 Work with points pipeline for storing code in independent points. Can generate bytes or string.
 
@@ -217,9 +222,151 @@ generator.AddStrings([]string{ // add strings to main
 generator.AddStrings([]string{ // add strings to pre
 	"string3 ",
 	"string4. ",
-}, "main")
+}, "pre")
 res := core.GetStringRes(generator, "") // get code
 // res = string3 string4. string1 string2.
+```
+
+### `Scope`
+The Scope is a thread-safe `map[string]interface{}` shared across all event handlers, parsers, and commands. It serves as a runtime context for passing data between pipeline stages.
+
+**Important:** Do not overwrite keys from `public/` package in your custom handlers unless you know exactly what you're doing — they are used by default events.
+
+#### Custom scope usage
+```go
+engine, _ := lc.NewEngineBuilder(...).
+	WithScope(core.ScopeType{
+		"tenant_id": "prod-001",
+		"env":       "production",
+	}).
+	Build()
+
+// later, in your command handler:
+func myHandler(se *engine.StringEngine, node stringParsing.ParsedNode) error {
+	tenant, _ := core.ScopeGet[string](se.UEP.Scope, "tenant_id")
+	fmt.Println("Running for tenant:", tenant)
+	return nil
+}
+```
+
+### `Logger`
+Structured logger built into UEP. Supports status-based formatting and log level filtering.
+
+#### Example
+```go
+logger := core.NewLogger("") // uses default format: "[?BE]%s[?RT] [?CN][%v][?RT] [?GN][%s][?RT]\n"
+logger.Logging["debug"] = true  // enable debug output
+// other logging will be disabled
+
+// in your engine builder:
+engine, _ := lc.NewEngineBuilder(...).
+	WithLogger(logger).
+	Build()
+
+// in your handlers:
+func myHandler(se *engine.StringEngine, node stringParsing.ParsedNode) error {
+	se.UEP.Logger.PrintLog("debug", "Processing node: "+node.Switch)
+	se.UEP.Logger.PrintLog("error", "Error: "+...) // disabled
+	...
+}
+```
+
+#### Custom status format
+```go
+logger := core.NewLogger("")
+logger.Statuses["warn"] = "[?YW]WARN[?RT] [%v] [?RD]%s[?RT]\n" // pt-main/tap color format
+logger.PrintLog("warn", "This is a warning")
+```
+
+## Plugin System
+Lc has a built‑in plugin manager that allows dynamic registration and execution of external logic. Plugins are isolated via their own events and scope.
+
+### Creating a plugin
+```go
+import "github.com/pt-main/lc/tooling/plugin"
+
+myPlugin := plugin.NewPlugin(
+	"my_plugin",          // name
+	"init_event",         // event called on init
+	"main_event",         // event called on Run()
+	"close_event",        // event called on Close()
+)
+
+// Add handlers to plugin events
+myPlugin.Events.NewEvent("init_event", func(ev *core.Events, _ *EventInput) error {
+	ev.Scope["plugin_ready"] = true
+	return nil
+})
+
+myPlugin.Events.NewEvent("main_event", func(ev *core.Events, _ *EventInput) error {
+	// input is whatever was passed to plugin.Run()
+	return nil
+})
+```
+
+### Registering and using a plugin
+```go
+engne, _ := lc.NewEngineBuilder(...).
+	WithPlugins(myPlugin).
+	Build()
+
+// Later, call plugin methods:
+result, err := engine.Plugins.CallPlugin("my_plugin", "some input")
+```
+
+## Parsers — ready‑to‑use implementations
+Lc ships with several parsers for different use cases:
+
+### StringParsing parsers
+
+| Parser | Description | Best for |
+|--------|-------------|----------|
+| **Lexer** | Token-based lexer with regexp2 rules, supports bracket balancing and prev/next links | Tokenization |
+| **Parser1** | Regex-based grammar with line continuation and bracket balancing | DSLs with line-oriented syntax |
+| **Parser2** | Simple `command args` line parser | Quick prototyping, shell-like languages |
+| **Parser3** | PEG-inspired parser with combinators (Sequence, Choice, Repeat, Optional, Named) | Complex grammars, AST generation |
+| **Adapter** | `Parser3` adapter for string engine. |
+
+#### Example: Parser2 (simplest)
+```go
+parser := &stringParsing.Parser2{}
+// Input: "print hello world"
+// Output: ParsedNode{Switch: "print", Metadata: {args: "hello world"}}
+```
+
+### ByteParsing parsers
+| Parser | Description |
+|--------|-------------|
+| **Parser1** | Binary instruction decoder with configurable field lengths and endianness |
+
+```go
+parser := &byteParsing.Parser1{
+	Config: byteParsing.Parser1Config{
+		GConfig: bytecode.GenerationConfig{
+			CommandBytelen:   1,
+			ArgscountBytelen: 1,
+			ArglenBytelen:    1,
+			Endianess:        public.LittleEndian,
+		},
+		Shifter: bytecode.Shift{},
+	},
+}
+```
+
+## Context support
+All `Process*` methods have `WithCtx` variants that accept `context.Context`. This allows:
+- Timeout-based cancellation
+- Graceful shutdown
+- Request-scoped values
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+err := engine.ProcessStringWithCtx(input, ctx)
+if errors.Is(err, context.DeadlineExceeded) {
+	fmt.Println("Execution timed out")
+}
 ```
 
 
