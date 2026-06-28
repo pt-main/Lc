@@ -20,7 +20,9 @@ func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventIn
 	}
 	var okExit bool = false
 	e.UEP.Logger.PrintLog("event", "start parsing event")
-	defer e.UEP.Logger.PrintLog("event", fmt.Sprintf("end parsing event: [ok: %v]", okExit))
+	defer func() {
+		e.UEP.Logger.PrintLog("event", fmt.Sprintf("end parsing event: [ok: %v]", okExit))
+	}()
 	input, ok := e.UEP.Scope[public.StringEngineScopeInput].(string)
 	if !ok {
 		return errors.New("No input in scope or invalid input")
@@ -37,37 +39,50 @@ func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventIn
 }
 
 func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput) (err error) {
+	var raw string
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
 		}
+		if err != nil {
+			err = errors.New(color.Set(fmt.Sprintf("[?RD]Error at:[?RT]\n[?BBK]    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
+				strings.ReplaceAll(raw, "\n", "\n    [?BBK]|[?RT]"),
+				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+			)))
+		}
 	}()
+	raw = "SYSTEM: initializing event..."
 	e, ok := i.Input.(*engine.StringEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid input")
+		err = fmt.Errorf("Can't get byte engine: invalid input")
+		return
 	}
 	_parsed, _ := e.UEP.Scope[public.StringEngineScopeParsed]
 	parsed, ok := _parsed.([]stringParsing.ParsedNode)
 	if !ok {
-		return errors.New("Can't start call event. Invalid type of parsed result.")
+		err = errors.New("Can't start call event. Invalid type of parsed result.")
+		return
 	}
 	var okExit bool = false
 	e.UEP.Logger.PrintLog("event", fmt.Sprintf("start call event: [parsed: %v]", parsed))
-	defer e.UEP.Logger.PrintLog("event", fmt.Sprintf("end call event: [ok: %v]", okExit))
-	var raw string
+	defer func() {
+		e.UEP.Logger.PrintLog("event", fmt.Sprintf("end parsing event: [ok: %v]", okExit))
+	}()
+	raw = "SYSTEM: start call cycle..."
 	for _, node := range parsed {
 		ctx := e.UEP.GetContext()
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		default:
 		}
+		e.UEP.Logger.PrintLog("event", fmt.Sprintf("process (in call event): [node: %v]", node))
 		raw = node.Raw
 		cmd_switch := node.Switch
 		handler, ok := e.Commands[cmd_switch]
 		if ok {
 			err = handler.Handler(e, node)
-			break
 		}
 		if err != nil {
 			err = errors.New("[?BRD]Handler error[?BRD]: \n" + err.Error())
@@ -75,10 +90,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 		}
 	}
 	if err != nil {
-		return errors.New(color.Set(fmt.Sprintf("[?RD]Error at:[?RT]\n[?BBK]    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
-			strings.ReplaceAll(raw, "\n", "\n    [?BBK]|[?RT]"),
-			strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
-		)))
+		return
 	}
 	okExit = true
 	return nil

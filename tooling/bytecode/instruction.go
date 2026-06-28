@@ -23,6 +23,7 @@ func (ig *InstructionsGenerator) Generate(
 	)
 	for _, arg := range args {
 		res = append(res, u.IntToBytes(len(arg), ig.Config.ArglenBytelen, ig.Config.Endianess)...)
+		res = append(res, arg...)
 	}
 	return res
 }

@@ -2,6 +2,7 @@ package byteParsing
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/tooling/bytecode"
@@ -28,7 +29,17 @@ type Parser1 struct {
 // Each ParsedBytes contains the raw command bytes, the raw arguments,
 // and the original slice of the whole instruction. The ShiftStruct utility
 // is used internally for safe bounds checking. Returns error on malformed data.
-func (p *Parser1) Parse(code []byte, i ...*parsing.ParseOption) ([]ParsedBytes, error) {
+func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) ([]ParsedBytes, error) {
+	log := func(text string) {
+		text = "\n" + text
+		if len(opts) > 0 {
+			logger := opts[0].UEP.Logger
+			if logger != nil {
+				logger.PrintLog("parsing", text)
+			}
+		}
+	}
+	log("start parsing code " + fmt.Sprintf("%s", code))
 	u := bytecode.Utils{}
 	result := []ParsedBytes{}
 	_Idx := p.Config.Shifter.Idx
@@ -48,6 +59,7 @@ func (p *Parser1) Parse(code []byte, i ...*parsing.ParseOption) ([]ParsedBytes, 
 		}
 		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianess)
 		args := [][]byte{}
+		log(fmt.Sprintf("cmd %v, argscount %v", command, argscount))
 		for range argscount {
 			arglenBytes, err := shift(p.Config.GConfig.ArglenBytelen)
 			if err != nil {
@@ -57,10 +69,12 @@ func (p *Parser1) Parse(code []byte, i ...*parsing.ParseOption) ([]ParsedBytes, 
 			if arglen == 0 {
 				return nil, errors.New("Can't form args with 0 argument length")
 			}
+			log(fmt.Sprintf("arglen %v", arglen))
 			arg, err := shift(arglen)
 			if err != nil {
 				return nil, err
 			}
+			log(fmt.Sprintf("arg %v", arglen))
 			args = append(args, arg)
 		}
 		raw := code[idx_start:idx]
