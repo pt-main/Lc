@@ -3,6 +3,7 @@ package byteParsing
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/tooling/bytecode"
@@ -29,7 +30,20 @@ type Parser1 struct {
 // Each ParsedBytes contains the raw command bytes, the raw arguments,
 // and the original slice of the whole instruction. The ShiftStruct utility
 // is used internally for safe bounds checking. Returns error on malformed data.
-func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) ([]ParsedBytes, error) {
+func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []ParsedBytes, err error) {
+	var last_cmd_switch int
+	var idx *int
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+		}
+		if err != nil {
+			err = fmt.Errorf(
+				"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
+				last_cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+			)
+		}
+	}()
 	log := func(text string) {
 		text = "\n" + text
 		if len(opts) > 0 {
@@ -41,43 +55,45 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) ([]ParsedByte
 	}
 	log("start parsing code " + fmt.Sprintf("%s", code))
 	u := bytecode.Utils{}
-	result := []ParsedBytes{}
 	_Idx := p.Config.Shifter.Idx
-	idx := 0
-	p.Config.Shifter.Idx = &idx
+	p.Config.Shifter.Idx = idx
 	p.Config.Shifter.Code = code
 	shift := p.Config.Shifter.ShiftError
-	for idx < len(code) {
+	for *idx < len(code) {
 		idx_start := idx
-		command, err := shift(p.Config.GConfig.CommandBytelen)
+		var command []byte
+		command, err = shift(p.Config.GConfig.CommandBytelen)
 		if err != nil {
-			return nil, err
+			return
 		}
-		argscountBytes, err := shift(p.Config.GConfig.ArgscountBytelen)
+		var argscountBytes []byte
+		argscountBytes, err = shift(p.Config.GConfig.ArgscountBytelen)
 		if err != nil {
-			return nil, err
+			return
 		}
 		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianess)
 		args := [][]byte{}
 		log(fmt.Sprintf("cmd %v, argscount %v", command, argscount))
 		for range argscount {
-			arglenBytes, err := shift(p.Config.GConfig.ArglenBytelen)
+			var arglenBytes []byte
+			arglenBytes, err = shift(p.Config.GConfig.ArglenBytelen)
 			if err != nil {
-				return nil, err
+				return
 			}
 			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianess)
 			if arglen == 0 {
 				return nil, errors.New("Can't form args with 0 argument length")
 			}
 			log(fmt.Sprintf("arglen %v", arglen))
-			arg, err := shift(arglen)
+			var arg []byte
+			arg, err = shift(arglen)
 			if err != nil {
-				return nil, err
+				return
 			}
 			log(fmt.Sprintf("arg %v", arglen))
 			args = append(args, arg)
 		}
-		raw := code[idx_start:idx]
+		raw := code[*idx_start:*idx]
 		result = append(result, ParsedBytes{
 			Switch:   command,
 			Args:     args,

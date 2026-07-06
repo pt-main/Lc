@@ -56,9 +56,17 @@ func (de *DefaultEvents) ByteCallEventIteration(
 }
 
 func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err error) {
+	var last_cmd_switch int
+	var idx *int
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+		}
+		if err != nil {
+			err = fmt.Errorf(
+				"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
+				last_cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+			)
 		}
 	}()
 	e, ok := i.Input.(*engine.ByteEngine)
@@ -75,11 +83,11 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	if !ok {
 		return fmt.Errorf("Can't get endianess: not declarated in scope or invalid value")
 	}
-	idx, err := core.ScopeGet[*int](e.UEP.Scope, public.ByteEngineScopeBytecodeIdx)
+	idx, err = core.ScopeGet[*int](e.UEP.Scope, public.ByteEngineScopeBytecodeIdx)
 	if err != nil {
 		return fmt.Errorf("Can't get bytecode index: \n  %v", err)
 	}
-	var last_cmd_switch int
+
 	for *(idx) < len(parsed) && *(idx) >= 0 {
 		ctx := e.UEP.GetContext()
 		select {
@@ -93,10 +101,7 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		}
 	}
 	if err != nil {
-		return fmt.Errorf(
-			"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
-			last_cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
-		)
+		return
 	}
 	return nil
 }
