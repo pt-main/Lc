@@ -31,21 +31,24 @@ type Parser1 struct {
 // and the original slice of the whole instruction. The ShiftStruct utility
 // is used internally for safe bounds checking. Returns error on malformed data.
 func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []ParsedBytes, err error) {
-	var last_cmd_switch int
-	var idx *int
+	var last_cmd_switch []byte = []byte{0}
+	var raw []byte
+	_idx := 0
+	var idx *int = &_idx
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
 		}
 		if err != nil {
 			err = fmt.Errorf(
-				"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
-				last_cmd_switch, *idx, strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+				"[?RD]Parsing error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT][?RD]]\n"+
+					"Raw: [[?YW]%v[?RT][?RD]][?RT]:[?RT] \n[?RD]->[?RT]    %v",
+				fmt.Sprint(raw), fmt.Sprint(last_cmd_switch), *idx,
+				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
 			)
 		}
 	}()
 	log := func(text string) {
-		text = "\n" + text
 		if len(opts) > 0 {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
@@ -53,14 +56,16 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			}
 		}
 	}
-	log("start parsing code " + fmt.Sprintf("%s", code))
+	log(fmt.Sprintf("=========== START ==========="))
+	log(fmt.Sprintf("start parsing code: '%v'", code))
+	log(fmt.Sprintf("config: %v", p.Config))
 	u := bytecode.Utils{}
 	_Idx := p.Config.Shifter.Idx
 	p.Config.Shifter.Idx = idx
 	p.Config.Shifter.Code = code
 	shift := p.Config.Shifter.ShiftError
 	for *idx < len(code) {
-		idx_start := idx
+		idx_start := *idx
 		var command []byte
 		command, err = shift(p.Config.GConfig.CommandBytelen)
 		if err != nil {
@@ -73,6 +78,7 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		}
 		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianess)
 		args := [][]byte{}
+		last_cmd_switch = command
 		log(fmt.Sprintf("cmd %v, argscount %v", command, argscount))
 		for range argscount {
 			var arglenBytes []byte
@@ -90,10 +96,10 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			if err != nil {
 				return
 			}
-			log(fmt.Sprintf("arg %v", arglen))
+			log(fmt.Sprintf("arglen, args %v; %v", arglen, args))
 			args = append(args, arg)
 		}
-		raw := code[*idx_start:*idx]
+		raw = code[idx_start:*idx]
 		result = append(result, ParsedBytes{
 			Switch:   command,
 			Args:     args,
@@ -102,6 +108,8 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		})
 	}
 	p.Config.Shifter.Idx = _Idx
+	log(fmt.Sprintf("end parsing code:\n %v", result))
+	log(fmt.Sprintf("=========== END ==========="))
 	return result, nil
 }
 
