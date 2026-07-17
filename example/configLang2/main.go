@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ func Process(config string) (string, error) {
 		WithStringParser(parser).
 		WithDefaultEvents(true).
 		WithContext(context.Background()).
+		WithColors().
 		Build()
 	if err != nil {
 		return "", err
@@ -110,7 +112,7 @@ func parseValue(raw string) interface{} {
 }
 
 func main() {
-	println(Process(`
+	fmt.Println(Process(`
 # Global params
 app_name = MyApp
 version = 1.2.3

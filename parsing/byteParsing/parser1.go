@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
@@ -52,7 +53,7 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		if len(opts) > 0 {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
-				logger.PrintLog("parsing", text)
+				logger.PrintLog(public.LogParsing, text)
 			}
 		}
 	}

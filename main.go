@@ -12,7 +12,7 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.3.9"
+const Version = "1.4.0"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -37,6 +37,7 @@ func NewStringEngine(
 		de := events.DefaultEvents{}
 		e.NewEvent(public.StringParseEvent, de.StringParsingEvent)
 		e.NewEvent(public.StringCallEvent, de.StringCallEvent)
+		e.NewEvent(public.StringCallCalloopEvent, de.StringCallLoopEvent)
 	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(generator_res_type, pipeline),
 		e, make(core.ScopeType), core.NewLogger(""), context)
@@ -70,6 +71,7 @@ func NewByteEngine(
 		de := events.DefaultEvents{}
 		e.NewEvent(public.ByteParseEvent, de.ByteParsingEvent)
 		e.NewEvent(public.ByteCallEvent, de.ByteCallEvent)
+		e.NewEvent(public.ByteCallHotloopEvent, de.ByteCallHotLoopEvent)
 	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(
 		generator_res_type, pipeline,

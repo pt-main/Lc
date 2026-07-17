@@ -17,6 +17,7 @@ type Logger struct {
 	mu                sync.RWMutex
 	Logging           map[string]bool
 	Log               []string
+	MaxLogLength      int
 	Statuses          map[string]string
 	DefaultStatusForm string
 }
@@ -44,8 +45,11 @@ func (l *Logger) PrintLog(status string, message string) {
 		fmt.Println(color.Set(line))
 	}
 	l.mu.Lock()
+	defer l.mu.Unlock()
 	l.Log = append(l.Log, color.ReplaceColors(line))
-	l.mu.Unlock()
+	if len(l.Log) > l.MaxLogLength && l.MaxLogLength > 0 {
+		l.Log = l.Log[1:]
+	}
 }
 
 // GetLog returns the entire log as a single string with newline separators.
@@ -67,5 +71,6 @@ func NewLogger(defaultStatusForm string) *Logger {
 		Statuses:          make(map[string]string),
 		DefaultStatusForm: defaultStatusForm,
 		Logging:           make(map[string]bool),
+		MaxLogLength:      -1,
 	}
 }

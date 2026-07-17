@@ -5,6 +5,7 @@ import (
 
 	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/public"
 )
 
 // LexerRule defines a single token type and its regular expression pattern.
@@ -110,7 +111,7 @@ func (lp *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode,
 		if len(opts) > 0 {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
-				logger.PrintLog("parsing", text)
+				logger.PrintLog(public.LogParsing, text)
 			}
 		}
 	}

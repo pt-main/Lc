@@ -9,6 +9,7 @@ import (
 type PluginManager struct {
 	Plugins map[string]PluginInterface
 	Scope   core.ScopeType
+	Flags   []string
 }
 
 func NewPluginManager(scope core.ScopeType) *PluginManager {
@@ -24,7 +25,7 @@ func NewPluginManager(scope core.ScopeType) *PluginManager {
 func (pm *PluginManager) AddPlugin(plugin PluginInterface) error {
 	name := plugin.Name()
 	if _, exists := pm.Plugins[name]; exists {
-		return fmt.Errorf("plugin %s already loaded", name)
+		return fmt.Errorf("Plugin %s already loaded", name)
 	}
 	pm.Plugins[name] = plugin
 	return plugin.Init(pm.Scope, pm)
@@ -44,7 +45,7 @@ func (pm *PluginManager) DeletePlugin(name string) error {
 func (pm *PluginManager) GetPlugin(name string) (PluginInterface, error) {
 	plugin, ok := pm.Plugins[name]
 	if !ok {
-		return nil, fmt.Errorf("plugin %s not found", name)
+		return nil, fmt.Errorf("Plugin %s not found", name)
 	}
 	return plugin, nil
 }

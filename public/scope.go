@@ -15,6 +15,7 @@ const (
 const (
 	EventsScopeCallName  = "CALL_NAME string"
 	EventsScopeCallError = "CALL_ERROR error"
+	EventsScopeDERawLine = "RAW_LINE string"
 )
 
 const (

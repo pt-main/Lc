@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/public"
 )
 
 type GrammarRule struct {
@@ -69,7 +70,7 @@ func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 		if len(opts) > 0 {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
-				logger.PrintLog("parsing", text)
+				logger.PrintLog(public.LogParsing, text)
 			}
 		}
 	}

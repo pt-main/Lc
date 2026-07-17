@@ -1,6 +1,8 @@
 package core
 
-import "slices"
+import (
+	"slices"
+)
 
 type CommandType[E, N any] func(*E, N) error
 

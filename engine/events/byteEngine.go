@@ -14,6 +14,8 @@ import (
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
+type ByteCLDType CallLoopData[ByteCallAttr, engine.ByteEngine]
+
 func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInput) error {
 	e, ok := i.Input.(*engine.ByteEngine)
 	if !ok {
@@ -36,6 +38,7 @@ type ByteCallAttr struct {
 	RawNode byteParsing.ParsedBytes
 	Abis    bool
 	Handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes]
+	Name    string
 }
 
 func (de *DefaultEvents) ByteCallEventIteration(
@@ -73,23 +76,26 @@ func (de *DefaultEvents) ByteCallPreprocess(
 			RawNode: node,
 			Handler: handler.Handler,
 			Abis:    autoshift,
+			Name:    handler.Doc,
 		})
 	}
 	return res, nil
 }
 
 func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err error) {
-	var last_cmd_switch int
 	var idx *int
 	var parsed []byteParsing.ParsedBytes
+	var parsed2 []ByteCallAttr
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
 		}
 		if err != nil {
+			idxV := *idx
 			err = fmt.Errorf(
-				"[?RD]Error at [[?RT]cmd:[?YW]%v[?RT], bcIdx:[?YW]%v[?RT], pb:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
-				last_cmd_switch, *idx, parsed[*idx], strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
+				"[?RD]Error at [[?RT]cmd:'[?YW]%v[?RT]' (%v), bcIdx:[?YW]%v[?RT], pb:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
+				parsed2[idxV].Name, parsed[idxV].Switch, idxV, parsed[idxV],
+				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
 			)
 		}
 	}()
@@ -115,15 +121,32 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	ctx := e.UEP.GetContext()
 	cmds := e.Commands
 	abis := e.AutoBytecodeIndexShift
-	parsed2, err := de.ByteCallPreprocess(parsed, endianess, u, abis, cmds)
-	p2len := len(parsed2)
+	parsed2, err = de.ByteCallPreprocess(parsed, endianess, u, abis, cmds)
+	if err != nil {
+		return
+	}
+	return events.CallEvents(&core.EventInput{Input: ByteCLDType{
+		Ctx: ctx, Parsed: parsed2, Engine: e, Idx: idx,
+	}}, public.ByteCallHotloopEvent, false)
+}
+
+func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.EventInput) (err error) {
+	hld, ok := i.Input.(ByteCLDType)
+	if !ok {
+		return fmt.Errorf("Invalid event input: can't get hotloop data")
+	}
+	idx := hld.Idx
+	ctx := hld.Ctx
+	parsed := hld.Parsed
+	p2len := len(parsed)
+	e := hld.Engine
 	for *idx < p2len && *idx >= 0 {
 		if ctx.Err() != nil {
 			err = ctx.Err()
 			break
 		}
 		err = de.ByteCallEventIteration(
-			idx, parsed2[*idx], e,
+			idx, parsed[*idx], e,
 		)
 		if err != nil {
 			break
@@ -132,4 +155,4 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	return
 }
 
-// ----> ~60 m/s on intel core-i7 2.2ghz
+// ---> maximum: ~60-66 mOps/s on intel core-i7 2.2ghz

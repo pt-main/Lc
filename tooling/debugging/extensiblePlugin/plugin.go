@@ -1,0 +1,68 @@
+package extensiblePlugin
+
+import (
+	"fmt"
+
+	"github.com/pt-main/lc"
+	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/engine/events"
+	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/tooling/plugin"
+)
+
+const Name = "extensible call loop"
+
+type ExtensibleCLPlugin struct {
+	de     events.DefaultEvents
+	Eu     *lc.EngineUniversal
+	Events core.Events
+	ETools core.EventsTools
+	WasE   core.EventType
+}
+
+func (ep *ExtensibleCLPlugin) changeEvents(val bool) (string, error) {
+	euType := ep.Eu.Type
+	var name string
+	var event core.EventType
+	switch euType {
+	case public.StringEngineType:
+		name = public.StringCallCalloopEvent
+	case public.ByteEngineType:
+		name = public.ByteCallHotloopEvent
+	}
+	switch val {
+	case true:
+		var err error
+		ep.WasE, err = ep.ETools.GetCoreEvent(name)
+		if err != nil {
+			return "", err
+		}
+		switch euType {
+		case public.StringEngineType:
+			event = ep.StringCallLoopEvent
+		case public.ByteEngineType:
+			event = ep.ByteCallHotLoopEvent
+		}
+	default:
+		event = ep.WasE
+	}
+	err := ep.ETools.ChangeCoreEvent(name, event)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (ep *ExtensibleCLPlugin) Init(scope core.ScopeType, pm *plugin.PluginManager) error {
+	eu, ok := scope[public.PluginsScopeEuPtr].(*lc.EngineUniversal)
+	if !ok {
+		return fmt.Errorf("Bad scope: can't find EngineUniversal. Plugins didn't load.")
+	}
+	ep.Eu = eu
+	ep.ETools = core.EventsTools{
+		Events: eu.GetUEP().Event,
+	}
+	return nil
+}
+
+func (ep *ExtensibleCLPlugin) Name() string { return Name }

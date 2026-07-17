@@ -13,7 +13,7 @@ import (
 )
 
 func test() {
-	ITERATIONS := 1_000_000_000
+	ITERATIONS := 100_000_000
 	_idx := 0
 	end := public.BigEndian
 	gc := byteParsing.Parser1Config{
