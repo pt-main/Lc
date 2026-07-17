@@ -290,16 +290,17 @@ myPlugin := plugin.NewPlugin(
 	"init_event",         // event called on init
 	"main_event",         // event called on Run()
 	"close_event",        // event called on Close()
+	"scope_return",   // plugin.Run (or plugin method) event can put output here
 )
 
 // Add handlers to plugin events
-myPlugin.Events.NewEvent("init_event", func(ev *core.Events, _ *EventInput) error {
+myPlugin.Events.NewEvent("init_event", func(ev *core.Events, i *EventInput) error {
 	ev.Scope["plugin_ready"] = true
 	return nil
 })
 
-myPlugin.Events.NewEvent("main_event", func(ev *core.Events, _ *EventInput) error {
-	// input is whatever was passed to plugin.Run()
+myPlugin.Events.NewEvent("main_event", func(ev *core.Events, i *EventInput) error {
+	// i.Input is whatever was passed to plugin.Run()
 	return nil
 })
 ```
@@ -307,11 +308,11 @@ myPlugin.Events.NewEvent("main_event", func(ev *core.Events, _ *EventInput) erro
 ### Registering and using a plugin
 ```go
 engne, _ := lc.NewEngineBuilder(...).
-	WithPlugins(myPlugin).
+	WithPlugins(myPlugin). // call "init_event"
 	Build()
 
 // Later, call plugin methods:
-result, err := engine.Plugins.CallPlugin("my_plugin", "some input")
+result, err := engine.Plugins.RunPlugin("my_plugin", "some input") // call "main_event"
 ```
 
 ## Parsers — ready‑to‑use implementations
