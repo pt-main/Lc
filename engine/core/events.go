@@ -136,9 +136,10 @@ func (e *Events) Scope() ScopeType {
 // event handlers.
 func NewEvents(context context.Context) *Events {
 	return &Events{
-		scope:   make(ScopeType),
-		events:  make(map[string][]EventType),
-		Context: context,
+		scope:      make(ScopeType),
+		events:     make(map[string][]EventType),
+		coreEvents: make(map[string]int),
+		Context:    context,
 	}
 }
 

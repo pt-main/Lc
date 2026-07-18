@@ -3,6 +3,7 @@ package events
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -34,25 +35,9 @@ func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInpu
 }
 
 type ByteCallAttr struct {
-	RawIdx  int
-	RawNode byteParsing.ParsedBytes
+	RawNode *byteParsing.ParsedBytes
 	Abis    bool
 	Handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes]
-	Name    string
-}
-
-func (de *DefaultEvents) ByteCallEventIteration(
-	idx *int,
-	parsed ByteCallAttr, e *engine.ByteEngine,
-) error {
-	err := parsed.Handler(e, parsed.RawNode)
-	if err != nil {
-		return fmt.Errorf("[?BRD]Handler error (at %v)[?RT]:\n  %w", parsed.RawIdx, err)
-	}
-	if parsed.Abis {
-		*idx += 1
-	}
-	return nil
 }
 
 func (de *DefaultEvents) ByteCallPreprocess(
@@ -61,7 +46,7 @@ func (de *DefaultEvents) ByteCallPreprocess(
 	cmds map[int]core.CommandMeta[engine.ByteEngine, byteParsing.ParsedBytes],
 ) ([]ByteCallAttr, error) {
 	res := []ByteCallAttr{}
-	for idx, node := range parsed {
+	for _, node := range parsed {
 		cmd_switch := u.BytesToInt(node.Switch, endianess)
 		handler, ok := cmds[cmd_switch]
 		if !ok {
@@ -72,11 +57,9 @@ func (de *DefaultEvents) ByteCallPreprocess(
 			return nil, errors.New("Command not found in autoshift config.")
 		}
 		res = append(res, ByteCallAttr{
-			RawIdx:  idx,
-			RawNode: node,
+			RawNode: &node,
 			Handler: handler.Handler,
 			Abis:    autoshift,
-			Name:    handler.Doc,
 		})
 	}
 	return res, nil
@@ -84,7 +67,6 @@ func (de *DefaultEvents) ByteCallPreprocess(
 
 func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err error) {
 	var idx *int
-	var parsed []byteParsing.ParsedBytes
 	var parsed2 []ByteCallAttr
 	defer func() {
 		if r := recover(); r != nil {
@@ -93,8 +75,8 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		if err != nil {
 			idxV := *idx
 			err = fmt.Errorf(
-				"[?RD]Error at [[?RT]cmd:'[?YW]%v[?RT]' (%v), bcIdx:[?YW]%v[?RT], pb:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
-				parsed2[idxV].Name, parsed[idxV].Switch, idxV, parsed[idxV],
+				"[?RD]Error at [[?RT]cmd:%v, bcIdx:[?YW]%v[?RT], pb:[?YW]%v[?RT][?RD]]:[?RT] \n[?RD]->[?RT]    %v",
+				parsed2[idxV].RawNode.Switch, idxV, parsed2[idxV].RawNode,
 				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "),
 			)
 		}
@@ -104,7 +86,7 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
 	_parsed, _ := e.UEP.Scope[public.ByteEngineScopeParsed]
-	parsed, ok = _parsed.([]byteParsing.ParsedBytes)
+	parsed, ok := _parsed.([]byteParsing.ParsedBytes)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
@@ -117,7 +99,6 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	if err != nil {
 		return fmt.Errorf("Can't get bytecode index: \n  %w", err)
 	}
-
 	ctx := e.UEP.GetContext()
 	cmds := e.Commands
 	abis := e.AutoBytecodeIndexShift
@@ -125,9 +106,11 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	if err != nil {
 		return
 	}
-	return events.CallEvents(&core.EventInput{Input: ByteCLDType{
+	runtime.GC()
+	err = events.CallEvents(&core.EventInput{Input: ByteCLDType{
 		Ctx: ctx, Parsed: parsed2, Engine: e, Idx: idx,
 	}}, public.ByteCallHotloopEvent, false)
+	return
 }
 
 func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.EventInput) (err error) {
@@ -140,19 +123,40 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 	parsed := hld.Parsed
 	p2len := len(parsed)
 	e := hld.Engine
-	for *idx < p2len && *idx >= 0 {
-		if ctx.Err() != nil {
-			err = ctx.Err()
+	iter := 0
+	for {
+		idxN := *idx
+		if !(idxN < p2len && idxN >= 0) {
 			break
 		}
-		err = de.ByteCallEventIteration(
-			idx, parsed[*idx], e,
-		)
+		if iter&4095 == 0 {
+			if ctx.Err() != nil {
+				err = ctx.Err()
+				break
+			}
+		}
+
+		node := &parsed[idxN]
+		err = de.ByteCallEventIteration(idx, node, e)
 		if err != nil {
-			break
+			return err
 		}
+		iter += 1
+	}
+	if iter > 100_000_000 {
+		runtime.GC()
 	}
 	return
 }
 
-// ---> maximum: ~60-66 mOps/s on intel core-i7 2.2ghz
+func (de *DefaultEvents) ByteCallEventIteration(
+	idx *int,
+	parsed *ByteCallAttr, e *engine.ByteEngine,
+) error {
+	//go:inline
+	err := parsed.Handler(e, parsed.RawNode)
+	if parsed.Abis {
+		*idx += 1
+	}
+	return err
+}

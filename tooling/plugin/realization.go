@@ -16,13 +16,20 @@ type Plugin struct {
 	name string
 }
 
-func NewPlugin(name, initEvent, mainEvent, closeEvent string) *Plugin {
+func NewPlugin(
+	name, initEvent,
+	mainEvent, closeEvent,
+	scopeRunResultKey,
+	scopeCallResultKey string,
+) *Plugin {
 	return &Plugin{
-		Events:     core.NewEvents(nil),
-		name:       name,
-		InitEvent:  initEvent,
-		MainEvent:  mainEvent,
-		CloseEvent: closeEvent,
+		Events:             core.NewEvents(nil),
+		name:               name,
+		InitEvent:          initEvent,
+		MainEvent:          mainEvent,
+		CloseEvent:         closeEvent,
+		ScopeRunResultKey:  scopeCallResultKey,
+		ScopeCallResultKey: scopeCallResultKey,
 	}
 }
 
@@ -42,7 +49,7 @@ func (p *Plugin) Init(scope core.ScopeType, pm *PluginManager) error {
 func (p *Plugin) Close() error {
 	return p.Events.CallEvents(&core.EventInput{
 		Input: p,
-	}, p.CloseEvent, false)
+	}, p.CloseEvent, true)
 }
 
 func (p *Plugin) Run(input any) (any, error) {
@@ -52,7 +59,8 @@ func (p *Plugin) Run(input any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.Events.Scope()[p.ScopeRunResultKey], err
+	res, _ := core.ScopeGet[any](p.Events.Scope(), p.ScopeRunResultKey)
+	return res, nil
 }
 
 func (p *Plugin) Call(name string, opts ...core.Option) (any, error) {
@@ -62,7 +70,6 @@ func (p *Plugin) Call(name string, opts ...core.Option) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := p.Events.Scope()[p.ScopeRunResultKey]
-	p.Events.Scope()[p.ScopeRunResultKey] = nil
+	res, _ := core.ScopeGet[any](p.Events.Scope(), p.ScopeRunResultKey)
 	return res, nil
 }

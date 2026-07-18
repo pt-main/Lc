@@ -65,3 +65,9 @@ func (pm *PluginManager) CallPluginMethod(name, method string, opts ...core.Opti
 	}
 	return plugin.Call(method, opts...)
 }
+
+func (pm *PluginManager) End() {
+	for plugin := range pm.Plugins {
+		pm.DeletePlugin(plugin)
+	}
+}

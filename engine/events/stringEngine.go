@@ -104,7 +104,7 @@ func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedN
 	cmd_switch := node.Switch
 	handler, ok := e.Commands[cmd_switch]
 	if ok {
-		err = handler.Handler(e, node)
+		err = handler.Handler(e, &node)
 	}
 	if err != nil {
 		return errors.New("[?BRD]Handler error[?BRD]: \n" + err.Error())

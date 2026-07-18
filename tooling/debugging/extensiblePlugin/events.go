@@ -81,13 +81,13 @@ func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.Even
 			break
 		}
 		err = ep.de.ByteCallEventIteration(
-			idx, parsed[*idx], e,
+			idx, &parsed[*idx], e,
 		)
 		if err != nil {
 			break
 		}
 		ep.Events.CallEvents(nil, CLEInPostEvent, true)
 	}
-	ep.Events.CallEvents(nil, CLEInPostEvent, true)
+	ep.Events.CallEvents(nil, CLEPostEvent, true)
 	return
 }

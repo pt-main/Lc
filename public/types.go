@@ -17,6 +17,6 @@ const (
 type EngineType int
 
 const (
-	ByteEngineType = iota
+	ByteEngineType EngineType = iota
 	StringEngineType
 )

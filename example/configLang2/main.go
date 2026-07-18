@@ -48,7 +48,7 @@ func Process(config string) (string, error) {
 	}
 	engine.GetUEP().Scope["config"] = make(map[string]map[string]interface{})
 	engine.GetUEP().Scope["current_section"] = "global"
-	_ = engine.NewCommandString("section", func(se *enginepkg.StringEngine, node stringParsing.ParsedNode) error {
+	_ = engine.NewCommandString("section", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
 		name := node.Metadata["name"].(string)
 		se.UEP.Scope["current_section"] = name
 		cfg := se.UEP.Scope["config"].(map[string]map[string]interface{})
@@ -57,7 +57,7 @@ func Process(config string) (string, error) {
 		}
 		return nil
 	}, "Set current section")
-	_ = engine.NewCommandString("keyval", func(se *enginepkg.StringEngine, node stringParsing.ParsedNode) error {
+	_ = engine.NewCommandString("keyval", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
 		key := strings.TrimSpace(node.Metadata["key"].(string))
 		rawVal := strings.TrimSpace(node.Metadata["value"].(string))
 		val := parseValue(rawVal)

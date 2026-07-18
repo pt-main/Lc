@@ -79,6 +79,11 @@ func (e *EngineUniversal) NewCommandByte(
 	return nil
 }
 
+// End - function for stop engines lifecycle.
+func (e *EngineUniversal) End() {
+	e.Plugins.End()
+}
+
 // NewCommandString registers a text-based command in a StringEngine.
 // cmdSwitch is the command name (e.g., "print"). handler must have signature
 // func([]interface{}) error where arguments are (*StringEngine, ParsedNode).

@@ -4,7 +4,7 @@ import (
 	"slices"
 )
 
-type CommandType[E, N any] func(*E, N) error
+type CommandType[E, N any] func(*E, *N) error
 
 type CommandMeta[E, N any] struct {
 	Handler CommandType[E, N]

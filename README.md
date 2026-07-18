@@ -16,9 +16,8 @@
 > ```
 > **Lc** is a production-oriented toolkit for building things like language tools, compiler, interpreters or bytecode-driven processors in Go.
 
-
 It is intentionally straightforward to adopt, while preserving industrial runtime properties:
-- explicit execution lifecycle,
+- explicit execution lifecycle (just use `EngineUniversal.End`),
 - deterministic output assembly,
 - context-aware cancellation,
 - thread-safe core primitives,
