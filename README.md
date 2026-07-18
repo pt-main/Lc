@@ -4,7 +4,6 @@
 </p>
 <p align="center">
   <a href="https://pkg.go.dev/github.com/pt-main/lc"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white"></a>
-  <a href="https://goreportcard.com/report/github.com/pt-main/lc"><img src="https://goreportcard.com/badge/github.com/pt-main/lc"></a>
   <a href="https://github.com/pt-main/lc/releases"><img src="https://img.shields.io/github/v/release/pt-main/lc?color=blue"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow"></a>
   <a href="https://github.com/pt-main/Lc/wiki"><img src="https://img.shields.io/badge/Project-Wiki-red"></a>
