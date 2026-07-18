@@ -288,7 +288,7 @@ myPlugin := plugin.NewPlugin(
 	"init_event",         // event called on init
 	"main_event",         // event called on Run()
 	"close_event",        // event called on Close()
-	"scope_return",   // plugin.Run (or plugin method) event can put output here
+	"scope_return",       // plugin.Run (or plugin method) event can put output here
 )
 
 // Add handlers to plugin events
