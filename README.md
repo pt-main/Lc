@@ -278,7 +278,7 @@ logger.PrintLog("warn", "This is a warning")
 ```
 
 ## Plugin System
-Lc has a built‑in plugin manager that allows dynamic registration and execution of external logic. Plugins are isolated via their own events and scope.
+Lc has a built‑in plugin manager that allows dynamic registration and execution of external logic. Plugins has their own events and scope, and not isolated (have access to engine and plugin manager).
 
 ### Creating a plugin
 ```go
