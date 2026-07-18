@@ -4,7 +4,6 @@
 </p>
 <p align="center">
   <a href="https://pkg.go.dev/github.com/pt-main/lc"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white"></a>
-  <a href="https://goreportcard.com/report/github.com/pt-main/lc"><img src="https://goreportcard.com/badge/github.com/pt-main/lc"></a>
   <a href="https://github.com/pt-main/lc/releases"><img src="https://img.shields.io/github/v/release/pt-main/lc?color=blue"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow"></a>
   <a href="https://github.com/pt-main/Lc/wiki"><img src="https://img.shields.io/badge/Project-Wiki-red"></a>
@@ -39,7 +38,7 @@ Default lifecycle:
 4. emit output through `UEP.Generator` (if need).
 
 ## Byte Engine
-Input bytecode and process that.
+Input bytecode and process that. Very fast hotloop (~60m+ ops/s).
 
 Default lifecycle:
 1. store input in scope;
@@ -278,7 +277,7 @@ logger.PrintLog("warn", "This is a warning")
 ```
 
 ## Plugin System
-Lc has a built‑in plugin manager that allows dynamic registration and execution of external logic. Plugins are isolated via their own events and scope.
+Lc has a built‑in plugin manager that allows dynamic registration and execution of external logic. Plugins has their own events and scope, and not isolated (have access to engine and plugin manager).
 
 ### Creating a plugin
 ```go
@@ -289,16 +288,17 @@ myPlugin := plugin.NewPlugin(
 	"init_event",         // event called on init
 	"main_event",         // event called on Run()
 	"close_event",        // event called on Close()
+	"scope_return",   // plugin.Run (or plugin method) event can put output here
 )
 
 // Add handlers to plugin events
-myPlugin.Events.NewEvent("init_event", func(ev *core.Events, _ *EventInput) error {
+myPlugin.Events.NewEvent("init_event", func(ev *core.Events, i *EventInput) error {
 	ev.Scope["plugin_ready"] = true
 	return nil
 })
 
-myPlugin.Events.NewEvent("main_event", func(ev *core.Events, _ *EventInput) error {
-	// input is whatever was passed to plugin.Run()
+myPlugin.Events.NewEvent("main_event", func(ev *core.Events, i *EventInput) error {
+	// i.Input is whatever was passed to plugin.Run()
 	return nil
 })
 ```
@@ -306,11 +306,11 @@ myPlugin.Events.NewEvent("main_event", func(ev *core.Events, _ *EventInput) erro
 ### Registering and using a plugin
 ```go
 engne, _ := lc.NewEngineBuilder(...).
-	WithPlugins(myPlugin).
+	WithPlugins(myPlugin). // call "init_event"
 	Build()
 
 // Later, call plugin methods:
-result, err := engine.Plugins.CallPlugin("my_plugin", "some input")
+result, err := engine.Plugins.RunPlugin("my_plugin", "some input") // call "main_event"
 ```
 
 ## Parsers — ready‑to‑use implementations
