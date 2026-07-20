@@ -3,6 +3,7 @@ package lc
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
@@ -19,21 +20,31 @@ type EngineUniversal struct {
 	ByteEngine     *engine.ByteEngine
 	opcode_counter int
 	Context        context.Context
+	CtxCancelCause context.CancelCauseFunc
+	ended          bool
 }
 
 func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) error {
+	if err := e.CheckEnded(); err != nil {
+		return err
+	}
 	if e.Type != public.StringEngineType {
 		return errors.New("Can't process string in byte engine")
 	}
-	e.GetUEP().Context = ctx
+	uep, _ := e.GetUEP()
+	uep.Context = ctx
 	return e.StringEngine.Process(input)
 }
 
 func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) error {
+	if err := e.CheckEnded(); err != nil {
+		return err
+	}
 	if e.Type != public.ByteEngineType {
 		return errors.New("Can't process bytes in string engine")
 	}
-	e.GetUEP().Context = ctx
+	uep, _ := e.GetUEP()
+	uep.Context = ctx
 	return e.ByteEngine.Process(input)
 }
 
@@ -50,11 +61,14 @@ func (e *EngineUniversal) ProcessBytes(input []byte) error {
 	return e.ProcessBytesWithCtx(input, context.Background())
 }
 
-func (e *EngineUniversal) GetUEP() *core.UniversalEngineParams {
-	if e.Type == public.StringEngineType {
-		return e.StringEngine.UEP
+func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error) {
+	if err := e.CheckEnded(); err != nil {
+		return nil, err
 	}
-	return e.ByteEngine.UEP
+	if e.Type == public.StringEngineType {
+		return e.StringEngine.UEP, nil
+	}
+	return e.ByteEngine.UEP, nil
 }
 
 // NewCommandByte registers a bytecode command identified by an opcode.
@@ -64,6 +78,9 @@ func (e *EngineUniversal) NewCommandByte(
 	opcode int, handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes], name string,
 	autoByecodeIdxShift bool,
 ) error {
+	if err := e.CheckEnded(); err != nil {
+		return err
+	}
 	if e.Type != public.ByteEngineType {
 		return errors.New("Can't add byte command to string engine")
 	}
@@ -80,8 +97,29 @@ func (e *EngineUniversal) NewCommandByte(
 }
 
 // End - function for stop engines lifecycle.
-func (e *EngineUniversal) End() {
-	e.Plugins.End()
+func (e *EngineUniversal) End() (err error) {
+	err = e.CheckEnded()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("[%v] Panic recovered: %v. ", err, r)
+		}
+	}()
+	if e.Plugins != nil {
+		err = fmt.Errorf("[%v] Plugin error: %v. ", err, e.Plugins.End())
+	}
+	if e.Context.Err() != nil {
+		e.CtxCancelCause(fmt.Errorf("EngineUniversal: lifecycle end."))
+	}
+	e.ByteEngine = nil
+	e.StringEngine = nil
+	return
+}
+
+func (e *EngineUniversal) CheckEnded() (err error) {
+	if e.ended {
+		err = fmt.Errorf("EngineUniversal: lifecycle ended.")
+	}
+	return err
 }
 
 // NewCommandString registers a text-based command in a StringEngine.
@@ -91,6 +129,9 @@ func (e *EngineUniversal) End() {
 func (e *EngineUniversal) NewCommandString(
 	cmdSwitch string, handler core.CommandType[engine.StringEngine, stringParsing.ParsedNode], doc string,
 ) error {
+	if err := e.CheckEnded(); err != nil {
+		return err
+	}
 	if e.Type != public.StringEngineType {
 		return errors.New("Can't add string command to byte engine")
 	}

@@ -70,7 +70,7 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	var parsed2 []ByteCallAttr
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%e", r)
 		}
 		if err != nil {
 			idxV := *idx

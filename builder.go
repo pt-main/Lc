@@ -32,6 +32,7 @@ type EngineBuilder struct {
 	context          context.Context
 	pm               bool
 	plugins          []plugin.PluginInterface
+	cancel           context.CancelCauseFunc
 	resType          public.ResType
 }
 
@@ -61,8 +62,8 @@ func (b *EngineBuilder) WithPipeline(pipeline []string) *EngineBuilder {
 	return b
 }
 
-func (b *EngineBuilder) WithContext(context context.Context) *EngineBuilder {
-	b.context = context
+func (b *EngineBuilder) WithContext(ctx context.Context) *EngineBuilder {
+	b.context, b.cancel = context.WithCancelCause(ctx)
 	return b
 }
 
@@ -174,6 +175,7 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		Plugins: make(map[string]plugin.PluginInterface),
 		Scope:   core.ScopeType{public.PluginsScopeEuPtr: eu},
 	}
+	uep, _ := eu.GetUEP()
 	if b.pm {
 		if b.plugins != nil {
 			for _, plugin := range b.plugins {
@@ -182,12 +184,14 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 					return nil, errors.New("EngineBuilder.Build: " + err.Error())
 				}
 			}
-			for k, v := range eu.GetUEP().Scope {
+			for k, v := range uep.Scope {
 				pm.Scope[k] = v
 			}
 		}
 	}
+	eu.CtxCancelCause = b.cancel
+	eu.ended = false
 	eu.Plugins = pm
-	eu.GetUEP().Scope[public.EuScopePmPtr] = pm
+	uep.Scope[public.EuScopePmPtr] = pm
 	return eu, nil
 }

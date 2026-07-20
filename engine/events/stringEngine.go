@@ -46,7 +46,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 	events.Scope()[public.EventsScopeDERawLine] = "[NIL]"
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%e", r)
 		}
 		if err != nil {
 			raw := "[NIL]"

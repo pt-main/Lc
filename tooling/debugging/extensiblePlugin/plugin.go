@@ -59,8 +59,12 @@ func (ep *ExtensibleCLPlugin) Init(scope core.ScopeType, pm *plugin.PluginManage
 		return fmt.Errorf("Bad scope: can't find EngineUniversal. Plugins didn't load.")
 	}
 	ep.Eu = eu
+	uep, err := eu.GetUEP()
+	if err != nil {
+		return err
+	}
 	ep.ETools = core.EventsTools{
-		Events: eu.GetUEP().Event,
+		Events: uep.Event,
 	}
 	return nil
 }
