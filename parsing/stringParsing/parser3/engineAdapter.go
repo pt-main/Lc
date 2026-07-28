@@ -11,7 +11,7 @@ type Adapter struct {
 	Parser *Parser
 }
 
-func (a *Adapter) ParseFlat(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
+func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
 	nodes, err := a.Parser.Parse(code)
 	if err != nil {
 		return nil, err

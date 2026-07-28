@@ -46,8 +46,9 @@ func Process(config string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	engine.GetUEP().Scope["config"] = make(map[string]map[string]interface{})
-	engine.GetUEP().Scope["current_section"] = "global"
+	uep, _ := engine.GetUEP()
+	uep.Scope["config"] = make(map[string]map[string]interface{})
+	uep.Scope["current_section"] = "global"
 	_ = engine.NewCommandString("section", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
 		name := node.Metadata["name"].(string)
 		se.UEP.Scope["current_section"] = name
@@ -72,7 +73,7 @@ func Process(config string) (string, error) {
 	if err := engine.ProcessString(config); err != nil {
 		return "", err
 	}
-	cfg := engine.GetUEP().Scope["config"].(map[string]map[string]interface{})
+	cfg := uep.Scope["config"].(map[string]map[string]interface{})
 	jsonData, err := json.MarshalIndent(cfg, "", "  ")
 	return string(jsonData), err
 }

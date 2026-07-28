@@ -46,7 +46,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 	events.Scope()[public.EventsScopeDERawLine] = "[NIL]"
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%e", r)
+			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
 		}
 		if err != nil {
 			raw := "[NIL]"
@@ -54,7 +54,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 				raw = res
 			}
 			text := fmt.Sprintf("[?RD]Error[?RT]: [?YW]Status [?RT][%v]:\n"+
-				"[?RD]Error at:[?RT]\n[?BBK]    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
+				"[?RD]Error at:[?RT]\n[?BBK]>    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
 				status, strings.ReplaceAll(raw, "\n", "\n[?BBK]>    |[?RT]"),
 				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "))
 			err = errors.New(color.Set(text))
@@ -75,7 +75,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 	var okExit bool = false
 	e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("start call event: [parsed: %v]", parsed))
 	defer func() {
-		e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("end parsing event: [ok: %v]", okExit))
+		e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("end call event: [ok: %v]", okExit))
 	}()
 	status = "SYSTEM: call cycle..."
 	_idx := 0
