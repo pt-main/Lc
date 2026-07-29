@@ -85,6 +85,7 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 		Engine: e,
 		Idx:    &_idx,
 	}
+	e.UEP.Scope[public.StringEngineScopeInstrIdx] = cld.Idx
 	err = events.CallEvents(&core.EventInput{Input: cld}, public.StringCallCalloopEvent, false)
 	if err != nil {
 		return
@@ -120,9 +121,19 @@ func (de *DefaultEvents) StringCallLoopEvent(events *core.Events, i *core.EventI
 	pLen := len(parsed)
 	ctx := cld.Ctx
 	e := cld.Engine
-	for *idx < pLen && *idx >= 0 {
+	for *idx < pLen {
+		if ctx.Err() != nil {
+			err = ctx.Err()
+			break
+		}
 		err = de.StringCallEventIteration(parsed, idx, events, ctx, e)
 		if err != nil {
+			if errors.Is(err, public.ErrExit) {
+				return nil
+			}
+			return
+		}
+		if 0 > *idx {
 			return
 		}
 	}

@@ -125,21 +125,23 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 	e := hld.Engine
 	iter := 0
 	for {
+		if ctx.Err() != nil {
+			err = ctx.Err()
+			break
+		}
+
 		idxN := *idx
 		if !(idxN < p2len && idxN >= 0) {
 			break
-		}
-		if iter&4095 == 0 {
-			if ctx.Err() != nil {
-				err = ctx.Err()
-				break
-			}
 		}
 
 		node := &parsed[idxN]
 		err = de.ByteCallEventIteration(idx, node, e)
 		if err != nil {
-			return err
+			if errors.Is(err, public.ErrExit) {
+				return nil
+			}
+			return
 		}
 		iter += 1
 	}

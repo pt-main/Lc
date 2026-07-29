@@ -8,8 +8,9 @@ const (
 )
 
 const (
-	StringEngineScopeInput  = "INPUT string"
-	StringEngineScopeParsed = "PARSED []ParsedNode"
+	StringEngineScopeInput    = "INPUT string"
+	StringEngineScopeParsed   = "PARSED []ParsedNode"
+	StringEngineScopeInstrIdx = "INSTR_IDX *int"
 )
 
 const (
