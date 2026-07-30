@@ -108,6 +108,10 @@ func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedN
 		err = handler.Handler(e, &node)
 	}
 	if err != nil {
+		if errors.Is(err, public.ErrExit) {
+			*idx = -1
+			return nil
+		}
 		return errors.New("[?BRD]Handler error[?BRD]: \n" + err.Error())
 	}
 	*idx += 1
@@ -128,9 +132,6 @@ func (de *DefaultEvents) StringCallLoopEvent(events *core.Events, i *core.EventI
 		}
 		err = de.StringCallEventIteration(parsed, idx, events, ctx, e)
 		if err != nil {
-			if errors.Is(err, public.ErrExit) {
-				return nil
-			}
 			return
 		}
 		if 0 > *idx {

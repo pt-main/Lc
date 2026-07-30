@@ -2,6 +2,8 @@ package stringParsing
 
 import (
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/parsing"
@@ -9,14 +11,6 @@ import (
 )
 
 // LexerRule defines a single token type and its regular expression pattern.
-// Type – symbolic name of the token (e.g., "NUMBER", "IDENT", "STRING").
-// Pattern – compiled *regexp2.Regexp (supports groups and repetition).
-// Example:
-//
-//	rule := LexerRule{
-//	    Type:    "IDENT",
-//	    Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0),
-//	}
 type LexerRule struct {
 	Type    string
 	Pattern *regexp2.Regexp
@@ -24,39 +18,30 @@ type LexerRule struct {
 
 // LexerConfig holds configuration options for the lexer.
 type LexerConfig struct {
-	UseBracketBalance bool     // Enable bracket balancing
-	Brackets          []string // List of bracket pairs, e.g., []string{"()","[]","{}"}
+	UseBracketBalance bool        // Enable bracket balancing
+	Brackets          [][2]string // List of bracket pairs, e.g. [][2]string{{"(", ")"}, {"<!--", "-->"}, {"begin", "end"}}
 }
 
 // Lexer converts a source string into a sequence of ParsedNode objects.
-// It applies a set of LexerRule in order, picking the first matching rule
-// at each position. It supports capturing named groups from the regexp,
-// which become part of Metadata.
 type Lexer struct {
 	rules       []LexerRule
 	config      LexerConfig
-	openToClose map[rune]rune
-	closeToOpen map[rune]rune
+	openToClose map[string]string // open -> close
+	closeToOpen map[string]string // close -> open
 }
 
 // NewLexer creates a lexer with the given rule set and optional configuration.
-// Rules are tried in the order they are provided.
-// Typically used as the first stage in a string parser.
-// Example:
-//
-//	lex := NewLexer([]LexerRule{...}, LexerConfig{})
 func NewLexer(rules []LexerRule, config *LexerConfig) *Lexer {
 	cfg := LexerConfig{}
 	if config != nil {
 		cfg = *config
 	}
 
-	openToClose := make(map[rune]rune)
-	closeToOpen := make(map[rune]rune)
+	openToClose := make(map[string]string)
+	closeToOpen := make(map[string]string)
 	for _, pair := range cfg.Brackets {
-		runes := []rune(pair)
-		if len(runes) == 2 {
-			open, close := runes[0], runes[1]
+		if len(pair) == 2 {
+			open, close := pair[0], pair[1]
 			openToClose[open] = close
 			closeToOpen[close] = open
 		}
@@ -78,33 +63,57 @@ func snippet(s string, maxLen int) string {
 }
 
 // isBracketBalanced checks if the accumulated text has balanced brackets.
+// Supports multi‑character opening/closing strings.
 func (l *Lexer) isBracketBalanced(text string) bool {
-	if !l.config.UseBracketBalance {
+	if !l.config.UseBracketBalance || len(l.openToClose) == 0 {
 		return true
 	}
 
-	stack := []rune{}
-	for _, ch := range text {
-		if _, ok := l.openToClose[ch]; ok {
-			stack = append(stack, ch)
-		} else if closeOpen, ok := l.closeToOpen[ch]; ok {
-			if len(stack) > 0 && stack[len(stack)-1] == closeOpen {
-				stack = stack[:len(stack)-1]
-			} else {
-				return false // unmatched closing bracket
+	stack := []string{}
+	i := 0
+	n := len(text)
+
+	for i < n {
+		matched := false
+
+		// Try to match an opening bracket
+		for open := range l.openToClose {
+			if strings.HasPrefix(text[i:], open) {
+				stack = append(stack, open)
+				i += len(open)
+				matched = true
+				break
 			}
 		}
+		if matched {
+			continue
+		}
+
+		// Try to match a closing bracket
+		for close, open := range l.closeToOpen {
+			if strings.HasPrefix(text[i:], close) {
+				if len(stack) == 0 || stack[len(stack)-1] != open {
+					return false
+				}
+				stack = stack[:len(stack)-1]
+				i += len(close)
+				matched = true
+				break
+			}
+		}
+		if matched {
+			continue
+		}
+
+		// No bracket matched – skip one UTF‑8 character
+		_, size := utf8.DecodeRuneInString(text[i:])
+		i += size
 	}
+
 	return len(stack) == 0
 }
 
 // Parse scans the entire input string and returns a slice of ParsedNode.
-// Each node's Switch field contains the token type, Raw contains the exact
-// matched substring, and Metadata includes all named groups from the regexp
-// plus the token value ("__value").
-// If no rule matches at some position, an error is returned with a snippet.
-// The result is automatically enriched with __prev/__next links via
-// addPrevNextNodes.
 func (lp *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
 	log := func(text string) {
 		text = "\n" + text
@@ -155,7 +164,6 @@ func (lp *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode,
 					}
 				}
 
-				// Add bracket balance info to metadata if enabled
 				if lp.config.UseBracketBalance {
 					meta["__bracket_balanced"] = lp.isBracketBalanced(tokenValue)
 				}

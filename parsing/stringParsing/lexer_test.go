@@ -11,8 +11,9 @@ import (
 func TestLexer_Parse(t *testing.T) {
 	rules := []LexerRule{
 		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "BLOCK", Pattern: regexp2.MustCompile(`(?s)\s*begin{(.*)?}end`, 0)},
 		{Type: "COMMENT", Pattern: regexp2.MustCompile(`(?s)/\*\s*@(.+?)@\*/`, 0)},
-		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.+?$`, 0)},
+		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.*`, 0)}, // исправлено
 		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]+`, 0)},
 		{Type: "NUMBER", Pattern: regexp2.MustCompile(`[0-9]+(?:\.[0-9]+)?`, 0)},
 		{Type: "STRING", Pattern: regexp2.MustCompile(`"(?:[^"\\]|\\.)*"`, 0)},
@@ -24,19 +25,30 @@ func TestLexer_Parse(t *testing.T) {
 		{Type: "EQ", Pattern: regexp2.MustCompile(`=`, 0)},
 	}
 
-	lexer := NewLexer(rules, nil)
+	lexer := NewLexer(rules, &LexerConfig{
+		UseBracketBalance: true,
+		Brackets:          [][2]string{{"begin{", "}end"}},
+	})
 	nodes, err := lexer.Parse(`//@ test
-1.0 test_param1 = "\" string \""`,
+1.0 test_param1 = "\" string \""
+begin{
+	test block
+}end`,
 		&parsing.ParseOption{UEP: &core.UniversalEngineParams{Logger: core.NewLogger("")}})
 	if err != nil {
 		t.Fatalf("Error: %s", err)
-		return
 	}
-
-	types := []string{"COMMENT", "NUMBER", "WHITESPACE", "IDENT", "WHITESPACE", "EQ", "WHITESPACE", "STRING"}
-	for idx, node := range nodes {
-		if types[idx] != node.Switch {
-			t.Fatalf("Mismatched types: must be %v, got %v", types[idx], node.Switch)
+	types := []string{
+		"COMMENT", "WHITESPACE", "NUMBER", "WHITESPACE", "IDENT",
+		"WHITESPACE", "EQ", "WHITESPACE", "STRING", "WHITESPACE",
+		"BLOCK",
+	}
+	if len(nodes) < len(types) {
+		t.Fatalf("Too few tokens: got %d, want at least %d", len(nodes), len(types))
+	}
+	for idx, expected := range types {
+		if nodes[idx].Switch != expected {
+			t.Fatalf("Mismatch at index %d: expected %q, got %q", idx, expected, nodes[idx].Switch)
 		}
 	}
 }
