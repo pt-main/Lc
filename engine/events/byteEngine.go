@@ -15,7 +15,7 @@ import (
 	"github.com/pt-main/lc/tooling/bytecode"
 )
 
-type ByteCLDType CallLoopData[ByteCallAttr, engine.ByteEngine]
+type ByteCLDType CallLoopData[ByteCallAttr, engine.ByteEngineInterface]
 
 func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInput) error {
 	e, ok := i.Input.(*engine.ByteEngine)
@@ -37,13 +37,13 @@ func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInpu
 type ByteCallAttr struct {
 	RawNode *byteParsing.ParsedBytes
 	Abis    bool
-	Handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes]
+	Handler core.CommandType[engine.ByteEngineInterface, byteParsing.ParsedBytes]
 }
 
 func (de *DefaultEvents) ByteCallPreprocess(
 	parsed []byteParsing.ParsedBytes, endianess public.EndianType,
 	u bytecode.Utils, abis map[int]bool,
-	cmds map[int]core.CommandMeta[engine.ByteEngine, byteParsing.ParsedBytes],
+	cmds map[int]core.CommandMeta[engine.ByteEngineInterface, byteParsing.ParsedBytes],
 ) ([]ByteCallAttr, error) {
 	res := []ByteCallAttr{}
 	for _, node := range parsed {
@@ -72,6 +72,10 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%e", r)
 		}
+		if errors.Is(err, public.ErrExit) {
+			*idx = -1
+			return
+		}
 		if err != nil {
 			idxV := *idx
 			err = fmt.Errorf(
@@ -85,21 +89,21 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 	if !ok {
 		return fmt.Errorf("Can't get byte engine: invalid input")
 	}
-	_parsed, _ := e.UEP.Scope[public.ByteEngineScopeParsed]
+	_parsed, _ := e.GetUep().Scope[public.ByteEngineScopeParsed]
 	parsed, ok := _parsed.([]byteParsing.ParsedBytes)
 	if !ok {
 		return errors.New("Can't start call event. Invalid type of parsed result.")
 	}
 	u := bytecode.Utils{}
-	endianess, ok := e.UEP.Scope[public.ByteEngineScopeEndianess].(public.EndianType)
+	endianess, ok := e.GetUep().Scope[public.ByteEngineScopeEndianess].(public.EndianType)
 	if !ok {
 		return fmt.Errorf("Can't get endianess: not declarated in scope or invalid value")
 	}
-	idx, err = core.ScopeGet[*int](e.UEP.Scope, public.ByteEngineScopeBytecodeIdx)
+	idx, err = core.ScopeGet[*int](e.GetUep().Scope, public.ByteEngineScopeBytecodeIdx)
 	if err != nil {
 		return fmt.Errorf("Can't get bytecode index: \n  %w", err)
 	}
-	ctx := e.UEP.GetContext()
+	ctx := e.GetUep().GetContext()
 	cmds := e.Commands
 	abis := e.AutoBytecodeIndexShift
 	parsed2, err = de.ByteCallPreprocess(parsed, endianess, u, abis, cmds)
@@ -138,9 +142,6 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 		node := &parsed[idxN]
 		err = de.ByteCallEventIteration(idx, node, e)
 		if err != nil {
-			if errors.Is(err, public.ErrExit) {
-				return nil
-			}
 			return
 		}
 		iter += 1
@@ -153,7 +154,7 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 
 func (de *DefaultEvents) ByteCallEventIteration(
 	idx *int,
-	parsed *ByteCallAttr, e *engine.ByteEngine,
+	parsed *ByteCallAttr, e engine.ByteEngineInterface,
 ) error {
 	//go:inline
 	err := parsed.Handler(e, parsed.RawNode)

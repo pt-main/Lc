@@ -4,10 +4,10 @@ import (
 	"slices"
 )
 
-type CommandType[E, N any] func(*E, *N) error
+type CommandType[EI, N any] func(EI, *N) error
 
-type CommandMeta[E, N any] struct {
-	Handler CommandType[E, N]
+type CommandMeta[EI, N any] struct {
+	Handler CommandType[EI, N]
 	Doc     string
 }
 
@@ -22,7 +22,9 @@ func (o *Option) HasFlag(name string) bool {
 	return slices.Contains(o.Flags, name)
 }
 
-type EventInput struct {
+type SimpleInput struct {
 	Option *Option
 	Input  interface{}
 }
+
+type EventInput = SimpleInput

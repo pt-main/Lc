@@ -12,6 +12,10 @@ import (
 
 const Name = "extensible call loop"
 
+// # ExtensibleCLPlugin
+//
+// Replace standart calloops and add calloops with event hooks.
+// System plugin.
 type ExtensibleCLPlugin struct {
 	de     events.DefaultEvents
 	Eu     *lc.EngineUniversal
@@ -87,6 +91,7 @@ func (ep *ExtensibleCLPlugin) Init(scope core.ScopeType, pm *plugin.PluginManage
 	ep.ETools = core.EventsTools{
 		Events: uep.Event,
 	}
+	(&plugin.Tools{Pm: pm}).SetFlag(ECLFlag)
 	return nil
 }
 

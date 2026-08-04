@@ -12,12 +12,18 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
+const AutoshiftNewCommandFlag = "autoShift"
+
+type byteParser = parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
+type byteCmdType = core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes]
+type byteCommandMeta = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]
+
 // ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
 // It uses a byte parser to decode raw bytes into ParsedBytes structures.
 // The Process method triggers ByteParseEvent and ByteCallEvent in order.
 type ByteEngine struct {
-	Commands               map[int]core.CommandMeta[ByteEngine, byteParsing.ParsedBytes]
-	Parser                 parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
+	Commands               map[int]byteCommandMeta
+	Parser                 byteParser
 	AutoBytecodeIndexShift map[int]bool
 	UEP                    *core.UniversalEngineParams
 	mu                     sync.RWMutex
@@ -56,16 +62,49 @@ func (e *ByteEngine) Process(input []byte) error {
 //
 //	SetBytecodeIdx(10) // jump
 //	AddToBytecodeIdx(-1) // prev instruction
-func (e *ByteEngine) NewCommand(
-	cmd_switch int, handler core.CommandType[ByteEngine, byteParsing.ParsedBytes],
+func (e *ByteEngine) NewCommandFull(
+	cmd_switch int, handler core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes],
 	name string, autoBytecodeIndexShift bool) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Commands[cmd_switch] = core.CommandMeta[ByteEngine, byteParsing.ParsedBytes]{
+	e.Commands[cmd_switch] = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]{
 		Handler: handler,
 		Doc:     name,
 	}
 	e.AutoBytecodeIndexShift[cmd_switch] = autoBytecodeIndexShift
+}
+
+// For interface. o.Option.Flags[AutoshiftNewCommandFlag] = autoBytecodeIndexShift, o.Input string = name
+func (e *ByteEngine) NewCommand(
+	cmd_switch int, handler byteCmdType,
+	o *core.SimpleInput) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	name, ok := o.Input.(string)
+	if !ok {
+		return fmt.Errorf("Invalid input: 'o.Input' must be string")
+	}
+	autoBytecodeIndexShift := o.Option.HasFlag(AutoshiftNewCommandFlag)
+	e.Commands[cmd_switch] = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]{
+		Handler: handler,
+		Doc:     name,
+	}
+	e.AutoBytecodeIndexShift[cmd_switch] = autoBytecodeIndexShift
+	return nil
+}
+
+// For interface
+func (e *ByteEngine) GetCommands() map[int]byteCommandMeta {
+	return e.Commands
+}
+
+// For interface
+func (e *ByteEngine) GetUep() *core.UniversalEngineParams {
+	return e.UEP
+}
+
+func (e *ByteEngine) GetParser() byteParser {
+	return e.Parser
 }
 
 func (e *ByteEngine) AddToBytecodeIdx(n int) {

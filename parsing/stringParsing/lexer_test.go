@@ -13,7 +13,7 @@ func TestLexer_Parse(t *testing.T) {
 		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
 		{Type: "BLOCK", Pattern: regexp2.MustCompile(`(?s)\s*begin{(.*)?}end`, 0)},
 		{Type: "COMMENT", Pattern: regexp2.MustCompile(`(?s)/\*\s*@(.+?)@\*/`, 0)},
-		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.*`, 0)}, // исправлено
+		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.*`, 0)},
 		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]+`, 0)},
 		{Type: "NUMBER", Pattern: regexp2.MustCompile(`[0-9]+(?:\.[0-9]+)?`, 0)},
 		{Type: "STRING", Pattern: regexp2.MustCompile(`"(?:[^"\\]|\\.)*"`, 0)},

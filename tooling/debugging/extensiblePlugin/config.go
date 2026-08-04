@@ -1,12 +1,17 @@
 package extensiblePlugin
 
+// Сalloop events
 const (
-	CLEPreEvent    = "CallopE PreEvent"
-	CLEInPreEvent  = "CallopE InPreEvent"
-	CLEInPostEvent = "CallopE InPostEvent"
-	CLEPostEvent   = "CallopE PostEvent"
+	CLEPreEvent    = "CalloopE PreEvent"
+	CLEInPreEvent  = "CalloopE InPreEvent"
+	CLEInPostEvent = "CalloopE InPostEvent"
+	CLEPostEvent   = "CalloopE PostEvent"
 )
 
 const (
-	CLEScopeData = "CallopE ScopeData CallopE Data"
+	CLEScopeData = "ExtensiblePlugin ScopeData CalloopE Data" // Сalloop data (CLEData)
+)
+
+const (
+	ECLFlag = "ExtensiblePlugin" // This flag will be added to plugins manager when the plugin is initialized
 )

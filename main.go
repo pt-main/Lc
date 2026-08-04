@@ -12,7 +12,7 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.5.0"
+const Version = "1.5.1"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -43,7 +43,7 @@ func NewStringEngine(
 		e, make(core.ScopeType), core.NewLogger(""), context)
 	return &engine.StringEngine{
 		UEP:      uep,
-		Commands: make(map[string]core.CommandMeta[engine.StringEngine, stringParsing.ParsedNode]),
+		Commands: make(map[string]core.CommandMeta[engine.StringEngineInterface, stringParsing.ParsedNode]),
 		Parser:   parser,
 	}
 }
@@ -82,7 +82,7 @@ func NewByteEngine(
 	return &engine.ByteEngine{
 		UEP:                    uep,
 		AutoBytecodeIndexShift: make(map[int]bool),
-		Commands:               make(map[int]core.CommandMeta[engine.ByteEngine, byteParsing.ParsedBytes]),
+		Commands:               make(map[int]core.CommandMeta[engine.ByteEngineInterface, byteParsing.ParsedBytes]),
 		Parser:                 parser,
 	}
 }

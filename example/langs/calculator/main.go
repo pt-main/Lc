@@ -8,8 +8,10 @@ import (
 	"strconv"
 
 	"github.com/dlclark/regexp2"
+	"github.com/pt-main/lc"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/parsing/stringParsing/parser3"
+	"github.com/pt-main/lc/tooling/astools"
 )
 
 func createLexer() *stringParsing.Lexer {
@@ -107,7 +109,7 @@ func createGrammar() parser3.Grammar {
 func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 	switch node.Switch {
 	case "expr":
-		children := getChildren(node)
+		children := astools.GetChildren(node)
 		if len(children) == 0 {
 			return 0, errors.New("empty expr")
 		}
@@ -134,7 +136,7 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 		}
 		return val, nil
 	case "term":
-		children := getChildren(node)
+		children := astools.GetChildren(node)
 		if len(children) == 0 {
 			return 0, errors.New("empty term")
 		}
@@ -166,15 +168,16 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 		}
 		return val, nil
 	case "factor":
-		children := getChildren(node)
+		children := astools.GetChildren(node)
 		if len(children) == 0 {
 			return 0, errors.New("empty factor")
 		}
-		if children[0].Switch == "NUMBER" {
-			numStr := children[0].Raw
+		child := &children[0]
+		if child.Switch == "NUMBER" {
+			numStr := child.Raw
 			return strconv.ParseFloat(numStr, 64)
 		}
-		if children[0].Switch == "LPAREN" && len(children) >= 3 {
+		if child.Switch == "LPAREN" && len(children) >= 3 {
 			return evalExpr(&children[1])
 		}
 		return 0, errors.New("unknown factor")
@@ -183,14 +186,9 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 	}
 }
 
-func getChildren(node *stringParsing.ParsedNode) []stringParsing.ParsedNode {
-	if children, ok := node.Metadata["children"].([]stringParsing.ParsedNode); ok {
-		return children
-	}
-	return nil
-}
-
 func main() {
+	fmt.Println("Lc version -", lc.Version)
+
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: calc <expression>")
 		fmt.Println("Example: calc '(2 ** 3) + 4'")
@@ -216,3 +214,18 @@ func main() {
 	}
 	fmt.Printf("Result: %v\n", result)
 }
+
+/*
+macbook@MacBook-Pro lc % go run ./example/calculator '(2+3)**4'
+Lc version - 1.5.1
+Result: 625
+macbook@MacBook-Pro lc % go run ./example/calculator '2*3+4'
+Lc version - 1.5.1
+Result: 10
+macbook@MacBook-Pro lc % go run ./example/calculator '2-3*4'
+Lc version - 1.5.1
+Result: -10
+macbook@MacBook-Pro lc % go run ./example/calculator '(2-3*4)+(5*2-1)*2'
+Lc version - 1.5.1
+Result: 8
+*/

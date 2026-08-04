@@ -2,6 +2,7 @@ package speedtest
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/pt-main/lc"
@@ -12,6 +13,7 @@ import (
 )
 
 func BenchmarkByteProcessing(b *testing.B) {
+	fmt.Println("Lc version -", lc.Version)
 	const ITERATIONS = 1_000_000_000
 	_idx := 0
 	end := public.BigEndian
@@ -26,7 +28,8 @@ func BenchmarkByteProcessing(b *testing.B) {
 		end, true, context.Background(),
 	)
 	var iteration int
-	e.NewCommand(0, func(be *engine.ByteEngine, pb *byteParsing.ParsedBytes) error {
+	e.NewCommandFull(0, func(bei engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) error {
+		be := bei.(*engine.ByteEngine)
 		iteration += 1
 		if iteration+1 == ITERATIONS {
 			be.SetBytecodeIdx(-1)
@@ -44,10 +47,11 @@ func BenchmarkByteProcessing(b *testing.B) {
 
 /* ----==== RESULTS ====----
 ITERATIONS=1_000_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/bench -count=10
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/byte/bench -count=10
+Lc version - 1.5.1
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/speedtest/bench
+pkg: github.com/pt-main/lc/example/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
 BenchmarkByteProcessing-8              1        5762814944 ns/op               173.5 Mops/s        16344 B/op        176 allocs/op
 BenchmarkByteProcessing-8              1        5751776315 ns/op               173.9 Mops/s        16184 B/op        175 allocs/op
@@ -60,13 +64,14 @@ BenchmarkByteProcessing-8              1        6253077383 ns/op               1
 BenchmarkByteProcessing-8              1        6086296262 ns/op               164.3 Mops/s        16248 B/op        175 allocs/op
 BenchmarkByteProcessing-8              1        6452127563 ns/op               155.0 Mops/s        16248 B/op        175 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/speedtest/bench   63.261s
-macbook@MacBook-Pro lc %
+ok      github.com/pt-main/lc/example/speedtest/byte/bench   63.261s
+
 ITERATIONS=500_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/bench -count=10
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/byte/bench -count=10
+Lc version - 1.5.1
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/speedtest/bench
+pkg: github.com/pt-main/lc/example/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
 BenchmarkByteProcessing-8              1        2725905999 ns/op               183.4 Mops/s        20904 B/op        174 allocs/op
 BenchmarkByteProcessing-8              1        2735958753 ns/op               182.8 Mops/s        15592 B/op        170 allocs/op
@@ -79,13 +84,14 @@ BenchmarkByteProcessing-8              1        2860468821 ns/op               1
 BenchmarkByteProcessing-8              1        2881849876 ns/op               173.5 Mops/s        16168 B/op        175 allocs/op
 BenchmarkByteProcessing-8              1        3005677711 ns/op               166.4 Mops/s        16952 B/op        182 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/speedtest/bench   28.963s
-macbook@MacBook-Pro lc %
+ok      github.com/pt-main/lc/example/speedtest/byte/bench   28.963s
+
 ITERATIONS=300_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/bench -count=10
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/byte/bench -count=10
+Lc version - 1.5.1
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/speedtest/bench
+pkg: github.com/pt-main/lc/example/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
 BenchmarkByteProcessing-8              1        1788257526 ns/op               167.8 Mops/s        21896 B/op        183 allocs/op
 BenchmarkByteProcessing-8              1        1735185620 ns/op               172.9 Mops/s        17048 B/op        182 allocs/op
@@ -98,13 +104,15 @@ BenchmarkByteProcessing-8              1        1924000551 ns/op               1
 BenchmarkByteProcessing-8              1        1807119062 ns/op               166.0 Mops/s        16344 B/op        175 allocs/op
 BenchmarkByteProcessing-8              1        1769031176 ns/op               169.6 Mops/s        17000 B/op        182 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/speedtest/bench   18.120s
-macbook@MacBook-Pro lc %
+ok      github.com/pt-main/lc/example/speedtest/byte/bench   18.120s
+
+
 ITERATIONS=100_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/bench -count=10
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/speedtest/byte/bench -count=10
+Lc version - 1.5.1
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/speedtest/bench
+pkg: github.com/pt-main/lc/example/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
 BenchmarkByteProcessing-8            933           1278002 ns/op                83.87 Mops/s       13039 B/op        158 allocs/op
 BenchmarkByteProcessing-8            930           1232047 ns/op                87.28 Mops/s       13038 B/op        158 allocs/op
@@ -117,6 +125,5 @@ BenchmarkByteProcessing-8            927           1188666 ns/op                
 BenchmarkByteProcessing-8            915           1203756 ns/op                90.79 Mops/s       13034 B/op        158 allocs/op
 BenchmarkByteProcessing-8            770           1318173 ns/op                98.52 Mops/s       13203 B/op        158 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/speedtest/bench   92.990s
-macbook@MacBook-Pro lc %
+ok      github.com/pt-main/lc/example/speedtest/byte/bench   92.990s
 */

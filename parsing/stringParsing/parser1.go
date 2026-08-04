@@ -23,7 +23,8 @@ type Parser1Config struct {
 }
 
 // Parser1 implements a regex‑based grammar parser with line continuation
-// and bracket balancing support. It splits input into blocks and matches each
+// and bracket balancing support. It splits input into blocks
+// (where every token - one+ lines, end of token - end of line) and matches each
 // block against a set of GrammarRule patterns. The result is a slice of
 // ParsedNode with captured named groups stored in Metadata.
 type Parser1 struct {

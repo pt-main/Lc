@@ -14,7 +14,7 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
-type StringCLDType CallLoopData[stringParsing.ParsedNode, engine.StringEngine]
+type StringCLDType CallLoopData[stringParsing.ParsedNode, engine.StringEngineInterface]
 
 func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventInput) error {
 	e, ok := i.Input.(*engine.StringEngine)
@@ -94,9 +94,9 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 }
 
 func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedNode, idx *int,
-	events *core.Events, ctx context.Context, e *engine.StringEngine) (err error) {
+	events *core.Events, ctx context.Context, e engine.StringEngineInterface) (err error) {
 	node := parsed[*idx]
-	canBeUnknown, err := core.ScopeGet[bool](e.UEP.Scope, public.StringEngineScopeCanBeUnknown)
+	canBeUnknown, err := core.ScopeGet[bool](e.GetUep().Scope, public.StringEngineScopeCanBeUnknown)
 	if err != nil {
 		canBeUnknown = true
 	}
@@ -104,9 +104,9 @@ func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedN
 	if err = ctx.Err(); err != nil {
 		return
 	}
-	e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("process (in call event): [node: %v]", node))
+	e.GetUep().Logger.PrintLog(public.LogEvents, fmt.Sprintf("process (in call event): [node: %v]", node))
 	cmd_switch := node.Switch
-	handler, ok := e.Commands[cmd_switch]
+	handler, ok := e.GetCommands()[cmd_switch]
 	if ok && canBeUnknown {
 		err = handler.Handler(e, &node)
 	} else {

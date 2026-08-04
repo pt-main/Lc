@@ -11,12 +11,15 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
+type stringParser = parsing.ParserInterface[string, stringParsing.ParsedNode]
+type stringCommandMeta = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]
+
 // StringEngine is the core for text‑based languages. It holds command
 // definitions, a parser, and universal engine parameters (UEP) that include
 // generator, events, scope, and logger. The Process method drives compilation.
 type StringEngine struct {
-	Commands map[string]core.CommandMeta[StringEngine, stringParsing.ParsedNode]
-	Parser   parsing.ParserInterface[string, stringParsing.ParsedNode]
+	Commands map[string]stringCommandMeta
+	Parser   stringParser
 	UEP      *core.UniversalEngineParams
 	mu       sync.RWMutex
 }
@@ -46,12 +49,43 @@ func (e *StringEngine) Process(input string) error {
 	return nil
 }
 
-func (e *StringEngine) NewCommand(cmd_switch string,
-	handler core.CommandType[StringEngine, stringParsing.ParsedNode], doc string) {
+func (e *StringEngine) NewCommandFull(cmd_switch string,
+	handler core.CommandType[StringEngineInterface, stringParsing.ParsedNode], doc string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Commands[cmd_switch] = core.CommandMeta[StringEngine, stringParsing.ParsedNode]{
+	e.Commands[cmd_switch] = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]{
 		Handler: handler,
 		Doc:     doc,
 	}
+}
+
+func (e *StringEngine) GetParser() stringParser {
+	return e.Parser
+}
+
+// For interface. o.Input string = doc
+func (e *StringEngine) NewCommand(cmd_switch string,
+	handler core.CommandType[StringEngineInterface, stringParsing.ParsedNode],
+	o *core.SimpleInput) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	doc, ok := o.Input.(string)
+	if !ok {
+		return fmt.Errorf("Invalid input: 'o.Input' must be string")
+	}
+	e.Commands[cmd_switch] = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]{
+		Handler: handler,
+		Doc:     doc,
+	}
+	return nil
+}
+
+// For interface
+func (e *StringEngine) GetCommands() map[string]stringCommandMeta {
+	return e.Commands
+}
+
+// For interface
+func (e *StringEngine) GetUep() *core.UniversalEngineParams {
+	return e.UEP
 }

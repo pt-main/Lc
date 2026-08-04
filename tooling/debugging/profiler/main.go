@@ -31,6 +31,20 @@ func (m *Metric) Avg() time.Duration {
 	return m.TotalTime / time.Duration(m.Count)
 }
 
+// # ProfilerPlugin
+//
+// Connects to EngineUniversal,
+// requires ExtensibleCLPlugin.
+//
+// # Methods:
+//
+//	Call("report") -> (string, error) // Return report saved from last "reset"
+//
+//	Call("reset") -> ("reset done", error)
+//
+//	Call("enable") -> ("enabled", error)
+//
+//	Call("disable") -> ("disabled", error)
 type ProfilerPlugin struct {
 	plugin.Plugin
 	mu               sync.Mutex
@@ -59,6 +73,9 @@ func (p *ProfilerPlugin) Name() string {
 }
 
 func (p *ProfilerPlugin) Init(scope core.ScopeType, pm *plugin.PluginManager) error {
+	if !(&plugin.Tools{Pm: pm}).IsPluginInstaled(extensiblePlugin.Name) {
+		return fmt.Errorf("Extensible plugin is not installed, can't init profiler")
+	}
 	p.scope = scope
 	eu, ok := scope[public.PluginsScopeEuPtr].(*lc.EngineUniversal)
 	if !ok {

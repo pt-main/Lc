@@ -18,6 +18,7 @@ type EventsInterface interface {
 	CallEvents(input *EventInput, name string, canWorkWithoutHandler bool) error
 	Scope() ScopeType
 	CoreEvents() map[string]int
+	ReplaceEvent(name string)
 }
 
 // Events manages an ordered collection of event handlers. Each event has a
@@ -77,12 +78,12 @@ func (e *Events) NewEvent(name string, event EventType) {
 }
 
 func (e *Events) NewEventBefore(name string, event EventType) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
 	list, err := e.GetEvents(name)
 	if err != nil {
 		return fmt.Errorf("Can't put new event before '%s': %v", name, err)
 	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.events[name] = append([]EventType{event}, list...)
 	e.coreEvents[name] += 1
 	return nil
@@ -94,7 +95,7 @@ func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandle
 		if canWorkWithoutHandler {
 			return nil
 		} else {
-			return errors.New("Event '" + name + "' not found.")
+			return errors.New("Event '" + name + "' is not found.")
 		}
 	}
 	for _, event := range res {
@@ -125,6 +126,11 @@ func (e *Events) CallEvents(input *EventInput, name string,
 	}
 	return nil
 
+}
+
+func (e *Events) ReplaceEvent(name string) {
+	delete(e.events, name)
+	delete(e.coreEvents, name)
 }
 
 func (e *Events) Scope() ScopeType {

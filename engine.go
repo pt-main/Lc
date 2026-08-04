@@ -16,8 +16,8 @@ import (
 type EngineUniversal struct {
 	Plugins        *lcplugin.PluginManager
 	Type           public.EngineType
-	StringEngine   *engine.StringEngine
-	ByteEngine     *engine.ByteEngine
+	StringEngine   engine.EngineInterface[string, string, stringParsing.ParsedNode]
+	ByteEngine     engine.EngineInterface[int, []byte, byteParsing.ParsedBytes]
 	opcode_counter int
 	Context        context.Context
 	CtxCancelCause context.CancelCauseFunc
@@ -66,16 +66,16 @@ func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error) {
 		return nil, err
 	}
 	if e.Type == public.StringEngineType {
-		return e.StringEngine.UEP, nil
+		return e.StringEngine.GetUep(), nil
 	}
-	return e.ByteEngine.UEP, nil
+	return e.ByteEngine.GetUep(), nil
 }
 
 // NewCommandByte registers a bytecode command identified by an opcode.
 // If opcode == -1, the engine automatically assigns the next available opcode.
 // handler receives (*ByteEngine, ParsedBytes).
 func (e *EngineUniversal) NewCommandByte(
-	opcode int, handler core.CommandType[engine.ByteEngine, byteParsing.ParsedBytes], name string,
+	opcode int, handler core.CommandType[engine.ByteEngineInterface, byteParsing.ParsedBytes], name string,
 	autoByecodeIdxShift bool,
 ) error {
 	if err := e.CheckEnded(); err != nil {
@@ -92,7 +92,29 @@ func (e *EngineUniversal) NewCommandByte(
 		e.opcode_counter = max(opcode, e.opcode_counter)
 	}
 
-	e.ByteEngine.NewCommand(finalOpcode, handler, name, autoByecodeIdxShift)
+	e.ByteEngine.NewCommand(finalOpcode, handler, &core.SimpleInput{
+		Input:  name,
+		Option: &core.Option{Flags: []string{engine.AutoshiftNewCommandFlag}},
+	})
+	return nil
+}
+
+// NewCommandString registers a text-based command in a StringEngine.
+// cmdSwitch is the command name (e.g., "print"). handler must have signature
+// func([]interface{}) error where arguments are (*StringEngine, ParsedNode).
+// doc is an optional documentation string.
+func (e *EngineUniversal) NewCommandString(
+	cmdSwitch string, handler core.CommandType[engine.StringEngineInterface, stringParsing.ParsedNode], doc string,
+) error {
+	if err := e.CheckEnded(); err != nil {
+		return err
+	}
+	if e.Type != public.StringEngineType {
+		return errors.New("Can't add string command to byte engine")
+	}
+	e.StringEngine.NewCommand(cmdSwitch, handler, &core.SimpleInput{
+		Input: doc,
+	})
 	return nil
 }
 
@@ -120,21 +142,4 @@ func (e *EngineUniversal) CheckEnded() (err error) {
 		err = fmt.Errorf("EngineUniversal: lifecycle ended.")
 	}
 	return err
-}
-
-// NewCommandString registers a text-based command in a StringEngine.
-// cmdSwitch is the command name (e.g., "print"). handler must have signature
-// func([]interface{}) error where arguments are (*StringEngine, ParsedNode).
-// doc is an optional documentation string.
-func (e *EngineUniversal) NewCommandString(
-	cmdSwitch string, handler core.CommandType[engine.StringEngine, stringParsing.ParsedNode], doc string,
-) error {
-	if err := e.CheckEnded(); err != nil {
-		return err
-	}
-	if e.Type != public.StringEngineType {
-		return errors.New("Can't add string command to byte engine")
-	}
-	e.StringEngine.NewCommand(cmdSwitch, handler, doc)
-	return nil
 }

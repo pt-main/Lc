@@ -59,24 +59,32 @@ func Process(config string) (string, error) {
 	uep, _ := engine.GetUEP()
 	uep.Scope["config"] = make(map[string]map[string]interface{})
 	uep.Scope["current_section"] = "global"
-	engine.NewCommandString("skip", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("skip", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
 		return nil
 	}, "")
-	engine.NewCommandString("section", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("section", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
 		name := node.Metadata["name"].(string)
-		se.UEP.Scope["current_section"] = name
-		cfg := se.UEP.Scope["config"].(map[string]map[string]interface{})
+		if strings.HasPrefix(name, "!") {
+			switch name[1:] {
+			case "exit":
+				return public.ErrExit
+			default:
+				return fmt.Errorf("Invalid command.")
+			}
+		}
+		se.GetUep().Scope["current_section"] = name
+		cfg := se.GetUep().Scope["config"].(map[string]map[string]interface{})
 		if _, ok := cfg[name]; !ok {
 			cfg[name] = make(map[string]interface{})
 		}
 		return nil
 	}, "Set current section")
-	engine.NewCommandString("keyval", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("keyval", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
 		key := strings.TrimSpace(node.Metadata["key"].(string))
 		rawVal := strings.TrimSpace(node.Metadata["value"].(string))
 		val := parseValue(rawVal)
-		sectionName, _ := se.UEP.Scope["current_section"].(string)
-		cfg := se.UEP.Scope["config"].(map[string]map[string]interface{})
+		sectionName, _ := se.GetUep().Scope["current_section"].(string)
+		cfg := se.GetUep().Scope["config"].(map[string]map[string]interface{})
 		if _, ok := cfg[sectionName]; !ok {
 			cfg[sectionName] = make(map[string]interface{})
 		}
@@ -128,6 +136,8 @@ func parseValue(raw string) interface{} {
 }
 
 func main() {
+	fmt.Println("Lc version -", lc.Version)
+
 	fmt.Println(Process(`
 # Global params
 app_name = MyApp
@@ -142,5 +152,40 @@ timeout = 30.5
 [database]
 url = postgres://user:pass@localhost/db
 pool_size = 10
-features = [caching, logging, metrics]`))
+features = [caching, logging, metrics]
+[!exit]
+will not be in the output
+`))
 }
+
+/*
+Lc version - 1.5.1
+Profiler report (0.00 sec total):
+
+  String commands:
+  String calls: 13 (total time: 718.071µs)
+    keyval: count=9, total=484.819µs, avg=53.868µs, min=45.808µs, max=68.911µs
+    section: count=2, total=92.308µs, avg=46.154µs, min=45.346µs, max=46.962µs
+
+{
+  "database": {
+    "features": [
+      "caching",
+      "logging",
+      "metrics"
+    ],
+    "pool_size": 10,
+    "url": "postgres://user:pass@localhost/db"
+  },
+  "global": {
+    "app_name": "MyApp",
+    "version": "1.2.3"
+  },
+  "server": {
+    "debug": true,
+    "host": "localhost",
+    "port": 8080,
+    "timeout": 30.5
+  }
+} <nil>
+*/

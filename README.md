@@ -13,7 +13,7 @@
 > ```bash
 > go get github.com/pt-main/lc
 > ```
-> **Lc** is a production-oriented toolkit for building things like language tools, compiler, interpreters or bytecode-driven processors in Go.
+> Lc is a production-oriented framework and toolkit for building language runtimes, compiler-like execution pipelines, command interpreters, and bytecode-driven processors in Go.
 
 Lc contains - 
 - Byte & String Engine with Universal Engine abstraction
@@ -34,6 +34,15 @@ Instead, it gives you one runtime surface with two engine backends:
 - **Byte Engine** for binary instruction execution.
 - **Universal Engine** - abstraction for work with string/byte engine with plugins, context (with cancelation), and simple building.
 
+## 📑 Table of Contents
+- [Quick start](#quick-start)
+- [Engine model](#engine-model)
+- [Tools and features](#tools-and-features)
+- [Parsers](#parsers)
+- [Plugin system](#plugin-system)
+- [Context support](#context-support)
+- [License](#license)
+
 # Quick start
 <details> <summary>- StringEngine Example</summary>
 
@@ -43,15 +52,17 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pt-main/lc"
 	enginepkg "github.com/pt-main/lc/engine"
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
 )
 
 func main() {
-	parser := &stringParsing.Parser2{}
+	parser := &stringParsing.Parser2{} // parsing format: 'command arg1, arg2...'
 
 	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).
 		WithPipeline([]string{"main"}).
@@ -62,23 +73,25 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandString("print", func(se *enginepkg.StringEngine, node stringParsing.ParsedNode) error {
+	err = engine.NewCommandString("log", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
 		args, _ := node.Metadata["args"].(string)
-		return se.UEP.Generator.AddString(args, "main")
-	}, "append text to output")
+		return se.GetUep().Generator.AddString(fmt.Sprintf("Log [%v]: %v",
+			time.Now().Format(time.Stamp), args), "main")
+	}, "append log with timestamp")
 	if err != nil {
 		panic(err)
 	}
 
 	err = engine.ProcessString(strings.Join([]string{
-		"print service_start",
-		"print service_ready",
+		"log service_start",
+		"log service_ready",
 	}, "\n"))
 	if err != nil {
 		panic(err)
 	}
 
-	out, err := engine.GetUEP().Generator.GetStringRes("\n")
+	uep, _ := engine.GetUEP()
+	out, err := core.GetStringRes(uep.Generator, "\n")
 	if err != nil {
 		panic(err)
 	}
@@ -95,43 +108,58 @@ import (
 	"fmt"
 
 	"github.com/pt-main/lc"
-	"github.com/pt-main/lc/parsing/byteParsing"
 	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/tooling/bytecode"
 )
 
 func main() {
+	// Parsing format:
+	// instruction {
+	//     [bytes : cmd] [bytes : argscount] [bytes : arglen]  [bytes arglen : arg],
+	//                                       [bytes : arglen2] [bytes arglen2 : arg2]...
+	// }
 	parser := &byteParsing.Parser1{
 		Config: byteParsing.Parser1Config{
 			GConfig: bytecode.GenerationConfig{
 				CommandBytelen:   1,
 				ArgscountBytelen: 1,
-				ArglenBytelen:    1,
+				ArglenBytelen:    2,
 				Endianess:        public.LittleEndian,
 			},
 			Shifter: bytecode.Shift{},
 		},
 	}
 
-	engine, err := lc.NewEngineBuilder(public.ByteEngineType, public.ByteResType).
+	engine, err := lc.NewEngineBuilder(public.ByteEngineType, public.StringResType).
 		WithPipeline([]string{"main"}).
 		WithByteParser(parser).
 		WithDefaultEvents(true).
+		WithColors().
 		Build()
 	if err != nil {
 		panic(err)
 	}
 
-	err = engine.NewCommandByte(1, func(be *enginepkg.ByteEngine, node byteParsing.ParsedBytes) error {
-		return be.UEP.Generator.AddBytes(node.Raw, "main")
-	}, "mirror instruction bytes", true)
+	err = engine.NewCommandByte(1, func(be enginepkg.ByteEngineInterface, node *byteParsing.ParsedBytes) error {
+		for _, arg := range node.Args {
+			if err := be.GetUep().Generator.AddString(string(arg), "main"); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, "add to output instruction", true)
 	if err != nil {
 		panic(err)
 	}
 
 	code := []byte{
-		0x01, 0x01, 0x03, 0x61, 0x62, 0x63, // opcode=1, args=1, argLen=3, arg="abc"
+		0x01,       // opcode=1
+		0x01,       // argsCount=1
+		0x03, 0x00, // arglen=3 (little endian, 2 bytes)
+		0x61, 0x62, 0x63, // args="abc" (3 bytes)
 	}
 
 	err = engine.ProcessBytes(code)
@@ -139,12 +167,13 @@ func main() {
 		panic(err)
 	}
 
-	uep, _ := GetUEP()
-	out, err := engine.uep.Generator.GetBytesRes()
+	uep, _ := engine.GetUEP()
+	out, err := core.GetStringRes(uep.Generator, "")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%x\n", out)
+
+	fmt.Printf("%v\n", out)
 }
 ```
 </details>

@@ -14,17 +14,17 @@ type CLEData[I, P, E any] struct {
 	Parsed []P
 	PLen   int
 	Ctx    context.Context
-	E      *E
+	E      E
 }
 
 type SCLEData CLEData[
 	events.StringCLDType,
 	stringParsing.ParsedNode,
-	engine.StringEngine,
+	engine.StringEngineInterface,
 ]
 
 type BCLEData CLEData[
 	events.ByteCLDType,
 	events.ByteCallAttr,
-	engine.ByteEngine,
+	engine.ByteEngineInterface,
 ]

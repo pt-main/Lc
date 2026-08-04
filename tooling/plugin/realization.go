@@ -1,9 +1,17 @@
 package plugin
 
 import (
+	"context"
+
 	"github.com/pt-main/lc/engine/core"
 )
 
+// # Plugin
+//
+// PluginInterface realization base working on events.
+//
+// Method calling calls evant named as method name from local Events engine.
+// Name of plugin is constant and immutable.
 type Plugin struct {
 	Events             *core.Events
 	ScopeRunResultKey  string
@@ -21,9 +29,10 @@ func NewPlugin(
 	mainEvent, closeEvent,
 	scopeRunResultKey,
 	scopeCallResultKey string,
+	context context.Context,
 ) *Plugin {
 	return &Plugin{
-		Events:             core.NewEvents(nil),
+		Events:             core.NewEvents(context),
 		name:               name,
 		InitEvent:          initEvent,
 		MainEvent:          mainEvent,

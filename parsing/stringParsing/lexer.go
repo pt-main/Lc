@@ -22,12 +22,15 @@ type LexerConfig struct {
 	Brackets          [][2]string // List of bracket pairs, e.g. [][2]string{{"(", ")"}, {"<!--", "-->"}, {"begin", "end"}}
 }
 
-// Lexer converts a source string into a sequence of ParsedNode objects.
+// # Lexer
+//
+// Lexer converts a source string into a sequence of ParsedNode objects. Works like Parser1, but
+// find tokens in full text, not in current line.
 type Lexer struct {
 	rules       []LexerRule
 	config      LexerConfig
-	openToClose map[string]string // open -> close
-	closeToOpen map[string]string // close -> open
+	openToClose map[string]string
+	closeToOpen map[string]string
 }
 
 // NewLexer creates a lexer with the given rule set and optional configuration.

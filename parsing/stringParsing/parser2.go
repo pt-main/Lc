@@ -7,6 +7,13 @@ import (
 	"github.com/pt-main/lc/parsing"
 )
 
+// # Parser2
+//
+// Simple parser with grammar like 'cmd args ...', every line converts into
+//
+//	ParsedNode{Switch: cmd, Metadata{"value": args}},
+//
+// where cmd is first wotd in line, args is all after cmd.
 type Parser2 struct{}
 
 func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
