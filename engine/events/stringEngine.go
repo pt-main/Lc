@@ -66,9 +66,8 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 		err = fmt.Errorf("Can't get byte engine: invalid input")
 		return
 	}
-	_parsed, _ := e.UEP.Scope[public.StringEngineScopeParsed]
-	parsed, ok := _parsed.([]stringParsing.ParsedNode)
-	if !ok {
+	parsed, err := core.ScopeGet[[]stringParsing.ParsedNode](e.UEP.Scope, public.StringEngineScopeParsed)
+	if err != nil {
 		err = errors.New("Can't start call event. Invalid type of parsed result.")
 		return
 	}
@@ -97,6 +96,10 @@ func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput
 func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedNode, idx *int,
 	events *core.Events, ctx context.Context, e *engine.StringEngine) (err error) {
 	node := parsed[*idx]
+	canBeUnknown, err := core.ScopeGet[bool](e.UEP.Scope, public.StringEngineScopeCanBeUnknown)
+	if err != nil {
+		canBeUnknown = true
+	}
 	events.Scope()[public.EventsScopeDERawLine] = node.Raw
 	if err = ctx.Err(); err != nil {
 		return
@@ -104,8 +107,10 @@ func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedN
 	e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("process (in call event): [node: %v]", node))
 	cmd_switch := node.Switch
 	handler, ok := e.Commands[cmd_switch]
-	if ok {
+	if ok && canBeUnknown {
 		err = handler.Handler(e, &node)
+	} else {
+		return fmt.Errorf("[?YW]Unknown[?YW]: %s", cmd_switch)
 	}
 	if err != nil {
 		if errors.Is(err, public.ErrExit) {

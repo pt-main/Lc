@@ -12,6 +12,8 @@ import (
 	enginepkg "github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/tooling/debugging/extensiblePlugin"
+	"github.com/pt-main/lc/tooling/debugging/profiler"
 )
 
 func Process(config string) (string, error) {
@@ -46,10 +48,21 @@ func Process(config string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	err = engine.Plugins.AddPlugin(extensiblePlugin.New(engine))
+	if err != nil {
+		return "", err
+	}
+	err = engine.Plugins.AddPlugin(profiler.New())
+	if err != nil {
+		return "", err
+	}
 	uep, _ := engine.GetUEP()
 	uep.Scope["config"] = make(map[string]map[string]interface{})
 	uep.Scope["current_section"] = "global"
-	_ = engine.NewCommandString("section", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("skip", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+		return nil
+	}, "")
+	engine.NewCommandString("section", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
 		name := node.Metadata["name"].(string)
 		se.UEP.Scope["current_section"] = name
 		cfg := se.UEP.Scope["config"].(map[string]map[string]interface{})
@@ -58,7 +71,7 @@ func Process(config string) (string, error) {
 		}
 		return nil
 	}, "Set current section")
-	_ = engine.NewCommandString("keyval", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("keyval", func(se *enginepkg.StringEngine, node *stringParsing.ParsedNode) error {
 		key := strings.TrimSpace(node.Metadata["key"].(string))
 		rawVal := strings.TrimSpace(node.Metadata["value"].(string))
 		val := parseValue(rawVal)
@@ -75,6 +88,8 @@ func Process(config string) (string, error) {
 	}
 	cfg := uep.Scope["config"].(map[string]map[string]interface{})
 	jsonData, err := json.MarshalIndent(cfg, "", "  ")
+	report, _ := engine.Plugins.CallPluginMethod("profiler", "report")
+	fmt.Println(report)
 	return string(jsonData), err
 }
 

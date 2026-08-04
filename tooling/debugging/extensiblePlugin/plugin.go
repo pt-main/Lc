@@ -15,9 +15,26 @@ const Name = "extensible call loop"
 type ExtensibleCLPlugin struct {
 	de     events.DefaultEvents
 	Eu     *lc.EngineUniversal
-	Events core.Events
+	Events core.EventsInterface
 	ETools core.EventsTools
 	WasE   core.EventType
+}
+
+func New(eu *lc.EngineUniversal) *ExtensibleCLPlugin {
+	uep, err := eu.GetUEP()
+	if err != nil {
+		panic("Can't add extensible plugin: " + err.Error())
+	}
+	e := uep.Event
+	return &ExtensibleCLPlugin{
+		de:     events.DefaultEvents{},
+		Eu:     eu,
+		Events: e,
+		ETools: core.EventsTools{
+			Events: e,
+		},
+		WasE: nil,
+	}
 }
 
 func (ep *ExtensibleCLPlugin) changeEvents(val bool) (string, error) {
@@ -63,6 +80,10 @@ func (ep *ExtensibleCLPlugin) Init(scope core.ScopeType, pm *plugin.PluginManage
 	if err != nil {
 		return err
 	}
+	_, err = ep.changeEvents(true)
+	if err != nil {
+		return err
+	}
 	ep.ETools = core.EventsTools{
 		Events: uep.Event,
 	}
@@ -70,3 +91,19 @@ func (ep *ExtensibleCLPlugin) Init(scope core.ScopeType, pm *plugin.PluginManage
 }
 
 func (ep *ExtensibleCLPlugin) Name() string { return Name }
+
+func (ep *ExtensibleCLPlugin) Close() error {
+	_, err := ep.changeEvents(false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ep *ExtensibleCLPlugin) Call(string, ...core.Option) (o any, e error) {
+	return
+}
+
+func (ep *ExtensibleCLPlugin) Run(input any) (o any, e error) {
+	return
+}

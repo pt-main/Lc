@@ -15,8 +15,14 @@
 > ```
 > **Lc** is a production-oriented toolkit for building things like language tools, compiler, interpreters or bytecode-driven processors in Go.
 
+Lc contains - 
+- Byte & String Engine with Universal Engine abstraction
+- Parser (byte & string) - simple parsers, peg parser, lexers, etc.
+- Plugin system (works with Universal Engine) 
+- Tooling (bytecode, ast, profilers, etc.)
+
 It is intentionally straightforward to adopt, while preserving industrial runtime properties:
-- explicit execution lifecycle (just use `EngineUniversal.End`),
+- explicit execution lifecycle (just use `EngineUniversal.End()`),
 - deterministic output assembly,
 - context-aware cancellation,
 - thread-safe core primitives,
@@ -26,29 +32,10 @@ Lc does not enforce one grammar style or one VM model.
 Instead, it gives you one runtime surface with two engine backends:
 - **String Engine** for text-first processing.
 - **Byte Engine** for binary instruction execution.
-
-# Engine model
-## String Engine
-Input string (code) and process that - edit, execute, generate code, etc.
-
-Default lifecycle:
-1. store input in scope;
-2. parse input to `[]ParsedNode`;
-3. dispatch handlers by `ParsedNode.Switch`;
-4. emit output through `UEP.Generator` (if need).
-
-## Byte Engine
-Input bytecode and process that. Very fast hotloop (~160m+ ops/s on `i7-4770HQ`).
-
-Default lifecycle:
-1. store input in scope;
-2. parse input to `[]ParsedBytes`;
-3. decode opcode from `ParsedBytes.Switch` bytes using configured endianness;
-4. dispatch opcode handler;
-5. advance instruction pointer automatically or manually.
+- **Universal Engine** - abstraction for work with string/byte engine with plugins, context (with cancelation), and simple building.
 
 # Quick start
-<details> <summary>StringEngine Example</summary>
+<details> <summary>- StringEngine Example</summary>
 
 ```go
 package main
@@ -152,7 +139,8 @@ func main() {
 		panic(err)
 	}
 
-	out, err := engine.GetUEP().Generator.GetBytesRes()
+	uep, _ := GetUEP()
+	out, err := engine.uep.Generator.GetBytesRes()
 	if err != nil {
 		panic(err)
 	}
@@ -161,7 +149,28 @@ func main() {
 ```
 </details>
 
+You can find more examples at `examles/`
 
+
+# Engine model
+## String Engine
+Input string (code) and process that - edit, execute, generate code, etc.
+
+Default lifecycle:
+1. store input in scope;
+2. parse input to `[]ParsedNode`;
+3. dispatch handlers by `ParsedNode.Switch`;
+4. emit output through `UEP.Generator` (if need).
+
+## Byte Engine
+Input bytecode and process that. Very fast hotloop (~160m+ ops/s on `i7-4770HQ`).
+
+Default lifecycle:
+1. store input in scope;
+2. parse input to `[]ParsedBytes`;
+3. convert `ParsedBytes` to `ByteCallAttr` - small structure for hotloop;
+4. dispatch opcode handler;
+5. advance instruction pointer automatically or manually.
 
 
 # Tools and features
@@ -183,8 +192,9 @@ Or:
 engine, _ := lc.NewEngineBuilder(...).
 	[...].
 	Build()
-engine.GetUEP().Generator.AddString(...)
-engine.GetUEP()...
+uep, _ := engine.GetUEP()
+uep.Generator.AddString(...)
+uep...
 ```
 
 ### `Events`
