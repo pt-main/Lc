@@ -34,7 +34,7 @@ Instead, it gives you one runtime surface with two engine backends:
 - **Byte Engine** for binary instruction execution.
 - **Universal Engine** - abstraction for work with string/byte engine with plugins, context (with cancelation), and simple building.
 
-## 📑 Table of Contents
+## Table of Contents
 - [Quick start](#quick-start)
 - [Engine model](#engine-model)
 - [Tools and features](#tools-and-features)
