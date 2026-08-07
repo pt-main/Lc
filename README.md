@@ -1,6 +1,6 @@
 <h1 align="center">Lc — Language Creator & Devkit</h1>
 <p align="center">
-  <img alt="banner-low" src="https://github.com/user-attachments/assets/cd798499-aaa3-4de7-b5ae-4dbe39503453" />
+  <img alt="banner-low-50p-8b" src="https://github.com/user-attachments/assets/8fa74598-5cee-403e-a9dc-417e86d22dcd" />
 </p>
 <p align="center">
   <a href="https://pkg.go.dev/github.com/pt-main/lc"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white"></a>
