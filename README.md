@@ -161,9 +161,9 @@ func main() {
 	}
 
 	code := []byte{
-		0x01,       // opcode=1
-		0x01,       // argsCount=1
-		0x03, 0x00, // arglen=3 (little endian, 2 bytes)
+		0x01,             // opcode=1
+		0x01,             // argsCount=1
+		0x03, 0x00,       // arglen=3 (little endian, 2 bytes)
 		0x61, 0x62, 0x63, // args="abc" (3 bytes)
 	}
 

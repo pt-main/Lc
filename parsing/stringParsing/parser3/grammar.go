@@ -1,7 +1,10 @@
 package parser3
 
 import (
+	"fmt"
+
 	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/tap/color"
 )
 
 type Expr interface {
@@ -22,7 +25,12 @@ type TokenExpr struct {
 func (t TokenExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	tok, err := p.Expect(t.TokenType)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s TokenExpr([?YW]%s[?RT]): %w",
+			color.Set("[?RD]grammar[?RT]"),
+			t.TokenType,
+			err,
+		)
 	}
 	return []stringParsing.ParsedNode{tok}, nil
 }
@@ -33,10 +41,16 @@ type SequenceExpr struct {
 
 func (s SequenceExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	var children []stringParsing.ParsedNode
-	for _, e := range s.Exprs {
+	for i, e := range s.Exprs {
 		nodes, err := e.Parse(p)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf(
+				"%s SequenceExpr element %s/%d: %w",
+				color.Set("[?RD]grammar[?RT]"),
+				color.Set(fmt.Sprintf("[?YW]%d[?RT]", i+1)),
+				len(s.Exprs),
+				err,
+			)
 		}
 		children = append(children, nodes...)
 	}
@@ -49,14 +63,21 @@ type ChoiceExpr struct {
 
 func (c ChoiceExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	savedPos := p.pos
-	for _, alt := range c.Alternatives {
+	for i, alt := range c.Alternatives {
 		nodes, err := alt.Parse(p)
 		if err == nil {
 			return nodes, nil
 		}
 		p.pos = savedPos
+		// Продолжаем пробовать альтернативы, не возвращаем ошибку сразу
+		_ = i // для возможной диагностики
 	}
-	return nil, p.Errorf("no alternative matched")
+	return nil, fmt.Errorf(
+		"%s ChoiceExpr: no alternative matched at position %s (%d alternatives tried)",
+		color.Set("[?RD]grammar[?RT]"),
+		color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+		len(c.Alternatives),
+	)
 }
 
 type RepeatExpr struct {
@@ -76,7 +97,13 @@ func (r RepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 		all = append(all, nodes...)
 	}
 	if len(all) < r.Min {
-		return nil, p.Errorf("repeat: expected at least %d, got %d", r.Min, len(all))
+		return nil, fmt.Errorf(
+			"%s RepeatExpr: expected at least %s repetition(s), got %s at position %s",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", r.Min)),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", len(all))),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+		)
 	}
 	return all, nil
 }
@@ -102,7 +129,12 @@ type NamedExpr struct {
 func (n NamedExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	rule, ok := p.grammar[n.RuleName]
 	if !ok {
-		return nil, p.Errorf("undefined rule: %s", n.RuleName)
+		return nil, fmt.Errorf(
+			"%s NamedExpr: undefined rule [?YW]'%s'[?RT] (grammar has %d rule(s))",
+			color.Set("[?RD]grammar[?RT]"),
+			n.RuleName,
+			len(p.grammar),
+		)
 	}
 	return rule.Expr.Parse(p)
 }
@@ -115,7 +147,12 @@ type NodeExpr struct {
 func (n NodeExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	children, err := n.Expr.Parse(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s NodeExpr([?YW]%s[?RT]): %w",
+			color.Set("[?RD]grammar[?RT]"),
+			n.NodeType,
+			err,
+		)
 	}
 	var raw string
 	for _, child := range children {
@@ -139,11 +176,20 @@ type ActionExpr struct {
 func (a ActionExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	children, err := a.Expr.Parse(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s ActionExpr: sub-expression failed: %w",
+			color.Set("[?RD]grammar[?RT]"),
+			err,
+		)
 	}
 	node, err := a.Action(children)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s ActionExpr: user action returned error on %d node(s): %w",
+			color.Set("[?RD]grammar[?RT]"),
+			len(children),
+			err,
+		)
 	}
 	return []stringParsing.ParsedNode{node}, nil
 }
@@ -157,7 +203,11 @@ func (n NotExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	_, err := n.Expr.Parse(p)
 	p.pos = savedPos
 	if err == nil {
-		return nil, p.Errorf("not: unexpected match")
+		return nil, fmt.Errorf(
+			"%s NotExpr: unexpected match at position %s (expression should not match here)",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+		)
 	}
 	return []stringParsing.ParsedNode{}, nil
 }
@@ -171,7 +221,12 @@ func (a AndExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error) {
 	_, err := a.Expr.Parse(p)
 	p.pos = savedPos
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s AndExpr: expression did not match at position %s: %w",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+			err,
+		)
 	}
 	return []stringParsing.ParsedNode{}, nil
 }
@@ -183,10 +238,22 @@ type PeekExpr struct {
 func (p PeekExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, error) {
 	tok, err := prs.Peek()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s PeekExpr([?YW]%s[?RT]): %w",
+			color.Set("[?RD]grammar[?RT]"),
+			p.TokenType,
+			err,
+		)
 	}
 	if tok.Switch != p.TokenType {
-		return nil, prs.Errorf("peek: expected %s, got %s", p.TokenType, tok.Switch)
+		return nil, fmt.Errorf(
+			"%s PeekExpr: expected [?YW]'%s'[?RT], got [?YW]'%s'[?RT] (raw: %q) at position %s",
+			color.Set("[?RD]grammar[?RT]"),
+			p.TokenType,
+			tok.Switch,
+			tok.Raw,
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", prs.pos)),
+		)
 	}
 	return []stringParsing.ParsedNode{}, nil
 }
@@ -208,7 +275,14 @@ func (s SeparatedRepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error
 			return []stringParsing.ParsedNode{}, nil
 		}
 		p.pos = firstPos
-		return nil, p.Errorf("separated repeat: expected at least %d elements", s.Min)
+		return nil, fmt.Errorf(
+			"%s SeparatedRepeatExpr: expected at least %s element(s), got none at position %s (separator: [?YW]'%s'[?RT]): %w",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", s.Min)),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+			s.Sep,
+			err,
+		)
 	}
 	all = append(all, firstNodes...)
 	count++
@@ -231,7 +305,14 @@ func (s SeparatedRepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, error
 		count++
 	}
 	if count < s.Min {
-		return nil, p.Errorf("separated repeat: expected at least %d elements, got %d", s.Min, count)
+		return nil, fmt.Errorf(
+			"%s SeparatedRepeatExpr: expected at least %s elements, got %s at position %s (separator: [?YW]'%s'[?RT])",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", s.Min)),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", count)),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
+			s.Sep,
+		)
 	}
 	return all, nil
 }
@@ -258,7 +339,11 @@ type PrattExpr struct {
 func (p *PrattExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, error) {
 	node, err := p.parseExpression(prs, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"%s PrattExpr: %w",
+			color.Set("[?RD]grammar[?RT]"),
+			err,
+		)
 	}
 	return []stringParsing.ParsedNode{node}, nil
 }
@@ -270,11 +355,21 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.Par
 		if _, ok := p.Prefixes[tok.Switch]; ok {
 			_, err := prs.Expect(tok.Switch)
 			if err != nil {
-				return stringParsing.ParsedNode{}, err
+				return stringParsing.ParsedNode{}, fmt.Errorf(
+					"%s PrattExpr prefix op [?YW]'%s'[?RT]: %w",
+					color.Set("[?RD]grammar[?RT]"),
+					tok.Switch,
+					err,
+				)
 			}
 			rightNode, err := p.parseExpression(prs, 100)
 			if err != nil {
-				return stringParsing.ParsedNode{}, err
+				return stringParsing.ParsedNode{}, fmt.Errorf(
+					"%s PrattExpr prefix op [?YW]'%s'[?RT] right operand: %w",
+					color.Set("[?RD]grammar[?RT]"),
+					tok.Switch,
+					err,
+				)
 			}
 			leftNode = stringParsing.ParsedNode{
 				Switch: "PrefixOp",
@@ -287,10 +382,19 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.Par
 		} else {
 			atomNodes, err := p.Atom.Parse(prs)
 			if err != nil {
-				return stringParsing.ParsedNode{}, err
+				return stringParsing.ParsedNode{}, fmt.Errorf(
+					"%s PrattExpr atom at position %s: %w",
+					color.Set("[?RD]grammar[?RT]"),
+					color.Set(fmt.Sprintf("[?YW]%d[?RT]", prs.pos)),
+					err,
+				)
 			}
 			if len(atomNodes) == 0 {
-				return stringParsing.ParsedNode{}, prs.Errorf("pratt: atom returned empty")
+				return stringParsing.ParsedNode{}, fmt.Errorf(
+					"%s PrattExpr: atom returned empty at position %s",
+					color.Set("[?RD]grammar[?RT]"),
+					color.Set(fmt.Sprintf("[?YW]%d[?RT]", prs.pos)),
+				)
 			}
 			if len(atomNodes) == 1 {
 				leftNode = atomNodes[0]
@@ -309,7 +413,11 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.Par
 			}
 		}
 	} else {
-		return stringParsing.ParsedNode{}, prs.Errorf("pratt: unexpected end of input")
+		return stringParsing.ParsedNode{}, fmt.Errorf(
+			"%s PrattExpr: unexpected end of input at position %s (need atom or prefix operator)",
+			color.Set("[?RD]grammar[?RT]"),
+			color.Set(fmt.Sprintf("[?YW]%d[?RT]", prs.pos)),
+		)
 	}
 	for {
 		nextTok, err := prs.Peek()
@@ -325,7 +433,13 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.Par
 		}
 		opTok, err := prs.Expect(nextTok.Switch)
 		if err != nil {
-			return stringParsing.ParsedNode{}, err
+			return stringParsing.ParsedNode{}, fmt.Errorf(
+				"%s PrattExpr infix op [?YW]'%s'[?RT] at position %s: %w",
+				color.Set("[?RD]grammar[?RT]"),
+				nextTok.Switch,
+				color.Set(fmt.Sprintf("[?YW]%d[?RT]", prs.pos)),
+				err,
+			)
 		}
 		nextMinPrec := infix.Precedence
 		if infix.Assoc == LeftAssoc {
@@ -333,7 +447,13 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec int) (stringParsing.Par
 		}
 		rightNode, err := p.parseExpression(prs, nextMinPrec)
 		if err != nil {
-			return stringParsing.ParsedNode{}, err
+			return stringParsing.ParsedNode{}, fmt.Errorf(
+				"%s PrattExpr infix op [?YW]'%s'[?RT] right operand (minPrec=%s): %w",
+				color.Set("[?RD]grammar[?RT]"),
+				nextTok.Switch,
+				color.Set(fmt.Sprintf("[?YW]%d[?RT]", nextMinPrec)),
+				err,
+			)
 		}
 		leftNode = stringParsing.ParsedNode{
 			Switch: "BinaryOp",
