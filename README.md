@@ -99,6 +99,11 @@ func main() {
 }
 ```
 
+```bash
+$ go run ./example/readme/byte
+abc
+```
+
 </details> <details> <summary>- ByteEngine Example</summary>
 
 ```go
@@ -176,6 +181,13 @@ func main() {
 	fmt.Printf("%v\n", out)
 }
 ```
+
+```bash
+$ go run ./example/readme/string
+Log [Aug  7 18:44:40]: service_start
+Log [Aug  7 18:44:40]: service_ready
+```
+
 </details>
 
 You can find more examples at `examles/`

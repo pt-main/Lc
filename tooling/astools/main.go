@@ -21,6 +21,19 @@ func FindChild(node *stringParsing.ParsedNode, switchName string) *stringParsing
 	return nil
 }
 
+func FindChildIndex(node *stringParsing.ParsedNode, switchName string) int {
+	if node == nil {
+		return -1
+	}
+	children := GetChildren(node)
+	for i, child := range children {
+		if child.Switch == switchName {
+			return i
+		}
+	}
+	return -1
+}
+
 func FindChildren(node *stringParsing.ParsedNode, switchName string) []stringParsing.ParsedNode {
 	var result []stringParsing.ParsedNode
 	for _, child := range GetChildren(node) {
