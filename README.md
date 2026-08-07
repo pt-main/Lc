@@ -99,7 +99,7 @@ func main() {
 }
 ```
 
-</details> <details> <summary>ByteEngine Example</summary>
+</details> <details> <summary>- ByteEngine Example</summary>
 
 ```go
 package main
