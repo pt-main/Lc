@@ -4,14 +4,14 @@ import (
 	"slices"
 )
 
-type CommandType[EI, N any] func(EI, *N) error
+type CommandType[EI, N any] func(EI, *N) ErrorInterface
 
 type CommandMeta[EI, N any] struct {
 	Handler CommandType[EI, N]
 	Doc     string
 }
 
-type EventType func(*Events, *EventInput) error
+type EventType func(*Events, *EventInput) ErrorInterface
 
 type Option struct {
 	Flags []string

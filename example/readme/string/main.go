@@ -24,7 +24,7 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandString("log", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
+	err = engine.NewCommandString("log", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
 		args, _ := node.Metadata["args"].(string)
 		return se.GetUep().Generator.AddString(fmt.Sprintf("Log [%v]: %v",
 			time.Now().Format(time.Stamp), args), "main")

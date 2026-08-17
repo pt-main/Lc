@@ -1,7 +1,5 @@
 package public
 
-import "errors"
-
 const (
 	StringParseEvent       = "INPUT string->PARSED []ParsedNode"
 	StringCallEvent        = "call(PARSED []ParsedNode)"
@@ -15,5 +13,3 @@ const (
 	CallEventsStartEvent = "->call(Events.CallEvents)"
 	CallEventsEndEvent   = "call(Events.CallEvents)->"
 )
-
-var ErrExit = errors.New("exit")

@@ -1,15 +1,13 @@
 package engine
 
 import (
-	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/public"
-	"github.com/pt-main/tap/color"
+	"github.com/pt-main/lc/public/errors"
 )
 
 const AutoshiftNewCommandFlag = "autoShift"
@@ -30,24 +28,23 @@ type ByteEngine struct {
 }
 
 // Process transforms a byte slice by parsing it and invoking the registered
-// bytecode handlers. The parsed result is stored in scope["parsed_[]ParsedBytes"].
+// bytecode handlers.
+//
+// Err errors.ByteEngineProcessError1 | errors.ByteEngineProcessError2.
+// (cause from 'CallEvents')
 func (e *ByteEngine) Process(input []byte) error {
 	e.UEP.Scope[public.ByteEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.ByteParseEvent, false)
 	if err1 != nil {
-		return fmt.Errorf(
-			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
-			color.Set(err1.Error()))
+		return core.Wrap(errors.ByteEngineProcessError1, err1, core.GetRealError(err1))
 	}
 	err2 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.ByteCallEvent, false)
 	if err2 != nil {
-		return fmt.Errorf(
-			color.Set("[?RD]Process error (2)[?RT]: \n%v"),
-			color.Set(err2.Error()))
+		return core.Wrap(errors.ByteEngineProcessError2, err1, core.GetRealError(err1))
 	}
 	return nil
 }
@@ -75,6 +72,8 @@ func (e *ByteEngine) NewCommandFull(
 }
 
 // For interface. o.Option.Flags[AutoshiftNewCommandFlag] = autoBytecodeIndexShift, o.Input string = name
+//
+// Err errors.CorePackageSystemError.
 func (e *ByteEngine) NewCommand(
 	cmd_switch int, handler byteCmdType,
 	o *core.SimpleInput) error {
@@ -82,7 +81,7 @@ func (e *ByteEngine) NewCommand(
 	defer e.mu.Unlock()
 	name, ok := o.Input.(string)
 	if !ok {
-		return fmt.Errorf("Invalid input: 'o.Input' must be string")
+		return core.Err(errors.CorePackageSystemError, "Invalid input: 'o.Input' must be string")
 	}
 	autoBytecodeIndexShift := o.Option.HasFlag(AutoshiftNewCommandFlag)
 	e.Commands[cmd_switch] = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]{
@@ -124,11 +123,11 @@ func (e *ByteEngine) GetBytecodeIdx() (*int, error) {
 	defer e.mu.RUnlock()
 	_idx, ok := e.UEP.Scope[public.ByteEngineScopeBytecodeIdx]
 	if !ok {
-		return nil, errors.New("Can't get bytecode index: invalid scope")
+		return nil, core.Err(errors.CorePackageSystemError, "Can't get bytecode index: invalid scope")
 	}
 	idx, ok := _idx.(*int)
 	if !ok {
-		return nil, errors.New("Can't get bytecode index: invalid interface in scope")
+		return nil, core.Err(errors.CorePackageSystemError, "Can't get bytecode index: invalid interface in scope")
 	}
 	return idx, nil
 }

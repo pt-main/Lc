@@ -2,11 +2,27 @@ package parser3
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/tap/color"
 )
+
+// tokenPos returns a human-readable position string for the token at idx.
+// If the lexer injected __start/__end metadata, it includes that.
+func tokenPos(tokens []stringParsing.ParsedNode, idx int) string {
+	if idx < 0 || idx >= len(tokens) {
+		return "EOF"
+	}
+	tok := tokens[idx]
+	if start, ok := tok.Metadata["__start"].(int); ok {
+		if end, ok2 := tok.Metadata["__end"].(int); ok2 {
+			return fmt.Sprintf("idx=%d start=%d-%d", idx, start, end)
+		}
+		return fmt.Sprintf("idx=%d start=%d", idx, start)
+	}
+	return fmt.Sprintf("idx=%d", idx)
+}
 
 type Parser struct {
 	lexer     *stringParsing.Lexer
@@ -19,7 +35,7 @@ type Parser struct {
 }
 
 func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ignoreTypes []string) *Parser {
-	ignore := make(map[string]bool)
+	ignore := make(map[string]bool, len(ignoreTypes))
 	for _, t := range ignoreTypes {
 		ignore[t] = true
 	}
@@ -34,62 +50,63 @@ func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ig
 func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
 	tokens, err := p.lexer.Parse(code, opts...)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s lexer error: %w",
-			color.Set("[?RD]parser3[?RT]"),
-			err,
-		)
+		return nil, &ParseError{
+			Code:  "Lexer",
+			Cause: err,
+		}
 	}
 	p.tokens = tokens
 	p.pos = 0
 
 	startRule, ok := p.grammar[p.startRule]
 	if !ok {
-		return nil, fmt.Errorf(
-			"%s start rule [?YW]'%s'[?RT] not found in grammar (available: %d rules)",
-			color.Set("[?RD]parser3[?RT]"),
-			p.startRule,
-			len(p.grammar),
-		)
+		keys := make([]string, 0, len(p.grammar))
+		for k := range p.grammar {
+			keys = append(keys, k)
+		}
+		return nil, &GrammarError{
+			Code: "StartRule",
+			Msg:  fmt.Sprintf("start rule '%s' not found in grammar (available: %v)", p.startRule, keys),
+		}
 	}
 
 	children, err := startRule.Expr.Parse(p)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s parse failed at token %d/%d: %w",
-			color.Set("[?RD]parser3[?RT]"),
-			p.pos,
-			len(p.tokens),
-			err,
-		)
+		return nil, &ParseError{
+			Code:     "Parse",
+			TokenIdx: p.pos,
+			TokenPos: tokenPos(p.tokens, p.pos),
+			Cause:    err,
+		}
 	}
 
 	p.SkipIgnored()
 	if p.pos < len(p.tokens) {
 		remaining := p.tokens[p.pos:]
-		types := make([]string, 0, len(remaining))
-		for _, t := range remaining {
-			types = append(types, t.Switch)
+		types := make([]string, len(remaining))
+		for i, t := range remaining {
+			types[i] = t.Switch
 		}
-		return nil, fmt.Errorf(
-			"%s unexpected token at position %s: got %s, parsing complete — %d token(s) unconsumed (%v)",
-			color.Set("[?RD]parser3[?RT]"),
-			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
-			color.Set(fmt.Sprintf("[?YW]%s[?RT]", p.tokens[p.pos].Switch)),
-			len(remaining),
-			types,
-		)
+		return nil, &ParseError{
+			Code:     "UnexpectedToken",
+			TokenIdx: p.pos,
+			TokenPos: tokenPos(p.tokens, p.pos),
+			Got:      p.tokens[p.pos].Switch,
+			Raw:      p.tokens[p.pos].Raw,
+			Msg:      fmt.Sprintf("parsing complete — %d token(s) unconsumed (%v)", len(remaining), types),
+		}
 	}
 
+	var b strings.Builder
+	for _, child := range children {
+		b.WriteString(child.Raw)
+	}
 	root := stringParsing.ParsedNode{
 		Switch: p.startRule,
-		Raw:    "",
+		Raw:    b.String(),
 		Metadata: map[string]interface{}{
 			"children": children,
 		},
-	}
-	for _, child := range children {
-		root.Raw += child.Raw
 	}
 	return []stringParsing.ParsedNode{root}, nil
 }
@@ -103,11 +120,12 @@ func (p *Parser) SkipIgnored() {
 func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
 	p.SkipIgnored()
 	if p.pos >= len(p.tokens) {
-		return stringParsing.ParsedNode{}, fmt.Errorf(
-			"%s unexpected EOF at position %s (expected more tokens)",
-			color.Set("[?RD]parser3[?RT]"),
-			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
-		)
+		return stringParsing.ParsedNode{}, &ParseError{
+			Code:     "NextToken",
+			TokenIdx: p.pos,
+			TokenPos: tokenPos(p.tokens, p.pos),
+			Msg:      "unexpected EOF",
+		}
 	}
 	tok := p.tokens[p.pos]
 	p.pos++
@@ -117,22 +135,23 @@ func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
 func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error) {
 	tok, err := p.NextToken()
 	if err != nil {
-		return stringParsing.ParsedNode{}, fmt.Errorf(
-			"%s expected token [?YW]'%s'[?RT], but %w",
-			color.Set("[?RD]parser3[?RT]"),
-			tokenType,
-			err,
-		)
+		return stringParsing.ParsedNode{}, &ParseError{
+			Code:     "Expect",
+			Expected: tokenType,
+			TokenIdx: p.pos,
+			TokenPos: tokenPos(p.tokens, p.pos),
+			Cause:    err,
+		}
 	}
 	if tok.Switch != tokenType {
-		return stringParsing.ParsedNode{}, fmt.Errorf(
-			"%s expected token [?YW]'%s'[?RT], got [?YW]'%s'[?RT] (raw: %q) at position %s",
-			color.Set("[?RD]parser3[?RT]"),
-			tokenType,
-			tok.Switch,
-			tok.Raw,
-			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos-1)),
-		)
+		return stringParsing.ParsedNode{}, &ParseError{
+			Code:     "Expect",
+			Expected: tokenType,
+			Got:      tok.Switch,
+			Raw:      tok.Raw,
+			TokenIdx: p.pos - 1,
+			TokenPos: tokenPos(p.tokens, p.pos-1),
+		}
 	}
 	return tok, nil
 }
@@ -140,21 +159,14 @@ func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error) {
 func (p *Parser) Peek() (stringParsing.ParsedNode, error) {
 	p.SkipIgnored()
 	if p.pos >= len(p.tokens) {
-		return stringParsing.ParsedNode{}, fmt.Errorf(
-			"%s EOF at position %s (no more tokens to peek)",
-			color.Set("[?RD]parser3[?RT]"),
-			color.Set(fmt.Sprintf("[?YW]%d[?RT]", p.pos)),
-		)
+		return stringParsing.ParsedNode{}, &ParseError{
+			Code:     "Peek",
+			TokenIdx: p.pos,
+			TokenPos: tokenPos(p.tokens, p.pos),
+			Msg:      "EOF",
+		}
 	}
 	return p.tokens[p.pos], nil
-}
-
-func (p *Parser) Errorf(format string, args ...interface{}) error {
-	return fmt.Errorf(
-		"%s %s",
-		color.Set("[?RD]parser3[?RT]"),
-		fmt.Sprintf(format, args...),
-	)
 }
 
 func (p *Parser) String() string {

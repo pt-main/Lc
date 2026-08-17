@@ -39,7 +39,7 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandByte(1, func(be enginepkg.ByteEngineInterface, node *byteParsing.ParsedBytes) error {
+	err = engine.NewCommandByte(1, func(be enginepkg.ByteEngineInterface, node *byteParsing.ParsedBytes) core.ErrorInterface {
 		for _, arg := range node.Args {
 			if err := be.GetUep().Generator.AddString(string(arg), "main"); err != nil {
 				return err

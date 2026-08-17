@@ -73,7 +73,7 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandString("log", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
+	err = engine.NewCommandString("log", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
 		args, _ := node.Metadata["args"].(string)
 		return se.GetUep().Generator.AddString(fmt.Sprintf("Log [%v]: %v",
 			time.Now().Format(time.Stamp), args), "main")
@@ -148,7 +148,7 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandByte(1, func(be enginepkg.ByteEngineInterface, node *byteParsing.ParsedBytes) error {
+	err = engine.NewCommandByte(1, func(be enginepkg.ByteEngineInterface, node *byteParsing.ParsedBytes) core.ErrorInterface {
 		for _, arg := range node.Args {
 			if err := be.GetUep().Generator.AddString(string(arg), "main"); err != nil {
 				return err
@@ -161,10 +161,10 @@ func main() {
 	}
 
 	code := []byte{
-		0x01,             // opcode=1
-		0x01,             // argsCount=1
-		0x03, 0x00,       // arglen=3 (little endian, 2 bytes)
-		0x61, 0x62, 0x63, // args="abc" (3 bytes)
+		0x01,       		// opcode=1
+		0x01,       		// argsCount=1
+		0x03, 0x00, 		// arglen=3 (little endian, 2 bytes)
+		0x61, 0x62, 0x63, 	// args="abc" (3 bytes)
 	}
 
 	err = engine.ProcessBytes(code)
@@ -204,7 +204,7 @@ Default lifecycle:
 4. emit output through `UEP.Generator` (if need).
 
 ## Byte Engine
-Input bytecode and process that. Very fast hotloop (~160m+ ops/s on `i7-4770HQ`).
+Input bytecode and process that. Very fast hotloop (~120m+ ops/s on `i7-4770HQ`).
 
 Default lifecycle:
 1. store input in scope;
@@ -418,24 +418,6 @@ if errors.Is(err, context.DeadlineExceeded) {
 	fmt.Println("Execution timed out")
 }
 ```
-
-
-
-
-
-# Execution semantics
-- Event handlers run in registration order.
-- Generator result follows declared pipeline order.
-- `Process[*]WithCtx` respects cancellation/deadline.
-- Default String dispatch skips unknown commands.
-- Default Byte dispatch expects valid opcode/autoshift registration for processed commands.
-
-# Observability
-Lc provides core mechanisms for operational visibility:
-- thread-safe `core.Logger`,
-- event lifecycle hooks (call start/call end),
-- centralized runtime scope for contextual metadata,
-- structured error wrapping in default event flows.
 
 ## License
 Apache 2.0 - see `LICENSE`.

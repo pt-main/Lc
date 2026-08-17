@@ -2,9 +2,9 @@ package core
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/public/errors"
 )
 
 // UniversalEngineParams is a container shared by both StringEngine and ByteEngine.
@@ -41,28 +41,30 @@ func (p *UniversalEngineParams) GetContext() context.Context {
 //
 // Parameters: generator, events, scope, logger. All must be non‑nil.
 // Returns a filled struct or an error if event registration fails.
+//
+// Err errors.CorePackageSystemError
 func NewUniversalEngineParams(
 	generator *Generator,
 	events *Events,
 	scope ScopeType,
 	logger *Logger,
 	context context.Context,
-) (*UniversalEngineParams, error) {
+) (*UniversalEngineParams, ErrorInterface) {
 	if generator == nil || events == nil || logger == nil {
-		return nil, fmt.Errorf("Invalid input: nil refs")
+		return nil, Err(errors.CorePackageSystemError, "Invalid input: nil refs")
 	}
-	logS := func(e *Events, _ *EventInput) error {
+	logS := func(e *Events, _ *EventInput) ErrorInterface {
 		name, err := ScopeGet[string](e.scope, public.EventsScopeCallName)
 		if err != nil {
-			return fmt.Errorf("LogEvent Start: %v", err)
+			return Wrap(errors.CorePackageSystemError, err, "LogEvent Start failed")
 		}
 		logger.PrintLog("event", "Start call '"+name+"' event")
 		return nil
 	}
-	logE := func(e *Events, _ *EventInput) error {
+	logE := func(e *Events, _ *EventInput) ErrorInterface {
 		name, err := ScopeGet[string](e.scope, public.EventsScopeCallName)
 		if err != nil {
-			return fmt.Errorf("LogEvent End: %v", err)
+			return Wrap(errors.CorePackageSystemError, err, "LogEvent End failed")
 		}
 		text := "End call '" + name + "' event"
 		logger.PrintLog("event", text)

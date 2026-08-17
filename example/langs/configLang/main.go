@@ -10,6 +10,7 @@ import (
 
 	"github.com/pt-main/lc"
 	enginepkg "github.com/pt-main/lc/engine"
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/debugging/extensiblePlugin"
@@ -27,7 +28,11 @@ func Process(config string) (string, error) {
 			Pattern: regexp.MustCompile(`^(?P<key>[^=]+?)\s*=\s*(?P<value>.*)$`),
 		},
 		{
-			Type:    "skip",
+			Type:    "comment",
+			Pattern: regexp.MustCompile(`^\s*#[^\n]*$`),
+		},
+		{
+			Type:    "unknown_token",
 			Pattern: regexp.MustCompile(`.*`),
 		},
 	}
@@ -57,19 +62,20 @@ func Process(config string) (string, error) {
 		return "", err
 	}
 	uep, _ := engine.GetUEP()
+	uep.Scope[public.StringEngineScopeCanBeUnknown] = false
 	uep.Scope["config"] = make(map[string]map[string]interface{})
 	uep.Scope["current_section"] = "global"
-	engine.NewCommandString("skip", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("comment", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
 		return nil
 	}, "")
-	engine.NewCommandString("section", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("section", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
 		name := node.Metadata["name"].(string)
 		if strings.HasPrefix(name, "!") {
 			switch name[1:] {
 			case "exit":
-				return public.ErrExit
+				return core.ErrExit
 			default:
-				return fmt.Errorf("Invalid command.")
+				return core.Err("PROCESS", "Invalid command")
 			}
 		}
 		se.GetUep().Scope["current_section"] = name
@@ -79,7 +85,7 @@ func Process(config string) (string, error) {
 		}
 		return nil
 	}, "Set current section")
-	engine.NewCommandString("keyval", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) error {
+	engine.NewCommandString("keyval", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
 		key := strings.TrimSpace(node.Metadata["key"].(string))
 		rawVal := strings.TrimSpace(node.Metadata["value"].(string))
 		val := parseValue(rawVal)
@@ -96,8 +102,8 @@ func Process(config string) (string, error) {
 	}
 	cfg := uep.Scope["config"].(map[string]map[string]interface{})
 	jsonData, err := json.MarshalIndent(cfg, "", "  ")
-	report, _ := engine.Plugins.CallPluginMethod("profiler", "report")
-	fmt.Println(report)
+	report, err := engine.Plugins.CallPluginMethod("profiler", "report")
+	fmt.Println(report, err)
 	return string(jsonData), err
 }
 
@@ -153,8 +159,6 @@ timeout = 30.5
 url = postgres://user:pass@localhost/db
 pool_size = 10
 features = [caching, logging, metrics]
-[!exit]
-will not be in the output
 `))
 }
 

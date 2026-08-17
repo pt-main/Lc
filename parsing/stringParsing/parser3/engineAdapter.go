@@ -2,10 +2,10 @@ package parser3
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/tap/color"
 )
 
 type Adapter struct {
@@ -15,33 +15,46 @@ type Adapter struct {
 func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
 	nodes, err := a.Parser.Parse(code, o...)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s adapter parse failed: %w",
-			color.Set("[?RD]parser3/Adapter[?RT]"),
-			err,
-		)
+		return nil, &AdapterError{
+			Msg:   "adapter parse failed",
+			Cause: err,
+		}
 	}
 	if len(nodes) != 1 {
-		return nil, fmt.Errorf(
-			"%s expected exactly 1 root node, got %s",
-			color.Set("[?RD]parser3/Adapter[?RT]"),
-			color.Set(fmt.Sprintf("[?YW]%d[?RT]", len(nodes))),
-		)
+		return nil, &AdapterError{
+			Msg: fmt.Sprintf("expected exactly 1 root node, got %d", len(nodes)),
+		}
 	}
+
 	children, ok := nodes[0].Metadata["children"].([]stringParsing.ParsedNode)
 	if !ok {
-		return nil, fmt.Errorf(
-			"%s root node [?YW]'%s'[?RT] has no 'children' metadata (available keys: %v)",
-			color.Set("[?RD]parser3/Adapter[?RT]"),
-			nodes[0].Switch,
-			func() []string {
-				keys := make([]string, 0, len(nodes[0].Metadata))
-				for k := range nodes[0].Metadata {
-					keys = append(keys, k)
+		raw, has := nodes[0].Metadata["children"]
+		if !has {
+			keys := make([]string, 0, len(nodes[0].Metadata))
+			for k := range nodes[0].Metadata {
+				keys = append(keys, k)
+			}
+			return nil, &AdapterError{
+				Msg: fmt.Sprintf("root node '%s' has no 'children' metadata (available keys: %v)", nodes[0].Switch, keys),
+			}
+		}
+		rv := reflect.ValueOf(raw)
+		if rv.Kind() != reflect.Slice {
+			return nil, &AdapterError{
+				Msg: fmt.Sprintf("root node '%s' has 'children' metadata of type %T (expected []ParsedNode)", nodes[0].Switch, raw),
+			}
+		}
+		children = make([]stringParsing.ParsedNode, rv.Len())
+		for i := 0; i < rv.Len(); i++ {
+			elem := rv.Index(i).Interface()
+			pn, ok := elem.(stringParsing.ParsedNode)
+			if !ok {
+				return nil, &AdapterError{
+					Msg: fmt.Sprintf("root node '%s' has 'children' metadata with wrong element type %T at index %d (expected ParsedNode)", nodes[0].Switch, elem, i),
 				}
-				return keys
-			}(),
-		)
+			}
+			children[i] = pn
+		}
 	}
 	return children, nil
 }

@@ -2,23 +2,23 @@ package core
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/public/errors"
 )
 
 type EventsInterface interface {
-	GetEvents(name string) ([]EventType, error)
-	GetCoreEventIdx(name string) (int, error)
+	GetEvents(name string) ([]EventType, ErrorInterface)
+	GetCoreEventIdx(name string) (int, ErrorInterface)
 	SetEvents(name string, events []EventType, idx int)
 	NewEvent(name string, event EventType)
-	NewEventBefore(name string, event EventType) error
-	CallEvents(input *EventInput, name string, canWorkWithoutHandler bool) error
+	NewEventBefore(name string, event EventType) ErrorInterface
+	CallEvents(input *EventInput, name string, canWorkWithoutHandler bool) ErrorInterface
 	Scope() ScopeType
 	CoreEvents() map[string]int
 	ReplaceEvent(name string)
+	SetProperty(name string, value interface{}) ErrorInterface
 }
 
 // Events manages an ordered collection of event handlers. Each event has a
@@ -29,16 +29,18 @@ type Events struct {
 	scope      ScopeType
 	Context    context.Context
 	mu         sync.RWMutex
+	debug      bool
 	coreEvents map[string]int
 	events     map[string][]EventType
 }
 
-func (e *Events) GetEvents(name string) ([]EventType, error) {
+// Err errors.EventsEventIsNotFound, Msg=name
+func (e *Events) GetEvents(name string) ([]EventType, ErrorInterface) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	val, ok := e.events[name]
 	if !ok {
-		return nil, errors.New("Can't find event '" + name + "'")
+		return nil, Err(errors.EventsEventIsNotFound, name)
 	}
 	return val, nil
 }
@@ -52,10 +54,14 @@ func (e *Events) SetEvents(name string, events []EventType, coreEvent int) {
 	e.events[name] = events
 	e.coreEvents[name] = coreEvent
 }
-func (e *Events) GetCoreEventIdx(name string) (int, error) {
+
+// Err errors.EventsEventIsNotFound, Msg=name
+func (e *Events) GetCoreEventIdx(name string) (int, ErrorInterface) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	ce, ok := e.coreEvents[name]
 	if !ok {
-		return -1, fmt.Errorf("Can't find event: %v", name)
+		return -1, Err(errors.EventsEventIsNotFound, name)
 	}
 	return ce, nil
 }
@@ -77,10 +83,13 @@ func (e *Events) NewEvent(name string, event EventType) {
 	e.events[name] = append(val, event)
 }
 
-func (e *Events) NewEventBefore(name string, event EventType) error {
+// Err errors.EventsSystemError.
+// With meta: EMK(0, "string") - event name, EMK(1, "error") (from 'GetEvents')
+func (e *Events) NewEventBefore(name string, event EventType) ErrorInterface {
 	list, err := e.GetEvents(name)
 	if err != nil {
-		return fmt.Errorf("Can't put new event before '%s': %v", name, err)
+		return Wrap(errors.EventsSystemError, err, "Can't put new event before '%s'", name).
+			WithMeta(EMK(0, "string"), name)
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -89,37 +98,44 @@ func (e *Events) NewEventBefore(name string, event EventType) error {
 	return nil
 }
 
-func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandler bool) error {
+// Err errors.EventsEventError.
+// Cause: errors.EventsEventIsNotFound (from 'GetEvents') or event error, msg = event ErrorInterface text
+func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandler bool) ErrorInterface {
 	res, err := e.GetEvents(name)
 	if err != nil {
 		if canWorkWithoutHandler {
 			return nil
 		} else {
-			return errors.New("Event '" + name + "' is not found.")
+			return Wrap(errors.EventsEventError, err, "Can't found event")
 		}
 	}
 	for _, event := range res {
 		err := event(e, input)
 		if err != nil {
-			return errors.New("Event error: " + err.Error())
+			return Wrap(errors.EventsEventError, err, "Event handler failed")
 		}
 	}
 	return nil
 }
 
+// Err errors.EventsEventError (from 'callEvents')
 func (e *Events) CallEvents(input *EventInput, name string,
-	canWorkWithoutHandler bool) error {
+	canWorkWithoutHandler bool) ErrorInterface {
 	e.scope[public.EventsScopeCallName] = name
-	var err error
-	err = e.callEvents(nil, public.CallEventsStartEvent, true)
-	if err != nil {
-		return err
+	var err ErrorInterface
+	if e.debug {
+		err = e.callEvents(nil, public.CallEventsStartEvent, true)
+		if err != nil {
+			return err
+		}
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
 	e.scope[public.EventsScopeCallError] = err
-	err1 := e.callEvents(nil, public.CallEventsEndEvent, true)
-	if err1 != nil {
-		return err1
+	if e.debug {
+		err1 := e.callEvents(nil, public.CallEventsEndEvent, true)
+		if err1 != nil {
+			return err1
+		}
 	}
 	if err != nil {
 		return err
@@ -131,6 +147,21 @@ func (e *Events) CallEvents(input *EventInput, name string,
 func (e *Events) ReplaceEvent(name string) {
 	delete(e.events, name)
 	delete(e.coreEvents, name)
+}
+
+// Err errors.EventsSystemError
+func (e *Events) SetProperty(name string, value interface{}) ErrorInterface {
+	switch name {
+	case "debug":
+		var ok bool
+		e.debug, ok = value.(bool)
+		if !ok {
+			return Err(errors.EventsSystemError, "Invalid property value (must be bool): %v", value)
+		}
+		return nil
+	default:
+		return Err(errors.EventsSystemError, "Invalid property name: %v", name)
+	}
 }
 
 func (e *Events) Scope() ScopeType {
@@ -153,7 +184,7 @@ type EventsTools struct {
 	Events EventsInterface
 }
 
-func (et *EventsTools) ChangeCoreEvent(name string, event EventType) error {
+func (et *EventsTools) ChangeCoreEvent(name string, event EventType) ErrorInterface {
 	e := et.Events
 	idx, err := e.GetCoreEventIdx(name)
 	if err != nil {
@@ -163,9 +194,8 @@ func (et *EventsTools) ChangeCoreEvent(name string, event EventType) error {
 	if err != nil {
 		return err
 	}
-	if idx <= 0 {
-		e.SetEvents(name, []EventType{event}, 0)
-		return nil
+	if idx < 0 {
+		return Err(errors.EventsSystemError, "Can't change core event: %v", name)
 	}
 	pre := events[:idx]
 	post := events[idx+1:]
@@ -174,7 +204,7 @@ func (et *EventsTools) ChangeCoreEvent(name string, event EventType) error {
 	return nil
 }
 
-func (et *EventsTools) GetCoreEvent(name string) (EventType, error) {
+func (et *EventsTools) GetCoreEvent(name string) (EventType, ErrorInterface) {
 	var etn EventType
 	e := et.Events
 	idx, err := e.GetCoreEventIdx(name)
@@ -186,7 +216,7 @@ func (et *EventsTools) GetCoreEvent(name string) (EventType, error) {
 		return etn, err
 	}
 	if idx < 0 || idx > (len(ev)-1) {
-		return etn, fmt.Errorf("Invalid core event idx")
+		return etn, Err(errors.EventsSystemError, "Invalid core event idx")
 	}
 	return ev[idx], nil
 }

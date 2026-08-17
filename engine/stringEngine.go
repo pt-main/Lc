@@ -1,14 +1,13 @@
 package engine
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
-	"github.com/pt-main/tap/color"
+	"github.com/pt-main/lc/public/errors"
 )
 
 type stringParser = parsing.ParserInterface[string, stringParsing.ParsedNode]
@@ -28,23 +27,22 @@ type StringEngine struct {
 // It stores the input in scope["input_string"], then calls the
 // StringParseEvent (to parse into []ParsedNode) and StringCallEvent
 // (to dispatch commands). Any error stops execution.
+//
+// Err errors.StringEngineProcessError1 | errors.StringEngineProcessError2.
+// (cause from 'CallEvents')
 func (e *StringEngine) Process(input string) error {
 	e.UEP.Scope[public.StringEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.StringParseEvent, false)
 	if err1 != nil {
-		return fmt.Errorf(
-			color.Set("[?RD]Process error (1)[?RT]: \n%v"),
-			color.Set(err1.Error()))
+		return core.Wrap(errors.StringEngineProcessError1, err1, core.GetRealError(err1))
 	}
 	err2 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.StringCallEvent, false)
 	if err2 != nil {
-		return fmt.Errorf(
-			color.Set("[?RD]Process error (2)[?RT]: \n%v"),
-			color.Set(err2.Error()))
+		return core.Wrap(errors.StringEngineProcessError2, err2, core.GetRealError(err2))
 	}
 	return nil
 }
@@ -71,7 +69,7 @@ func (e *StringEngine) NewCommand(cmd_switch string,
 	defer e.mu.Unlock()
 	doc, ok := o.Input.(string)
 	if !ok {
-		return fmt.Errorf("Invalid input: 'o.Input' must be string")
+		return core.Err(errors.CorePackageSystemError, "Invalid input: 'o.Input' must be string")
 	}
 	e.Commands[cmd_switch] = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]{
 		Handler: handler,

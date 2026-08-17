@@ -1,6 +1,7 @@
 package stringParsing
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dlclark/regexp2"
@@ -11,7 +12,7 @@ import (
 func TestLexer_Parse(t *testing.T) {
 	rules := []LexerRule{
 		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
-		{Type: "BLOCK", Pattern: regexp2.MustCompile(`(?s)\s*begin{(.*)?}end`, 0)},
+		{Type: "BLOCK", Pattern: regexp2.MustCompile(`(?s)\s*begin\{(.*)?\}end`, 0)},
 		{Type: "COMMENT", Pattern: regexp2.MustCompile(`(?s)/\*\s*@(.+?)@\*/`, 0)},
 		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.*`, 0)},
 		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]+`, 0)},
@@ -30,7 +31,7 @@ func TestLexer_Parse(t *testing.T) {
 		Brackets:          [][2]string{{"begin{", "}end"}},
 	})
 	nodes, err := lexer.Parse(`//@ test
-1.0 test_param1 = "\" string \""
+1.0 test_param1 = "..." string "   "
 begin{
 	test block
 }end`,
@@ -40,13 +41,14 @@ begin{
 	}
 	types := []string{
 		"COMMENT", "WHITESPACE", "NUMBER", "WHITESPACE", "IDENT",
-		"WHITESPACE", "EQ", "WHITESPACE", "STRING", "WHITESPACE",
-		"BLOCK",
+		"WHITESPACE", "EQ", "WHITESPACE", "STRING", "WHITESPACE", "IDENT",
+		"WHITESPACE", "STRING", "WHITESPACE", "BLOCK",
 	}
 	if len(nodes) < len(types) {
 		t.Fatalf("Too few tokens: got %d, want at least %d", len(nodes), len(types))
 	}
 	for idx, expected := range types {
+		fmt.Printf("%v '%v' %v : %v\n", idx, nodes[idx].Raw, nodes[idx].Switch, expected)
 		if nodes[idx].Switch != expected {
 			t.Fatalf("Mismatch at index %d: expected %q, got %q", idx, expected, nodes[idx].Switch)
 		}

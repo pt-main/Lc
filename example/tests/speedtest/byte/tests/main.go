@@ -31,7 +31,7 @@ func test1(ITERATIONS int) int {
 		Args:   [][]byte{},
 	}
 	var timeE time.Time
-	handler := func(be engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) error {
+	handler := func(be engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) core.ErrorInterface {
 		allIters += 1
 		if allIters == (ITERATIONS - 1) {
 			timeE = time.Now()
@@ -97,7 +97,7 @@ func test2(ITERATIONS int) int {
 		Args:   [][]byte{},
 	}
 	var timeE time.Time
-	handler := func(bei engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) error {
+	handler := func(bei engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) core.ErrorInterface {
 		allIters += 1
 		if allIters >= (ITERATIONS - 1) {
 			timeE = time.Now()

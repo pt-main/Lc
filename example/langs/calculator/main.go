@@ -200,7 +200,7 @@ func main() {
 	parser := parser3.NewParser(lexer, grammar, "expr", []string{"WHITESPACE"})
 	parsed, err := parser.Parse(expr)
 	if err != nil {
-		fmt.Println("Parse error:", err)
+		fmt.Println("Parse error:\n", parser3.FormatErrorPretty(err))
 		os.Exit(1)
 	}
 	if len(parsed) == 0 {

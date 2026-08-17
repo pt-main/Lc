@@ -2,128 +2,82 @@ package events
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
-	"github.com/pt-main/tap/color"
+	"github.com/pt-main/lc/public/errors"
 )
 
 type StringCLDType CallLoopData[stringParsing.ParsedNode, engine.StringEngineInterface]
 
-func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventInput) error {
+// Err errors.DefaultEventsSystemError. Cause from core.ScopeGet, e.Parser.Parse.
+func (de *DefaultEvents) StringParsingEvent(events *core.Events, i *core.EventInput) core.ErrorInterface {
 	e, ok := i.Input.(*engine.StringEngine)
 	if !ok {
-		return fmt.Errorf("Can't get byte engine: invalid input")
+		return core.Err(errors.DefaultEventsSystemError, "Invalid input: expected *engine.StringEngine").
+			WithMeta(core.EMK(0, "string"), "*engine.StringEngine")
 	}
-	var okExit bool = false
-	e.UEP.Logger.PrintLog(public.LogEvents, "start parsing event")
-	defer func() {
-		e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("end parsing event: [ok: %v]", okExit))
-	}()
 	input, ok := e.UEP.Scope[public.StringEngineScopeInput].(string)
 	if !ok {
-		return errors.New("No input in scope or invalid input")
+		return core.Err(errors.DefaultEventsSystemError, "Input not found or invalid type in scope")
 	}
-	e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("start parsing: [parser: %s]", e.Parser))
 	nodes, err := e.Parser.Parse(input, &parsing.ParseOption{UEP: e.UEP})
 	if err != nil {
-		return err
+		return core.Wrap(errors.DefaultEventsSystemError, err, "Parser failed")
 	}
-	e.UEP.Logger.PrintLog(public.LogEvents, "end parsing")
-	okExit = true
 	e.UEP.Scope[public.StringEngineScopeParsed] = nodes
 	return nil
 }
 
-func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput) (err error) {
-	var status string
+// Err errors.DefaultEventsSystemError. Err errors.DefaultEventsPanicError.
+// Err errors.DefaultEventsCallErrorContexted. With meta: EMK(0, "string") - raw line.
+func (de *DefaultEvents) StringCallEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	events.Scope()[public.EventsScopeDERawLine] = "[NIL]"
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("[?BRD]Panic recovered[?RT]: \n%v", r)
+			err = core.Err(errors.DefaultEventsPanicError, "Panic recovered: %v", r)
 		}
 		if err != nil {
-			raw := "[NIL]"
-			if res, err1 := core.ScopeGet[string](events.Scope(), public.EventsScopeDERawLine); err1 == nil {
-				raw = res
+			if err.Error() == core.ErrExit.Error() {
+				return
 			}
-			text := fmt.Sprintf("[?RD]Error[?RT]: [?YW]Status [?RT][%v]:\n"+
-				"[?RD]Error at:[?RT]\n[?BBK]>    |[?RT]%v\n[?RD]Error:[?RT]\n[?RD]->[?RT]    %v",
-				status, strings.ReplaceAll(raw, "\n", "\n[?BBK]>    |[?RT]"),
-				strings.ReplaceAll(err.Error(), "\n", "\n[?RD]->[?RT]    "))
-			err = errors.New(color.Set(text))
+			raw, _ := core.ScopeGet[string](events.Scope(), public.EventsScopeDERawLine)
+			if raw == "" {
+				raw = "[NIL]"
+			}
+			err = core.Wrap(errors.DefaultEventsCallErrorContexted, err,
+				"Error at line: %q", raw).
+				WithMeta(core.EMK(0, "string"), raw)
 		}
 	}()
-	status = "SYSTEM: initializing event..."
 	e, ok := i.Input.(*engine.StringEngine)
 	if !ok {
-		err = fmt.Errorf("Can't get byte engine: invalid input")
-		return
+		return core.Err(errors.DefaultEventsSystemError, "Invalid input: expected *engine.StringEngine").
+			WithMeta(core.EMK(0, "string"), "*engine.StringEngine")
 	}
 	parsed, err := core.ScopeGet[[]stringParsing.ParsedNode](e.UEP.Scope, public.StringEngineScopeParsed)
 	if err != nil {
-		err = errors.New("Can't start call event. Invalid type of parsed result.")
-		return
+		return core.Wrap(errors.DefaultEventsSystemError, err, "Cannot get parsed nodes")
 	}
-	var okExit bool = false
-	e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("start call event: [parsed: %v]", parsed))
-	defer func() {
-		e.UEP.Logger.PrintLog(public.LogEvents, fmt.Sprintf("end call event: [ok: %v]", okExit))
-	}()
-	status = "SYSTEM: call cycle..."
-	_idx := 0
+	idx := 0
 	cld := StringCLDType{
 		Ctx:    e.UEP.GetContext(),
 		Parsed: parsed,
 		Engine: e,
-		Idx:    &_idx,
+		Idx:    &idx,
 	}
 	e.UEP.Scope[public.StringEngineScopeInstrIdx] = cld.Idx
-	err = events.CallEvents(&core.EventInput{Input: cld}, public.StringCallCalloopEvent, false)
-	if err != nil {
-		return
+	if err = events.CallEvents(&core.EventInput{Input: cld}, public.StringCallCalloopEvent, false); err != nil {
+		return core.Wrap(errors.DefaultEventsCallErrorContexted, err, "Call loop failed")
 	}
-	okExit = true
 	return nil
 }
 
-func (de *DefaultEvents) StringCallEventIteration(parsed []stringParsing.ParsedNode, idx *int,
-	events *core.Events, ctx context.Context, e engine.StringEngineInterface) (err error) {
-	node := parsed[*idx]
-	canBeUnknown, err := core.ScopeGet[bool](e.GetUep().Scope, public.StringEngineScopeCanBeUnknown)
-	if err != nil {
-		canBeUnknown = true
-	}
-	events.Scope()[public.EventsScopeDERawLine] = node.Raw
-	if err = ctx.Err(); err != nil {
-		return
-	}
-	e.GetUep().Logger.PrintLog(public.LogEvents, fmt.Sprintf("process (in call event): [node: %v]", node))
-	cmd_switch := node.Switch
-	handler, ok := e.GetCommands()[cmd_switch]
-	if ok && canBeUnknown {
-		err = handler.Handler(e, &node)
-	} else {
-		return fmt.Errorf("[?YW]Unknown[?YW]: %s", cmd_switch)
-	}
-	if err != nil {
-		if errors.Is(err, public.ErrExit) {
-			*idx = -1
-			return nil
-		}
-		return errors.New("[?BRD]Handler error[?BRD]: \n" + err.Error())
-	}
-	*idx += 1
-	return
-}
-
-func (de *DefaultEvents) StringCallLoopEvent(events *core.Events, i *core.EventInput) (err error) {
+// Err errors.DefaultEventsCallErrorContex. Err errors.DefaultEventsCallErrorContexted.
+func (de *DefaultEvents) StringCallLoopEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	cld := i.Input.(StringCLDType)
 	idx := cld.Idx
 	parsed := cld.Parsed
@@ -132,16 +86,51 @@ func (de *DefaultEvents) StringCallLoopEvent(events *core.Events, i *core.EventI
 	e := cld.Engine
 	for *idx < pLen {
 		if ctx.Err() != nil {
-			err = ctx.Err()
-			break
+			return core.Wrap(errors.DefaultEventsCallErrorContex, ctx.Err(), "Context cancelled")
 		}
-		err = de.StringCallEventIteration(parsed, idx, events, ctx, e)
-		if err != nil {
-			return
+		if err = de.StringCallEventIteration(parsed, idx, events, ctx, e); err != nil {
+			return core.Wrap(errors.DefaultEventsCallErrorContexted, err, "Iteration failed")
 		}
-		if 0 > *idx {
-			return
+		if *idx < 0 {
+			return nil
 		}
 	}
-	return
+	return nil
+}
+
+// Err errors.DefaultEventsCallErrorContex. Err errors.DefaultEventsCallErrorUnknown.
+// Err errors.DefaultEventsCallErrorHandler.
+func (de *DefaultEvents) StringCallEventIteration(
+	parsed []stringParsing.ParsedNode,
+	idx *int,
+	events *core.Events,
+	ctx context.Context,
+	e engine.StringEngineInterface,
+) (err core.ErrorInterface) {
+	node := parsed[*idx]
+	canBeUnknown, err := core.ScopeGet[bool](e.GetUep().Scope, public.StringEngineScopeCanBeUnknown)
+	if err != nil {
+		canBeUnknown = true
+	}
+	events.Scope()[public.EventsScopeDERawLine] = node.Raw
+	if ctx.Err() != nil {
+		return core.Wrap(errors.DefaultEventsCallErrorContex, ctx.Err(), "Context cancelled")
+	}
+	handler, ok := e.GetCommands()[node.Switch]
+	if ok {
+		err = handler.Handler(e, &node)
+	} else if !canBeUnknown {
+		return core.Err(errors.DefaultEventsCallErrorUnknown, "Unknown command: %s", node.Switch).
+			WithMeta(core.EMK(0, "string"), node.Switch)
+	}
+	if err != nil {
+		if err.Error() == core.ErrExit.Error() {
+			*idx = -1
+			return nil
+		}
+		return core.Wrap(errors.DefaultEventsCallErrorHandler, err, "Handler failed for %s", node.Switch).
+			WithMeta(core.EMK(0, "string"), node.Switch)
+	}
+	(*idx)++
+	return nil
 }

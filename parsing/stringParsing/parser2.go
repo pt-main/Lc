@@ -1,22 +1,22 @@
 package stringParsing
 
 import (
-	"errors"
 	"strings"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/public/errors"
 )
 
-// # Parser2
-//
-// Simple parser with grammar like 'cmd args ...', every line converts into
-//
-//	ParsedNode{Switch: cmd, Metadata{"value": args}},
-//
-// where cmd is first wotd in line, args is all after cmd.
+// Parser2 is a simple command‑args line parser.
 type Parser2 struct{}
 
-func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
+// Parse converts each non‑empty line into a ParsedNode.
+//
+// Err errors.ParsingError:
+//   - If no valid lines are found in the input.
+//     Meta: EMK(0, "string") – the whole input string.
+func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
 	lines := strings.Split(code, "\n")
 	result := []ParsedNode{}
 
@@ -48,7 +48,8 @@ func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 	}
 
 	if len(result) == 0 {
-		return nil, errors.New("No valid lines found")
+		return nil, core.Err(errors.ParsingError, "No valid lines found in input").
+			WithMeta(core.EMK(0, "string"), code)
 	}
 	return addPrevNextNodes(result), nil
 }

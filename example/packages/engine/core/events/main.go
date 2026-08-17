@@ -14,7 +14,7 @@ func test1() { // Basic usage
 	e := core.NewEvents(context.Background())
 
 	// add event 'test'
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Test event is active")
 		return nil
 	})
@@ -34,25 +34,25 @@ func test2() { // Core events
 	e := core.NewEvents(context.Background())
 
 	// while event is not registred, it's created as core event
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Test core event is active")
 		return nil
 	})
 
 	// after creating core event you can append new handlers after core event
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's after test core event")
 		return nil
 	})
 
 	// and you can creating events before core event
-	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's before test core event")
 		return nil
 	})
 
 	// you can add more events after/before core event
-	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("(1) Call's before test core event")
 		return nil
 	})
@@ -68,17 +68,17 @@ func test3() { // Core events deeper
 	fmt.Println("=== test3 ===")
 	e := core.NewEvents(context.Background())
 
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Test core event is active")
 		return nil
 	})
 
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's after test core event")
 		return nil
 	})
 
-	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's before test core event")
 		return nil
 	})
@@ -89,7 +89,7 @@ func test3() { // Core events deeper
 	}
 
 	// Change only core event
-	et.ChangeCoreEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	et.ChangeCoreEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Not test core event")
 		return nil
 	})
@@ -103,21 +103,21 @@ func test4() { // Hard example
 
 	e.Scope()["numStr"] = "1"
 
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Print("Test core event is active. ")
 		fmt.Println(core.ScopeGet[string](e.Scope(), "numStr"))
 		e.Scope()["numStr"] = "2"
 		return nil
 	})
 
-	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Print("Call's after test core event. ")
 		fmt.Println(core.ScopeGet[string](e.Scope(), "numStr"))
 		e.Scope()["numStr"] = "3"
 		return nil
 	})
 
-	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) error {
+	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Print("Call's before test core event. ")
 		fmt.Println(core.ScopeGet[string](e.Scope(), "numStr"))
 		e.Scope()["numStr"] = "4"

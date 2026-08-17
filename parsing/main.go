@@ -8,6 +8,6 @@ type ParseOption struct {
 }
 
 type ParserInterface[I any, P any] interface {
-	Parse(I, ...*ParseOption) ([]P, error)
+	Parse(I, ...*ParseOption) ([]P, core.ErrorInterface)
 	String() string
 }

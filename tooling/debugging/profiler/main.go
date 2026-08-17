@@ -95,7 +95,7 @@ func (p *ProfilerPlugin) Init(scope core.ScopeType, pm *plugin.PluginManager) er
 	return nil
 }
 
-func (p *ProfilerPlugin) preEvent(ev *core.Events, i *core.EventInput) error {
+func (p *ProfilerPlugin) preEvent(ev *core.Events, i *core.EventInput) core.ErrorInterface {
 	if !p.enabled {
 		return nil
 	}
@@ -104,7 +104,7 @@ func (p *ProfilerPlugin) preEvent(ev *core.Events, i *core.EventInput) error {
 	return nil
 }
 
-func (p *ProfilerPlugin) postEvent(ev *core.Events, i *core.EventInput) error {
+func (p *ProfilerPlugin) postEvent(ev *core.Events, i *core.EventInput) core.ErrorInterface {
 	if !p.enabled {
 		return nil
 	}

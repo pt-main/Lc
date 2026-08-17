@@ -1,12 +1,13 @@
 package stringParsing
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/public/errors"
 )
 
 type GrammarRule struct {
@@ -23,10 +24,7 @@ type Parser1Config struct {
 }
 
 // Parser1 implements a regex‑based grammar parser with line continuation
-// and bracket balancing support. It splits input into blocks
-// (where every token - one+ lines, end of token - end of line) and matches each
-// block against a set of GrammarRule patterns. The result is a slice of
-// ParsedNode with captured named groups stored in Metadata.
+// and bracket balancing support.
 type Parser1 struct {
 	grammar     []GrammarRule
 	config      Parser1Config
@@ -35,13 +33,6 @@ type Parser1 struct {
 }
 
 // NewParser1 constructs a Parser1 with given grammar rules and configuration.
-// Config fields:
-//
-//	UseLineContinuation – join lines ending with '\'.
-//	UseBracketBalance – accumulate lines until brackets are balanced.
-//	SkipEmptyLines – ignore empty blocks.
-//	Brackets – list of bracket pairs, e.g., []string{"()","[]"}.
-//	TrimBlocksSpace – trim whitespace from block before matching.
 func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	openToClose := make(map[rune]rune)
 	closeToOpen := make(map[rune]rune)
@@ -61,11 +52,12 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	}
 }
 
-// Parse splits the input code into logical blocks (handling continuation and
-// brackets) and applies grammar rules to each block. Returns a slice of
-// ParsedNode with Metadata containing regexp named groups and the original raw
-// line under "__raw". Errors if no rule matches a block.
-func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, error) {
+// Parse splits the input into logical blocks and applies grammar rules.
+//
+// Err errors.ParsingError:
+//   - If no rule matches a block.
+//     Meta: EMK(0, "string") – the block that failed to match.
+func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
 	log := func(text string) {
 		text = "\n" + text
 		if len(opts) > 0 {
@@ -82,10 +74,11 @@ func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 	var blockLines []string
 	bracketStack := []rune{}
 
-	flush := func(block string) error {
+	flush := func(block string) core.ErrorInterface {
 		node, err := p.matchGrammar(block)
 		if err != nil {
-			return err
+			return core.Wrap(errors.ParsingError, err, "Failed to match grammar for block").
+				WithMeta(core.EMK(0, "string"), block)
 		}
 		if node.Raw != "" {
 			result = append(result, node)
@@ -147,7 +140,7 @@ func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 	return addPrevNextNodes(result), nil
 }
 
-func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
+func (p *Parser1) matchGrammar(block string) (ParsedNode, core.ErrorInterface) {
 	absolutely_raw := block
 	if p.config.TrimBlocksSpace {
 		block = strings.TrimSpace(block)
@@ -158,7 +151,6 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 	for _, rule := range p.grammar {
 		if rule.Pattern.MatchString(block) {
 			meta := make(map[string]interface{})
-
 			matches := rule.Pattern.FindStringSubmatch(block)
 			names := rule.Pattern.SubexpNames()
 			for i, name := range names {
@@ -166,9 +158,7 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 					meta[name] = matches[i]
 				}
 			}
-
 			meta["__raw"] = absolutely_raw
-
 			return ParsedNode{
 				Raw:      block,
 				Switch:   rule.Type,
@@ -176,7 +166,8 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, error) {
 			}, nil
 		}
 	}
-	return ParsedNode{}, errors.New("syntax error: no rule matches block: " + block)
+	return ParsedNode{}, core.Err(errors.ParsingError, "Syntax error: no rule matches block: %q", block).
+		WithMeta(core.EMK(0, "string"), block)
 }
 
 func (p *Parser1) String() string {

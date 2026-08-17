@@ -1,14 +1,18 @@
 package bytecode
 
 import (
-	"errors"
 	"math"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/public/errors"
 )
 
+// Utils provides byte-level conversions and shifting utilities.
 type Utils struct{}
 
+// IntToBytesBigEndian converts an int to a big-endian byte slice of the given size.
+// Panics: if size <= 0 (not checked, will panic on slice allocation).
 func (u *Utils) IntToBytesBigEndian(value int, size int) []byte {
 	result := make([]byte, size)
 	val := uint64(value)
@@ -19,6 +23,8 @@ func (u *Utils) IntToBytesBigEndian(value int, size int) []byte {
 	return result
 }
 
+// IntToBytesLittleEndian converts an int to a little-endian byte slice of the given size.
+// Panics: if size <= 0 (not checked, will panic on slice allocation).
 func (u *Utils) IntToBytesLittleEndian(value int, size int) []byte {
 	result := make([]byte, size)
 	val := uint64(value)
@@ -29,6 +35,8 @@ func (u *Utils) IntToBytesLittleEndian(value int, size int) []byte {
 	return result
 }
 
+// IntToBytes converts an int to a byte slice with the given endianness.
+// Panics: if size <= 0 (via called functions).
 func (u *Utils) IntToBytes(value int, size int, endianess public.EndianType) []byte {
 	if endianess == public.BigEndian {
 		return u.IntToBytesBigEndian(value, size)
@@ -36,6 +44,8 @@ func (u *Utils) IntToBytes(value int, size int, endianess public.EndianType) []b
 	return u.IntToBytesLittleEndian(value, size)
 }
 
+// BytesToIntBigEndian converts a big-endian byte slice to an int.
+// It handles sign extension.
 func (u *Utils) BytesToIntBigEndian(bytes []byte) int {
 	var val uint64 = 0
 	for _, b := range bytes {
@@ -48,6 +58,8 @@ func (u *Utils) BytesToIntBigEndian(bytes []byte) int {
 	return int(val)
 }
 
+// BytesToIntLittleEndian converts a little-endian byte slice to an int.
+// It handles sign extension.
 func (u *Utils) BytesToIntLittleEndian(bytes []byte) int {
 	var val uint64 = 0
 	for i, b := range bytes {
@@ -60,6 +72,7 @@ func (u *Utils) BytesToIntLittleEndian(bytes []byte) int {
 	return int(val)
 }
 
+// BytesToInt converts a byte slice to an int using the specified endianness.
 func (u *Utils) BytesToInt(bytes []byte, endianess public.EndianType) int {
 	if endianess == public.BigEndian {
 		return u.BytesToIntBigEndian(bytes)
@@ -67,6 +80,8 @@ func (u *Utils) BytesToInt(bytes []byte, endianess public.EndianType) int {
 	return u.BytesToIntLittleEndian(bytes)
 }
 
+// Float64ToBytes converts a float64 in range [-1,1] to a byte slice of given size.
+// Panics: if size <= 0 or value exceeds the representable range (clamped).
 func (u *Utils) Float64ToBytes(value float64, size int, endianess public.EndianType) []byte {
 	if size <= 0 {
 		panic("Float64ToBytes: size must be positive")
@@ -92,6 +107,7 @@ func (u *Utils) Float64ToBytes(value float64, size int, endianess public.EndianT
 	return u.IntToBytes(int(scaledValue), size, endianess)
 }
 
+// BytesToFloat64 converts a byte slice to a float64 in range [-1,1].
 func (u *Utils) BytesToFloat64(bytes []byte, endianess public.EndianType) float64 {
 	size := len(bytes)
 	if size == 0 {
@@ -105,6 +121,8 @@ func (u *Utils) BytesToFloat64(bytes []byte, endianess public.EndianType) float6
 	return float64(intValue)/float64(maxValue)*2.0 - 1.0
 }
 
+// Float64ToBytesRange converts a float64 in [minVal, maxVal] to a byte slice.
+// Panics: if size <= 0, minVal >= maxVal, or value out of range (clamped).
 func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal float64, endianess public.EndianType) []byte {
 	if size <= 0 {
 		panic("Float64ToBytesRange: size must be positive")
@@ -124,6 +142,8 @@ func (u *Utils) Float64ToBytesRange(value float64, size int, minVal, maxVal floa
 	return u.IntToBytes(int(scaledValue), size, endianess)
 }
 
+// BytesToFloat64Range converts a byte slice to a float64 in [minVal, maxVal].
+// Panics: if minVal >= maxVal.
 func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endianess public.EndianType) float64 {
 	size := len(bytes)
 	if size == 0 {
@@ -141,27 +161,33 @@ func (u *Utils) BytesToFloat64Range(bytes []byte, minVal, maxVal float64, endian
 	return minVal + normalized*(maxVal-minVal)
 }
 
+// Float64ToBytesBigEndian is a convenience wrapper for big-endian conversion.
 func (u *Utils) Float64ToBytesBigEndian(value float64, size int) []byte {
 	return u.Float64ToBytes(value, size, public.BigEndian)
 }
 
+// Float64ToBytesLittleEndian is a convenience wrapper for little-endian conversion.
 func (u *Utils) Float64ToBytesLittleEndian(value float64, size int) []byte {
 	return u.Float64ToBytes(value, size, public.LittleEndian)
 }
 
+// BytesToFloat64BigEndian is a convenience wrapper.
 func (u *Utils) BytesToFloat64BigEndian(bytes []byte) float64 {
 	return u.BytesToFloat64(bytes, public.BigEndian)
 }
 
+// BytesToFloat64LittleEndian is a convenience wrapper.
 func (u *Utils) BytesToFloat64LittleEndian(bytes []byte) float64 {
 	return u.BytesToFloat64(bytes, public.LittleEndian)
 }
 
+// Shift provides safe and unsafe byte reading from a buffer with an internal index.
 type Shift struct {
 	Code []byte
 	Idx  *int
 }
 
+// NewShift creates a new Shift instance.
 func NewShift(code []byte, idx *int) *Shift {
 	return &Shift{
 		Code: code,
@@ -169,15 +195,28 @@ func NewShift(code []byte, idx *int) *Shift {
 	}
 }
 
-func (s *Shift) ShiftError(length int) ([]byte, error) {
+// ShiftError reads `length` bytes from the buffer and returns them.
+// If there is not enough data, returns a core.Error.
+//
+// Err errors.BytecodeShiftError:
+//   - On unexpected end of data.
+//     Meta: EMK(0, "int") – requested length,
+//     EMK(1, "int") – current index,
+//     EMK(2, "int") – total buffer length.
+func (s *Shift) ShiftError(length int) ([]byte, core.ErrorInterface) {
 	if *s.Idx+length > len(s.Code) {
-		return nil, errors.New("Shift error: Unexpected end of data")
+		return nil, core.Err(errors.BytecodeShiftError, "Unexpected end of data").
+			WithMeta(core.EMK(0, "int"), length).
+			WithMeta(core.EMK(1, "int"), *s.Idx).
+			WithMeta(core.EMK(2, "int"), len(s.Code))
 	}
 	res := s.Code[*s.Idx : *s.Idx+length]
 	*s.Idx += length
 	return res, nil
 }
 
+// ShiftPanic reads `length` bytes, panicking if not enough data.
+// Use only in contexts where you are certain the buffer is large enough.
 func (s *Shift) ShiftPanic(length int) []byte {
 	bytes, err := s.ShiftError(length)
 	if err != nil {
@@ -186,7 +225,11 @@ func (s *Shift) ShiftPanic(length int) []byte {
 	return bytes
 }
 
-func (s *Shift) ShiftFloat64Error(size int, endianess public.EndianType) (float64, error) {
+// ShiftFloat64Error reads `size` bytes and interprets them as a float64 in [-1,1].
+// If there is not enough data, returns a core.Error.
+//
+// Err errors.BytecodeShiftError (wrapped from ShiftError).
+func (s *Shift) ShiftFloat64Error(size int, endianess public.EndianType) (float64, core.ErrorInterface) {
 	bytes, err := s.ShiftError(size)
 	if err != nil {
 		return 0, err
@@ -195,13 +238,18 @@ func (s *Shift) ShiftFloat64Error(size int, endianess public.EndianType) (float6
 	return utils.BytesToFloat64(bytes, endianess), nil
 }
 
+// ShiftFloat64Panic reads and converts a float64, panicking on error.
 func (s *Shift) ShiftFloat64Panic(size int, endianess public.EndianType) float64 {
 	bytes := s.ShiftPanic(size)
 	utils := &Utils{}
 	return utils.BytesToFloat64(bytes, endianess)
 }
 
-func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endianess public.EndianType) (float64, error) {
+// ShiftFloat64RangeError reads `size` bytes and interprets them as a float64 in [minVal, maxVal].
+// If there is not enough data, returns a core.Error.
+//
+// Err errors.BytecodeShiftError (wrapped from ShiftError).
+func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endianess public.EndianType) (float64, core.ErrorInterface) {
 	bytes, err := s.ShiftError(size)
 	if err != nil {
 		return 0, err
@@ -210,12 +258,15 @@ func (s *Shift) ShiftFloat64RangeError(size int, minVal, maxVal float64, endiane
 	return utils.BytesToFloat64Range(bytes, minVal, maxVal, endianess), nil
 }
 
+// ShiftFloat64RangePanic reads and converts a float64 with range, panicking on error.
 func (s *Shift) ShiftFloat64RangePanic(size int, minVal, maxVal float64, endianess public.EndianType) float64 {
 	bytes := s.ShiftPanic(size)
 	utils := &Utils{}
 	return utils.BytesToFloat64Range(bytes, minVal, maxVal, endianess)
 }
 
+// AutoIntToBytes chooses the minimal number of bytes needed to represent `value`
+// (excluding sign extension) and converts it.
 func (u *Utils) AutoIntToBytes(value int, endianess public.EndianType) []byte {
 	size := 1
 	temp := value
@@ -232,6 +283,8 @@ func (u *Utils) AutoIntToBytes(value int, endianess public.EndianType) []byte {
 	return u.IntToBytes(value, size, endianess)
 }
 
+// AutoFloat64ToBytes chooses an optimal byte size based on the magnitude of `value`,
+// then converts it to bytes.
 func (u *Utils) AutoFloat64ToBytes(value float64, endianess public.EndianType) []byte {
 	size := 1
 	absValue := math.Abs(value)
