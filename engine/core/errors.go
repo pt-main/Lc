@@ -18,6 +18,10 @@ type Error struct {
 type ErrorInterface interface {
 	Error() string
 	Format() string
+	GetCode() string
+	GetMsg() string
+	GetMeta() map[errors.ErrorMetaType]interface{}
+	Unwrap() error
 }
 
 func (e *Error) Error() string {
@@ -26,6 +30,22 @@ func (e *Error) Error() string {
 	b.WriteString(": ")
 	b.WriteString(e.Msg)
 	return b.String()
+}
+
+func (e *Error) GetCode() string {
+	return string(e.Code)
+}
+
+func (e *Error) Unwrap() error {
+	return e.Cause
+}
+
+func (e *Error) GetMsg() string {
+	return e.Msg
+}
+
+func (e *Error) GetMeta() map[errors.ErrorMetaType]interface{} {
+	return e.Meta
 }
 
 func (e *Error) Format() string {

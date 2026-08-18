@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 )
@@ -47,7 +48,7 @@ func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ig
 	}
 }
 
-func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
+func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsing.ParsedNode, core.ErrorInterface) {
 	tokens, err := p.lexer.Parse(code, opts...)
 	if err != nil {
 		return nil, &ParseError{
@@ -132,7 +133,7 @@ func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
 	return tok, nil
 }
 
-func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error) {
+func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, core.ErrorInterface) {
 	tok, err := p.NextToken()
 	if err != nil {
 		return stringParsing.ParsedNode{}, &ParseError{

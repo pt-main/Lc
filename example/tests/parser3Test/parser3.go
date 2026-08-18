@@ -118,8 +118,8 @@ func main() {
 	printAST(root, 0)
 
 	cleanRoot := cleanNode(root)
-	jsonData, err := json.MarshalIndent(cleanRoot, "", "  ")
-	if err != nil {
+	jsonData, err2 := json.MarshalIndent(cleanRoot, "", "  ")
+	if err2 != nil {
 		log.Fatalf("Json error: %v", err)
 	}
 	fmt.Println("\nAST (JSON):")

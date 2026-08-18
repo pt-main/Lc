@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/pt-main/lc/public/errors"
 )
 
 // ParseError is a structured parsing error.
@@ -24,9 +26,11 @@ type ParseError struct {
 	Cause error
 }
 
+const ParseErrCode = "parser3"
+
 func (e *ParseError) Error() string {
 	var b strings.Builder
-	b.WriteString("parser3")
+	b.WriteString(ParseErrCode)
 	if e.Code != "" {
 		b.WriteString("/")
 		b.WriteString(e.Code)
@@ -79,6 +83,25 @@ func (e *ParseError) Format() string {
 	return FormatError(e, false)
 }
 
+func (e *ParseError) GetCode() string {
+	return ParseErrCode
+}
+
+func (e *ParseError) GetMsg() string {
+	return e.Msg
+}
+
+func (e *ParseError) GetMeta() map[errors.ErrorMetaType]interface{} {
+	return map[errors.ErrorMetaType]interface{}{
+		"TokenIdx": e.TokenIdx,
+		"TokenPos": e.TokenPos,
+		"Code":     e.Code,
+		"Expected": e.Expected,
+		"Raw":      e.Raw,
+		"Got":      e.Got,
+	}
+}
+
 // GrammarError is raised when the grammar itself is misconfigured
 // (undefined rule, missing start rule, etc.).
 type GrammarError struct {
@@ -87,9 +110,11 @@ type GrammarError struct {
 	Cause error
 }
 
+const GrammarErrCode = "parser3/grammar"
+
 func (e *GrammarError) Error() string {
 	var b strings.Builder
-	b.WriteString("parser3/grammar")
+	b.WriteString(GrammarErrCode)
 	if e.Code != "" {
 		b.WriteString("/")
 		b.WriteString(e.Code)
@@ -109,21 +134,47 @@ func (e *GrammarError) Format() string {
 	return FormatError(e, false)
 }
 
+func (e *GrammarError) GetMsg() string {
+	return e.Msg
+}
+
+func (e *GrammarError) GetMeta() map[errors.ErrorMetaType]interface{} {
+	return nil
+}
+
+func (e *GrammarError) GetCode() string {
+	return e.Code
+}
+
 // AdapterError is raised by the engine adapter when the AST shape is wrong.
 type AdapterError struct {
 	Msg   string
 	Cause error
 }
 
+const AdapterErrCode = "parser3/adapter"
+
 func (e *AdapterError) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("parser3/adapter: %s: %v", e.Msg, e.Cause)
 	}
-	return "parser3/adapter: " + e.Msg
+	return AdapterErrCode + ": " + e.Msg
 }
 
 func (e *AdapterError) Unwrap() error { return e.Cause }
 
 func (e *AdapterError) Format() string {
 	return FormatError(e, false)
+}
+
+func (e *AdapterError) GetCode() string {
+	return string(AdapterErrCode)
+}
+
+func (e *AdapterError) GetMsg() string {
+	return e.Msg
+}
+
+func (e *AdapterError) GetMeta() map[errors.ErrorMetaType]interface{} {
+	return nil
 }

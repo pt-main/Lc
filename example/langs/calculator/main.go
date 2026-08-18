@@ -207,8 +207,8 @@ func main() {
 		fmt.Println("No nodes parsed")
 		os.Exit(1)
 	}
-	result, err := evalExpr(&parsed[0])
-	if err != nil {
+	result, err2 := evalExpr(&parsed[0])
+	if err2 != nil {
 		fmt.Println("Eval error:", err)
 		os.Exit(1)
 	}
