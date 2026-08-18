@@ -87,8 +87,6 @@ func (e *Error) writeFull(b *strings.Builder, indent string) {
 			b.WriteString("\n")
 		}
 	}
-
-	b.WriteString("----+")
 }
 
 func Err(code errors.ErrorCodeType, format string, args ...interface{}) *Error {
@@ -141,6 +139,20 @@ func GetRealError(err error) string {
 		return errText
 	}
 	return ""
+}
+
+func GetErr(ei ErrorInterface) (res ErrorInterface) {
+	inner := ei.Unwrap()
+	res, ok := inner.(ErrorInterface)
+	if !ok {
+		res = &Error{
+			Code:  errors.WrappedError,
+			Msg:   inner.Error(),
+			Meta:  make(map[errors.ErrorMetaType]interface{}),
+			Cause: nil,
+		}
+	}
+	return
 }
 
 var ErrExit = Err(errors.ErrExit, "")

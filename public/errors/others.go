@@ -6,6 +6,7 @@ const (
 
 const (
 	CorePackageSystemError ErrorCodeType = "SYSTEM@CORE"
+	WrappedError           ErrorCodeType = "WrappedError"
 )
 
 const (
