@@ -8,6 +8,7 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 
 ## Index
 
+- [Constants](<#constants>)
 - [func FormatError\(err error, useColors bool\) string](<#FormatError>)
 - [func FormatErrorPretty\(err error\) string](<#FormatErrorPretty>)
 - [type ActionExpr](<#ActionExpr>)
@@ -18,6 +19,9 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 - [type AdapterError](<#AdapterError>)
   - [func \(e \*AdapterError\) Error\(\) string](<#AdapterError.Error>)
   - [func \(e \*AdapterError\) Format\(\) string](<#AdapterError.Format>)
+  - [func \(e \*AdapterError\) GetCode\(\) string](<#AdapterError.GetCode>)
+  - [func \(e \*AdapterError\) GetMeta\(\) map\[errors.ErrorMetaType\]interface\{\}](<#AdapterError.GetMeta>)
+  - [func \(e \*AdapterError\) GetMsg\(\) string](<#AdapterError.GetMsg>)
   - [func \(e \*AdapterError\) Unwrap\(\) error](<#AdapterError.Unwrap>)
 - [type AndExpr](<#AndExpr>)
   - [func \(a AndExpr\) Parse\(p \*Parser\) \(\[\]stringParsing.ParsedNode, core.ErrorInterface\)](<#AndExpr.Parse>)
@@ -29,6 +33,9 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 - [type GrammarError](<#GrammarError>)
   - [func \(e \*GrammarError\) Error\(\) string](<#GrammarError.Error>)
   - [func \(e \*GrammarError\) Format\(\) string](<#GrammarError.Format>)
+  - [func \(e \*GrammarError\) GetCode\(\) string](<#GrammarError.GetCode>)
+  - [func \(e \*GrammarError\) GetMeta\(\) map\[errors.ErrorMetaType\]interface\{\}](<#GrammarError.GetMeta>)
+  - [func \(e \*GrammarError\) GetMsg\(\) string](<#GrammarError.GetMsg>)
   - [func \(e \*GrammarError\) Unwrap\(\) error](<#GrammarError.Unwrap>)
 - [type InfixInfo](<#InfixInfo>)
 - [type NamedExpr](<#NamedExpr>)
@@ -42,12 +49,15 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 - [type ParseError](<#ParseError>)
   - [func \(e \*ParseError\) Error\(\) string](<#ParseError.Error>)
   - [func \(e \*ParseError\) Format\(\) string](<#ParseError.Format>)
+  - [func \(e \*ParseError\) GetCode\(\) string](<#ParseError.GetCode>)
+  - [func \(e \*ParseError\) GetMeta\(\) map\[errors.ErrorMetaType\]interface\{\}](<#ParseError.GetMeta>)
+  - [func \(e \*ParseError\) GetMsg\(\) string](<#ParseError.GetMsg>)
   - [func \(e \*ParseError\) Unwrap\(\) error](<#ParseError.Unwrap>)
 - [type Parser](<#Parser>)
   - [func NewParser\(lexer \*stringParsing.Lexer, grammar Grammar, startRule string, ignoreTypes \[\]string\) \*Parser](<#NewParser>)
-  - [func \(p \*Parser\) Expect\(tokenType string\) \(stringParsing.ParsedNode, error\)](<#Parser.Expect>)
+  - [func \(p \*Parser\) Expect\(tokenType string\) \(stringParsing.ParsedNode, core.ErrorInterface\)](<#Parser.Expect>)
   - [func \(p \*Parser\) NextToken\(\) \(stringParsing.ParsedNode, error\)](<#Parser.NextToken>)
-  - [func \(p \*Parser\) Parse\(code string, opts ...\*parsing.ParseOption\) \(\[\]stringParsing.ParsedNode, error\)](<#Parser.Parse>)
+  - [func \(p \*Parser\) Parse\(code string, opts ...\*parsing.ParseOption\) \(\[\]stringParsing.ParsedNode, core.ErrorInterface\)](<#Parser.Parse>)
   - [func \(p \*Parser\) Peek\(\) \(stringParsing.ParsedNode, error\)](<#Parser.Peek>)
   - [func \(p \*Parser\) SkipIgnored\(\)](<#Parser.SkipIgnored>)
   - [func \(p \*Parser\) String\(\) string](<#Parser.String>)
@@ -65,6 +75,26 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 - [type TokenExpr](<#TokenExpr>)
   - [func \(t TokenExpr\) Parse\(p \*Parser\) \(\[\]stringParsing.ParsedNode, core.ErrorInterface\)](<#TokenExpr.Parse>)
 
+
+## Constants
+
+<a name="AdapterErrCode"></a>
+
+```go
+const AdapterErrCode = "parser3/adapter"
+```
+
+<a name="GrammarErrCode"></a>
+
+```go
+const GrammarErrCode = "parser3/grammar"
+```
+
+<a name="ParseErrCode"></a>
+
+```go
+const ParseErrCode = "parser3"
+```
 
 <a name="FormatError"></a>
 ## func [FormatError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/formatter.go#L13>)
@@ -135,7 +165,7 @@ func (a *Adapter) String() string
 
 
 <a name="AdapterError"></a>
-## type [AdapterError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L113-L116>)
+## type [AdapterError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L150-L153>)
 
 AdapterError is raised by the engine adapter when the AST shape is wrong.
 
@@ -147,7 +177,7 @@ type AdapterError struct {
 ```
 
 <a name="AdapterError.Error"></a>
-### func \(\*AdapterError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L118>)
+### func \(\*AdapterError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L157>)
 
 ```go
 func (e *AdapterError) Error() string
@@ -156,7 +186,7 @@ func (e *AdapterError) Error() string
 
 
 <a name="AdapterError.Format"></a>
-### func \(\*AdapterError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L127>)
+### func \(\*AdapterError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L166>)
 
 ```go
 func (e *AdapterError) Format() string
@@ -164,8 +194,35 @@ func (e *AdapterError) Format() string
 
 
 
+<a name="AdapterError.GetCode"></a>
+### func \(\*AdapterError\) [GetCode](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L170>)
+
+```go
+func (e *AdapterError) GetCode() string
+```
+
+
+
+<a name="AdapterError.GetMeta"></a>
+### func \(\*AdapterError\) [GetMeta](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L178>)
+
+```go
+func (e *AdapterError) GetMeta() map[errors.ErrorMetaType]interface{}
+```
+
+
+
+<a name="AdapterError.GetMsg"></a>
+### func \(\*AdapterError\) [GetMsg](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L174>)
+
+```go
+func (e *AdapterError) GetMsg() string
+```
+
+
+
 <a name="AdapterError.Unwrap"></a>
-### func \(\*AdapterError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L125>)
+### func \(\*AdapterError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L164>)
 
 ```go
 func (e *AdapterError) Unwrap() error
@@ -253,7 +310,7 @@ type Grammar map[string]Rule
 ```
 
 <a name="GrammarError"></a>
-## type [GrammarError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L84-L88>)
+## type [GrammarError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L107-L111>)
 
 GrammarError is raised when the grammar itself is misconfigured \(undefined rule, missing start rule, etc.\).
 
@@ -266,7 +323,7 @@ type GrammarError struct {
 ```
 
 <a name="GrammarError.Error"></a>
-### func \(\*GrammarError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L90>)
+### func \(\*GrammarError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L115>)
 
 ```go
 func (e *GrammarError) Error() string
@@ -275,7 +332,7 @@ func (e *GrammarError) Error() string
 
 
 <a name="GrammarError.Format"></a>
-### func \(\*GrammarError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L108>)
+### func \(\*GrammarError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L133>)
 
 ```go
 func (e *GrammarError) Format() string
@@ -283,8 +340,35 @@ func (e *GrammarError) Format() string
 
 
 
+<a name="GrammarError.GetCode"></a>
+### func \(\*GrammarError\) [GetCode](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L145>)
+
+```go
+func (e *GrammarError) GetCode() string
+```
+
+
+
+<a name="GrammarError.GetMeta"></a>
+### func \(\*GrammarError\) [GetMeta](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L141>)
+
+```go
+func (e *GrammarError) GetMeta() map[errors.ErrorMetaType]interface{}
+```
+
+
+
+<a name="GrammarError.GetMsg"></a>
+### func \(\*GrammarError\) [GetMsg](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L137>)
+
+```go
+func (e *GrammarError) GetMsg() string
+```
+
+
+
 <a name="GrammarError.Unwrap"></a>
-### func \(\*GrammarError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L106>)
+### func \(\*GrammarError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L131>)
 
 ```go
 func (e *GrammarError) Unwrap() error
@@ -386,7 +470,7 @@ func (o OptionalExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorIn
 
 
 <a name="ParseError"></a>
-## type [ParseError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L11-L25>)
+## type [ParseError](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L13-L27>)
 
 ParseError is a structured parsing error. It carries enough context for both plain logging and rich CLI output.
 
@@ -409,7 +493,7 @@ type ParseError struct {
 ```
 
 <a name="ParseError.Error"></a>
-### func \(\*ParseError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L27>)
+### func \(\*ParseError\) [Error](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L31>)
 
 ```go
 func (e *ParseError) Error() string
@@ -418,7 +502,7 @@ func (e *ParseError) Error() string
 
 
 <a name="ParseError.Format"></a>
-### func \(\*ParseError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L78>)
+### func \(\*ParseError\) [Format](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L82>)
 
 ```go
 func (e *ParseError) Format() string
@@ -426,8 +510,35 @@ func (e *ParseError) Format() string
 
 
 
+<a name="ParseError.GetCode"></a>
+### func \(\*ParseError\) [GetCode](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L86>)
+
+```go
+func (e *ParseError) GetCode() string
+```
+
+
+
+<a name="ParseError.GetMeta"></a>
+### func \(\*ParseError\) [GetMeta](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L94>)
+
+```go
+func (e *ParseError) GetMeta() map[errors.ErrorMetaType]interface{}
+```
+
+
+
+<a name="ParseError.GetMsg"></a>
+### func \(\*ParseError\) [GetMsg](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L90>)
+
+```go
+func (e *ParseError) GetMsg() string
+```
+
+
+
 <a name="ParseError.Unwrap"></a>
-### func \(\*ParseError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L76>)
+### func \(\*ParseError\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/errors.go#L80>)
 
 ```go
 func (e *ParseError) Unwrap() error
@@ -436,7 +547,7 @@ func (e *ParseError) Unwrap() error
 Unwrap returns the underlying error for errors.Is / errors.As.
 
 <a name="Parser"></a>
-## type [Parser](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L27-L35>)
+## type [Parser](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L28-L36>)
 
 
 
@@ -447,7 +558,7 @@ type Parser struct {
 ```
 
 <a name="NewParser"></a>
-### func [NewParser](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L37>)
+### func [NewParser](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L38>)
 
 ```go
 func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ignoreTypes []string) *Parser
@@ -456,16 +567,16 @@ func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ig
 
 
 <a name="Parser.Expect"></a>
-### func \(\*Parser\) [Expect](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L135>)
+### func \(\*Parser\) [Expect](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L136>)
 
 ```go
-func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, error)
+func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, core.ErrorInterface)
 ```
 
 
 
 <a name="Parser.NextToken"></a>
-### func \(\*Parser\) [NextToken](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L120>)
+### func \(\*Parser\) [NextToken](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L121>)
 
 ```go
 func (p *Parser) NextToken() (stringParsing.ParsedNode, error)
@@ -474,16 +585,16 @@ func (p *Parser) NextToken() (stringParsing.ParsedNode, error)
 
 
 <a name="Parser.Parse"></a>
-### func \(\*Parser\) [Parse](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L50>)
+### func \(\*Parser\) [Parse](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L51>)
 
 ```go
-func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error)
+func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsing.ParsedNode, core.ErrorInterface)
 ```
 
 
 
 <a name="Parser.Peek"></a>
-### func \(\*Parser\) [Peek](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L159>)
+### func \(\*Parser\) [Peek](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L160>)
 
 ```go
 func (p *Parser) Peek() (stringParsing.ParsedNode, error)
@@ -492,7 +603,7 @@ func (p *Parser) Peek() (stringParsing.ParsedNode, error)
 
 
 <a name="Parser.SkipIgnored"></a>
-### func \(\*Parser\) [SkipIgnored](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L114>)
+### func \(\*Parser\) [SkipIgnored](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L115>)
 
 ```go
 func (p *Parser) SkipIgnored()
@@ -501,7 +612,7 @@ func (p *Parser) SkipIgnored()
 
 
 <a name="Parser.String"></a>
-### func \(\*Parser\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L172>)
+### func \(\*Parser\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/parser.go#L173>)
 
 ```go
 func (p *Parser) String() string

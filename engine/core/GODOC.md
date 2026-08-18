@@ -20,6 +20,10 @@ import "github.com/pt-main/lc/engine/core"
   - [func Wrap\(code errors.ErrorCodeType, cause error, format string, args ...interface\{\}\) \*Error](<#Wrap>)
   - [func \(e \*Error\) Error\(\) string](<#Error.Error>)
   - [func \(e \*Error\) Format\(\) string](<#Error.Format>)
+  - [func \(e \*Error\) GetCode\(\) string](<#Error.GetCode>)
+  - [func \(e \*Error\) GetMeta\(\) map\[errors.ErrorMetaType\]interface\{\}](<#Error.GetMeta>)
+  - [func \(e \*Error\) GetMsg\(\) string](<#Error.GetMsg>)
+  - [func \(e \*Error\) Unwrap\(\) error](<#Error.Unwrap>)
   - [func \(e \*Error\) WithMeta\(key errors.ErrorMetaType, value interface\{\}\) \*Error](<#Error.WithMeta>)
 - [type ErrorInterface](<#ErrorInterface>)
   - [func GetStringRes\(g \*Generator, sep string\) \(string, ErrorInterface\)](<#GetStringRes>)
@@ -71,7 +75,7 @@ var ErrExit = Err(errors.ErrExit, "")
 ```
 
 <a name="EMK"></a>
-## func [EMK](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L91>)
+## func [EMK](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L111>)
 
 ```go
 func EMK(n int, valType string) errors.ErrorMetaType
@@ -80,7 +84,7 @@ func EMK(n int, valType string) errors.ErrorMetaType
 Error Meta Key n
 
 <a name="GetMetaValue"></a>
-## func [GetMetaValue](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L95>)
+## func [GetMetaValue](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L115>)
 
 ```go
 func GetMetaValue[T any](in error, n int, valType string) (res T, err error)
@@ -89,7 +93,7 @@ func GetMetaValue[T any](in error, n int, valType string) (res T, err error)
 
 
 <a name="GetRealError"></a>
-## func [GetRealError](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L115>)
+## func [GetRealError](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L135>)
 
 ```go
 func GetRealError(err error) string
@@ -149,7 +153,7 @@ type Error struct {
 ```
 
 <a name="Err"></a>
-### func [Err](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L74>)
+### func [Err](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L94>)
 
 ```go
 func Err(code errors.ErrorCodeType, format string, args ...interface{}) *Error
@@ -158,7 +162,7 @@ func Err(code errors.ErrorCodeType, format string, args ...interface{}) *Error
 
 
 <a name="Wrap"></a>
-### func [Wrap](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L78>)
+### func [Wrap](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L98>)
 
 ```go
 func Wrap(code errors.ErrorCodeType, cause error, format string, args ...interface{}) *Error
@@ -167,7 +171,7 @@ func Wrap(code errors.ErrorCodeType, cause error, format string, args ...interfa
 
 
 <a name="Error.Error"></a>
-### func \(\*Error\) [Error](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L23>)
+### func \(\*Error\) [Error](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L27>)
 
 ```go
 func (e *Error) Error() string
@@ -176,7 +180,7 @@ func (e *Error) Error() string
 
 
 <a name="Error.Format"></a>
-### func \(\*Error\) [Format](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L31>)
+### func \(\*Error\) [Format](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L51>)
 
 ```go
 func (e *Error) Format() string
@@ -184,8 +188,44 @@ func (e *Error) Format() string
 
 
 
+<a name="Error.GetCode"></a>
+### func \(\*Error\) [GetCode](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L35>)
+
+```go
+func (e *Error) GetCode() string
+```
+
+
+
+<a name="Error.GetMeta"></a>
+### func \(\*Error\) [GetMeta](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L47>)
+
+```go
+func (e *Error) GetMeta() map[errors.ErrorMetaType]interface{}
+```
+
+
+
+<a name="Error.GetMsg"></a>
+### func \(\*Error\) [GetMsg](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L43>)
+
+```go
+func (e *Error) GetMsg() string
+```
+
+
+
+<a name="Error.Unwrap"></a>
+### func \(\*Error\) [Unwrap](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L39>)
+
+```go
+func (e *Error) Unwrap() error
+```
+
+
+
 <a name="Error.WithMeta"></a>
-### func \(\*Error\) [WithMeta](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L82>)
+### func \(\*Error\) [WithMeta](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L102>)
 
 ```go
 func (e *Error) WithMeta(key errors.ErrorMetaType, value interface{}) *Error
@@ -194,7 +234,7 @@ func (e *Error) WithMeta(key errors.ErrorMetaType, value interface{}) *Error
 
 
 <a name="ErrorInterface"></a>
-## type [ErrorInterface](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L18-L21>)
+## type [ErrorInterface](<https://github.com/pt-main/Lc/blob/main/engine/core/errors.go#L18-L25>)
 
 
 
@@ -202,6 +242,10 @@ func (e *Error) WithMeta(key errors.ErrorMetaType, value interface{}) *Error
 type ErrorInterface interface {
     Error() string
     Format() string
+    GetCode() string
+    GetMsg() string
+    GetMeta() map[errors.ErrorMetaType]interface{}
+    Unwrap() error
 }
 ```
 
