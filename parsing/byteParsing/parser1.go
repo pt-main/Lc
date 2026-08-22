@@ -45,13 +45,24 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 	var raw []byte
 	_idx := 0
 	var idx *int = &_idx
+
+	oldIdxPtr := p.Config.Shifter.Idx
+	oldIdxVal := 0
+	if oldIdxPtr != nil {
+		oldIdxVal = *oldIdxPtr
+	}
+
 	defer func() {
+		p.Config.Shifter.Idx = oldIdxPtr
+		if oldIdxPtr != nil {
+			*oldIdxPtr = oldIdxVal
+		}
+
 		if r := recover(); r != nil {
 			err = core.Err(errors.ParsingError, "Panic recovered during parsing: %v", r).
 				WithMeta(core.EMK(0, "string"), fmt.Sprintf("%v", r))
 		}
 		if err != nil {
-			// Обогащаем ошибку контекстом, если это ещё не core.Error или не содержит нужных метаданных
 			var cmdStr string
 			var rawStr string
 			if len(lastCmdSwitch) > 0 {
@@ -68,7 +79,6 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			if idx != nil {
 				idxVal = *idx
 			}
-			// Проверяем, является ли err уже core.Error, если да, добавляем метаданные, если их нет
 			if ce, ok := err.(*core.Error); ok {
 				if _, ok := ce.Meta[core.EMK(1, "string")]; !ok {
 					ce.WithMeta(core.EMK(1, "string"), rawStr)
@@ -81,7 +91,6 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 				}
 				err = ce
 			} else {
-				// Обёртываем в core.Error, если это не core.Error
 				err = core.Wrap(errors.ParsingError, err, "Parsing error at cmd=%v, raw=%v, idx=%d", cmdStr, rawStr, idxVal).
 					WithMeta(core.EMK(0, "string"), cmdStr).
 					WithMeta(core.EMK(1, "string"), rawStr).
@@ -89,14 +98,16 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			}
 		}
 	}()
+
 	log := func(text string) {
-		if len(opts) > 0 {
+		if len(opts) > 0 && opts[0] != nil {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
 				logger.PrintLog(public.LogParsing, text)
 			}
 		}
 	}
+
 	log(fmt.Sprintf("=========== START ==========="))
 	log(fmt.Sprintf("start parsing code: '%v'", code))
 	log(fmt.Sprintf("config: %v", p.Config))
@@ -112,7 +123,6 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		var command []byte
 		command, err = shift(p.Config.GConfig.CommandBytelen)
 		if err != nil {
-			// shift error — оборачиваем с метаданными позиции
 			err = core.Wrap(errors.ParsingError, err, "Shift error while reading command").
 				WithMeta(core.EMK(0, "int"), p.Config.GConfig.CommandBytelen).
 				WithMeta(core.EMK(1, "int"), *idx)
@@ -142,11 +152,6 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 				return
 			}
 			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianess)
-			if arglen == 0 {
-				err = core.Err(errors.ParsingError, "Cannot form args with 0 argument length for argument #%d", argNum).
-					WithMeta(core.EMK(0, "int"), argNum)
-				return
-			}
 			log(fmt.Sprintf("arglen %v", arglen))
 			var arg []byte
 			arg, err = shift(arglen)

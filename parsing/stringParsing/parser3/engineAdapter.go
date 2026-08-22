@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 )
@@ -12,7 +13,7 @@ type Adapter struct {
 	Parser *Parser
 }
 
-func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error) {
+func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, core.ErrorInterface) {
 	nodes, err := a.Parser.Parse(code, o...)
 	if err != nil {
 		return nil, &AdapterError{
