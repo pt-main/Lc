@@ -41,7 +41,7 @@ import "github.com/pt-main/lc"
 <a name="Version"></a>
 
 ```go
-const Version = "1.5.3"
+const Version = "1.5.5"
 ```
 
 <a name="NewByteEngine"></a>

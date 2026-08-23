@@ -153,6 +153,11 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			}
 			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianess)
 			log(fmt.Sprintf("arglen %v", arglen))
+			if arglen == 0 {
+				err = core.Err(errors.ParsingError, "Zero argument length").
+					WithMeta(core.EMK(0, "int"), argNum)
+				return
+			}
 			var arg []byte
 			arg, err = shift(arglen)
 			if err != nil {

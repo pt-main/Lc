@@ -65,19 +65,20 @@ const (
 )
 ```
 
-<a name="BytecodeShiftError"></a>
-
-```go
-const (
-    BytecodeShiftError ErrorCodeType = "BYTECODE_SHIFT_ERROR"
-)
-```
-
 <a name="CorePackageSystemError"></a>
 
 ```go
 const (
     CorePackageSystemError ErrorCodeType = "SYSTEM@CORE"
+    WrappedError           ErrorCodeType = "WrappedError"
+)
+```
+
+<a name="BytecodeShiftError"></a>
+
+```go
+const (
+    BytecodeShiftError ErrorCodeType = "BYTECODE_SHIFT_ERROR"
 )
 ```
 

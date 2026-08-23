@@ -14,7 +14,7 @@ import "github.com/pt-main/lc/parsing/stringParsing/parser3"
 - [type ActionExpr](<#ActionExpr>)
   - [func \(a ActionExpr\) Parse\(p \*Parser\) \(\[\]stringParsing.ParsedNode, core.ErrorInterface\)](<#ActionExpr.Parse>)
 - [type Adapter](<#Adapter>)
-  - [func \(a \*Adapter\) Parse\(code string, o ...\*parsing.ParseOption\) \(\[\]stringParsing.ParsedNode, error\)](<#Adapter.Parse>)
+  - [func \(a \*Adapter\) Parse\(code string, o ...\*parsing.ParseOption\) \(\[\]stringParsing.ParsedNode, core.ErrorInterface\)](<#Adapter.Parse>)
   - [func \(a \*Adapter\) String\(\) string](<#Adapter.String>)
 - [type AdapterError](<#AdapterError>)
   - [func \(e \*AdapterError\) Error\(\) string](<#AdapterError.Error>)
@@ -136,7 +136,7 @@ func (a ActionExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInte
 
 
 <a name="Adapter"></a>
-## type [Adapter](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L11-L13>)
+## type [Adapter](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L12-L14>)
 
 
 
@@ -147,16 +147,16 @@ type Adapter struct {
 ```
 
 <a name="Adapter.Parse"></a>
-### func \(\*Adapter\) [Parse](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L15>)
+### func \(\*Adapter\) [Parse](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L16>)
 
 ```go
-func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, error)
+func (a *Adapter) Parse(code string, o ...*parsing.ParseOption) ([]stringParsing.ParsedNode, core.ErrorInterface)
 ```
 
 
 
 <a name="Adapter.String"></a>
-### func \(\*Adapter\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L62>)
+### func \(\*Adapter\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/stringParsing/parser3/engineAdapter.go#L63>)
 
 ```go
 func (a *Adapter) String() string

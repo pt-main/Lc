@@ -72,7 +72,7 @@ Err errors.ParsingError:
 The returned error always contains the command bytes, raw bytes, and byte index in metadata.
 
 <a name="Parser1.String"></a>
-### func \(\*Parser1\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/byteParsing/parser1.go#L177>)
+### func \(\*Parser1\) [String](<https://github.com/pt-main/Lc/blob/main/parsing/byteParsing/parser1.go#L187>)
 
 ```go
 func (p *Parser1) String() string

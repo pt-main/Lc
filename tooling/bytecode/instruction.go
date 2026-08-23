@@ -13,6 +13,10 @@ type InstructionsGenerator struct {
 	Config GenerationConfig
 }
 
+// Generate instruction.
+// byteParsing.Parser1 specification
+//
+// !!! PANIC IF ANY ARGLEN IS ZERO !!!
 func (ig *InstructionsGenerator) Generate(
 	opcode int, args [][]byte,
 ) []byte {
@@ -22,6 +26,9 @@ func (ig *InstructionsGenerator) Generate(
 		u.IntToBytes(len(args), ig.Config.ArgscountBytelen, ig.Config.Endianess)...,
 	)
 	for _, arg := range args {
+		if len(arg) == 0 {
+			panic("Argument length cannot be zero")
+		}
 		res = append(res, u.IntToBytes(len(arg), ig.Config.ArglenBytelen, ig.Config.Endianess)...)
 		res = append(res, arg...)
 	}

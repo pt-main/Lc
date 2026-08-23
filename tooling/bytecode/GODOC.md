@@ -64,13 +64,15 @@ type InstructionsGenerator struct {
 ```
 
 <a name="InstructionsGenerator.Generate"></a>
-### func \(\*InstructionsGenerator\) [Generate](<https://github.com/pt-main/Lc/blob/main/tooling/bytecode/instruction.go#L16-L18>)
+### func \(\*InstructionsGenerator\) [Generate](<https://github.com/pt-main/Lc/blob/main/tooling/bytecode/instruction.go#L20-L22>)
 
 ```go
 func (ig *InstructionsGenerator) Generate(opcode int, args [][]byte) []byte
 ```
 
+Generate instruction. byteParsing.Parser1 specification
 
+\!\!\! PANIC IF ANY ARGLEN IS ZERO \!\!\!
 
 <a name="Shift"></a>
 ## type [Shift](<https://github.com/pt-main/Lc/blob/main/tooling/bytecode/utils.go#L185-L188>)
