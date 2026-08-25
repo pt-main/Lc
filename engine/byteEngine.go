@@ -44,7 +44,7 @@ func (e *ByteEngine) Process(input []byte) core.ErrorInterface {
 		Input: e,
 	}, public.ByteCallEvent, false)
 	if err2 != nil {
-		return core.Wrap(errors.ByteEngineProcessError2, err1, core.GetRealError(err1))
+		return core.Wrap(errors.ByteEngineProcessError2, err2, core.GetRealError(err2))
 	}
 	return nil
 }
