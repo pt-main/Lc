@@ -2,7 +2,7 @@ package lc
 
 import (
 	"context"
-	"errors"
+	goerr "errors"
 	"fmt"
 
 	"github.com/pt-main/lc/engine"
@@ -10,6 +10,7 @@ import (
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/public/errors"
 	lcplugin "github.com/pt-main/lc/tooling/plugin"
 )
 
@@ -24,24 +25,24 @@ type EngineUniversal struct {
 	ended          bool
 }
 
-func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) error {
+func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) core.ErrorInterface {
 	if err := e.CheckEnded(); err != nil {
 		return err
 	}
 	if e.Type != public.StringEngineType {
-		return errors.New("Can't process string in byte engine")
+		return core.Err(errors.CorePackageLcError, "Can't process string in byte engine")
 	}
 	uep, _ := e.GetUEP()
 	uep.Context = ctx
 	return e.StringEngine.Process(input)
 }
 
-func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) error {
+func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) core.ErrorInterface {
 	if err := e.CheckEnded(); err != nil {
 		return err
 	}
 	if e.Type != public.ByteEngineType {
-		return errors.New("Can't process bytes in string engine")
+		return core.Err(errors.CorePackageLcError, "Can't process bytes in string engine")
 	}
 	uep, _ := e.GetUEP()
 	uep.Context = ctx
@@ -49,15 +50,15 @@ func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context)
 }
 
 // ProcessString feeds a string input into the engine.
-// It works only for engines of type StringEngineType; otherwise returns an error.
+// It works only for engines of type StringEngineType; otherwise returns an core.ErrorInterface.
 // Internally triggers the parse and call events, executing registered handlers.
-func (e *EngineUniversal) ProcessString(input string) error {
+func (e *EngineUniversal) ProcessString(input string) core.ErrorInterface {
 	return e.ProcessStringWithCtx(input, context.Background())
 }
 
 // ProcessBytes feeds a byte slice into the engine (ByteEngineType only).
 // The input is passed via scope under key "input_[]byte", then parsed and processed.
-func (e *EngineUniversal) ProcessBytes(input []byte) error {
+func (e *EngineUniversal) ProcessBytes(input []byte) core.ErrorInterface {
 	return e.ProcessBytesWithCtx(input, context.Background())
 }
 
@@ -82,7 +83,7 @@ func (e *EngineUniversal) NewCommandByte(
 		return err
 	}
 	if e.Type != public.ByteEngineType {
-		return errors.New("Can't add byte command to string engine")
+		return goerr.New("Can't add byte command to string engine")
 	}
 	finalOpcode := opcode
 	if opcode == -1 {
@@ -110,7 +111,7 @@ func (e *EngineUniversal) NewCommandString(
 		return err
 	}
 	if e.Type != public.StringEngineType {
-		return errors.New("Can't add string command to byte engine")
+		return goerr.New("Can't add string command to byte engine")
 	}
 	e.StringEngine.NewCommand(cmdSwitch, handler, &core.SimpleInput{
 		Input: doc,
@@ -137,9 +138,9 @@ func (e *EngineUniversal) End() (err error) {
 	return
 }
 
-func (e *EngineUniversal) CheckEnded() (err error) {
+func (e *EngineUniversal) CheckEnded() (err core.ErrorInterface) {
 	if e.ended {
-		err = fmt.Errorf("EngineUniversal: lifecycle ended.")
+		err = core.Err(errors.CorePackageLcLifecycleError, "EngineUniversal: lifecycle ended.")
 	}
 	return err
 }

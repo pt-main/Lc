@@ -1,6 +1,7 @@
 package core
 
 import (
+	goerr "errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -156,3 +157,50 @@ func GetErr(ei ErrorInterface) (res ErrorInterface) {
 }
 
 var ErrExit = Err(errors.ErrExit, "")
+
+func GetRealErrorReverse(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if ce, ok := err.(ErrorInterface); ok {
+		return ce.Format()
+	}
+
+	var parts []string
+	cur := err
+	for cur != nil {
+
+		if ce, ok := cur.(ErrorInterface); ok {
+
+			innerFormatted := ce.Format()
+			if len(parts) > 0 {
+
+				outerMsg := strings.Join(reverse(parts), ": ")
+				return outerMsg + ": " + innerFormatted
+			}
+			return innerFormatted
+		}
+
+		parts = append(parts, cur.Error())
+
+		next := goerr.Unwrap(cur)
+		if next == nil {
+			break
+		}
+		cur = next
+	}
+
+	if len(parts) > 0 {
+		return strings.Join(reverse(parts), ": ")
+	}
+	return err.Error()
+}
+
+func reverse(s []string) []string {
+	res := make([]string, len(s))
+	for i, v := range s {
+		res[len(s)-1-i] = v
+	}
+	return res
+}

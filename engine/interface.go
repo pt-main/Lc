@@ -9,7 +9,7 @@ import (
 
 type EngineInterface[CmdT int | string | byte | float32 | float64,
 	ParserInput any, ParserOutput any] interface {
-	Process(ParserInput) error
+	Process(ParserInput) core.ErrorInterface
 	NewCommand(CmdT, core.CommandType[EngineInterface[
 		CmdT, ParserInput, ParserOutput], ParserOutput], *core.SimpleInput) error
 	GetUep() *core.UniversalEngineParams

@@ -30,7 +30,7 @@ type StringEngine struct {
 //
 // Err errors.StringEngineProcessError1 | errors.StringEngineProcessError2.
 // (cause from 'CallEvents')
-func (e *StringEngine) Process(input string) error {
+func (e *StringEngine) Process(input string) core.ErrorInterface {
 	e.UEP.Scope[public.StringEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,

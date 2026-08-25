@@ -32,7 +32,7 @@ type ByteEngine struct {
 //
 // Err errors.ByteEngineProcessError1 | errors.ByteEngineProcessError2.
 // (cause from 'CallEvents')
-func (e *ByteEngine) Process(input []byte) error {
+func (e *ByteEngine) Process(input []byte) core.ErrorInterface {
 	e.UEP.Scope[public.ByteEngineScopeInput] = input
 	err1 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
