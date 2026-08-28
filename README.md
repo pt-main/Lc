@@ -204,7 +204,7 @@ Default lifecycle:
 4. emit output through `UEP.Generator` (if need).
 
 ## Byte Engine
-Input bytecode and process that. Very fast hotloop (~120m+ ops/s on `i7-4770HQ`).
+Input bytecode and process that. Very fast hotloop (raw speed - ~200m ops/s on `i7-4770HQ`).
 
 Default lifecycle:
 1. store input in scope;

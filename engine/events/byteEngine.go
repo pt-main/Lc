@@ -1,8 +1,6 @@
 package events
 
 import (
-	"runtime"
-
 	"github.com/pt-main/lc/engine"
 	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing"
@@ -130,9 +128,8 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		return core.Wrap(errors.DefaultEventsSystemError, err, "Preprocessing failed")
 	}
 
-	runtime.GC()
 	if err = events.CallEvents(&core.EventInput{Input: ByteCLDType{
-		Ctx: ctx, Parsed: parsed2, Engine: e, Idx: idx,
+		Ctx: ctx, Parsed: parsed2, Engine: e, Idx: idx, Other: &parsed,
 	}}, public.ByteCallHotloopEvent, false); err != nil {
 		return core.Wrap(errors.DefaultEventsCallErrorContexted, err, "Hot-loop event failed")
 	}
@@ -153,22 +150,30 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 	p2len := len(parsed)
 	e := hld.Engine
 	iter := 0
+	var checkInterval int
+	checkInterval, err = core.ScopeGet[int](e.GetUep().Scope, public.ByteEngineScopeBytecodeIdx)
+	if err != nil {
+		checkInterval = 255 // 2^8-1
+	}
 	for {
-		if ctx.Err() != nil {
-			return core.Wrap(errors.DefaultEventsCallErrorContex, ctx.Err(), "Context cancelled")
+		iter++
+		if iter&int(checkInterval) == 0 {
+			if ctx.Err() != nil {
+				return core.Wrap(errors.DefaultEventsCallErrorContex, ctx.Err(), "Context cancelled (at %v iter)", iter)
+			}
 		}
 		idxN := *idx
-		if idxN < 0 || idxN >= p2len {
+		if uint(idxN) >= uint(p2len) {
 			break
 		}
 		node := &parsed[idxN]
+		//go:inline
 		if err = de.ByteCallEventIteration(idx, node, e); err != nil {
-			return core.Wrap(errors.DefaultEventsCallErrorContexted, err, "Iteration failed")
+			if node.Abis == true {
+				(*idx)--
+			}
+			return core.Wrap(errors.DefaultEventsCallErrorHandler, err, "Handler failed")
 		}
-		iter++
-	}
-	if iter > 100_000_000 {
-		runtime.GC()
 	}
 	return nil
 }
@@ -178,13 +183,9 @@ func (de *DefaultEvents) ByteCallEventIteration(
 	idx *int,
 	parsed *ByteCallAttr, e engine.ByteEngineInterface,
 ) core.ErrorInterface {
-	//go:inline
-	err := parsed.Handler(e, parsed.RawNode)
-	if err != nil {
-		return core.Wrap(errors.DefaultEventsCallErrorHandler, err, "Handler failed")
-	}
 	if parsed.Abis {
 		*idx++
 	}
-	return nil
+	//go:inline
+	return parsed.Handler(e, parsed.RawNode)
 }

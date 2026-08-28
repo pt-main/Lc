@@ -25,15 +25,15 @@ import "github.com/pt-main/lc"
   - [func \(b \*EngineBuilder\) WithScope\(scope core.ScopeType\) \*EngineBuilder](<#EngineBuilder.WithScope>)
   - [func \(b \*EngineBuilder\) WithStringParser\(parser stringParser\) \*EngineBuilder](<#EngineBuilder.WithStringParser>)
 - [type EngineUniversal](<#EngineUniversal>)
-  - [func \(e \*EngineUniversal\) CheckEnded\(\) \(err error\)](<#EngineUniversal.CheckEnded>)
+  - [func \(e \*EngineUniversal\) CheckEnded\(\) \(err core.ErrorInterface\)](<#EngineUniversal.CheckEnded>)
   - [func \(e \*EngineUniversal\) End\(\) \(err error\)](<#EngineUniversal.End>)
   - [func \(e \*EngineUniversal\) GetUEP\(\) \(\*core.UniversalEngineParams, error\)](<#EngineUniversal.GetUEP>)
   - [func \(e \*EngineUniversal\) NewCommandByte\(opcode int, handler core.CommandType\[engine.ByteEngineInterface, byteParsing.ParsedBytes\], name string, autoByecodeIdxShift bool\) error](<#EngineUniversal.NewCommandByte>)
   - [func \(e \*EngineUniversal\) NewCommandString\(cmdSwitch string, handler core.CommandType\[engine.StringEngineInterface, stringParsing.ParsedNode\], doc string\) error](<#EngineUniversal.NewCommandString>)
-  - [func \(e \*EngineUniversal\) ProcessBytes\(input \[\]byte\) error](<#EngineUniversal.ProcessBytes>)
-  - [func \(e \*EngineUniversal\) ProcessBytesWithCtx\(input \[\]byte, ctx context.Context\) error](<#EngineUniversal.ProcessBytesWithCtx>)
-  - [func \(e \*EngineUniversal\) ProcessString\(input string\) error](<#EngineUniversal.ProcessString>)
-  - [func \(e \*EngineUniversal\) ProcessStringWithCtx\(input string, ctx context.Context\) error](<#EngineUniversal.ProcessStringWithCtx>)
+  - [func \(e \*EngineUniversal\) ProcessBytes\(input \[\]byte\) core.ErrorInterface](<#EngineUniversal.ProcessBytes>)
+  - [func \(e \*EngineUniversal\) ProcessBytesWithCtx\(input \[\]byte, ctx context.Context\) core.ErrorInterface](<#EngineUniversal.ProcessBytesWithCtx>)
+  - [func \(e \*EngineUniversal\) ProcessString\(input string\) core.ErrorInterface](<#EngineUniversal.ProcessString>)
+  - [func \(e \*EngineUniversal\) ProcessStringWithCtx\(input string, ctx context.Context\) core.ErrorInterface](<#EngineUniversal.ProcessStringWithCtx>)
 
 
 ## Constants
@@ -41,7 +41,7 @@ import "github.com/pt-main/lc"
 <a name="Version"></a>
 
 ```go
-const Version = "1.5.5"
+const Version = "1.5.8"
 ```
 
 <a name="NewByteEngine"></a>
@@ -203,7 +203,7 @@ func (b *EngineBuilder) WithStringParser(parser stringParser) *EngineBuilder
 
 
 <a name="EngineUniversal"></a>
-## type [EngineUniversal](<https://github.com/pt-main/Lc/blob/main/engine.go#L16-L25>)
+## type [EngineUniversal](<https://github.com/pt-main/Lc/blob/main/engine.go#L17-L26>)
 
 
 
@@ -221,16 +221,16 @@ type EngineUniversal struct {
 ```
 
 <a name="EngineUniversal.CheckEnded"></a>
-### func \(\*EngineUniversal\) [CheckEnded](<https://github.com/pt-main/Lc/blob/main/engine.go#L140>)
+### func \(\*EngineUniversal\) [CheckEnded](<https://github.com/pt-main/Lc/blob/main/engine.go#L141>)
 
 ```go
-func (e *EngineUniversal) CheckEnded() (err error)
+func (e *EngineUniversal) CheckEnded() (err core.ErrorInterface)
 ```
 
 
 
 <a name="EngineUniversal.End"></a>
-### func \(\*EngineUniversal\) [End](<https://github.com/pt-main/Lc/blob/main/engine.go#L122>)
+### func \(\*EngineUniversal\) [End](<https://github.com/pt-main/Lc/blob/main/engine.go#L123>)
 
 ```go
 func (e *EngineUniversal) End() (err error)
@@ -239,7 +239,7 @@ func (e *EngineUniversal) End() (err error)
 End \- function for stop engines lifecycle.
 
 <a name="EngineUniversal.GetUEP"></a>
-### func \(\*EngineUniversal\) [GetUEP](<https://github.com/pt-main/Lc/blob/main/engine.go#L64>)
+### func \(\*EngineUniversal\) [GetUEP](<https://github.com/pt-main/Lc/blob/main/engine.go#L65>)
 
 ```go
 func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error)
@@ -248,7 +248,7 @@ func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error)
 
 
 <a name="EngineUniversal.NewCommandByte"></a>
-### func \(\*EngineUniversal\) [NewCommandByte](<https://github.com/pt-main/Lc/blob/main/engine.go#L77-L80>)
+### func \(\*EngineUniversal\) [NewCommandByte](<https://github.com/pt-main/Lc/blob/main/engine.go#L78-L81>)
 
 ```go
 func (e *EngineUniversal) NewCommandByte(opcode int, handler core.CommandType[engine.ByteEngineInterface, byteParsing.ParsedBytes], name string, autoByecodeIdxShift bool) error
@@ -257,7 +257,7 @@ func (e *EngineUniversal) NewCommandByte(opcode int, handler core.CommandType[en
 NewCommandByte registers a bytecode command identified by an opcode. If opcode == \-1, the engine automatically assigns the next available opcode. handler receives \(\*ByteEngine, ParsedBytes\).
 
 <a name="EngineUniversal.NewCommandString"></a>
-### func \(\*EngineUniversal\) [NewCommandString](<https://github.com/pt-main/Lc/blob/main/engine.go#L106-L108>)
+### func \(\*EngineUniversal\) [NewCommandString](<https://github.com/pt-main/Lc/blob/main/engine.go#L107-L109>)
 
 ```go
 func (e *EngineUniversal) NewCommandString(cmdSwitch string, handler core.CommandType[engine.StringEngineInterface, stringParsing.ParsedNode], doc string) error
@@ -266,37 +266,37 @@ func (e *EngineUniversal) NewCommandString(cmdSwitch string, handler core.Comman
 NewCommandString registers a text\-based command in a StringEngine. cmdSwitch is the command name \(e.g., "print"\). handler must have signature func\(\[\]interface\{\}\) error where arguments are \(\*StringEngine, ParsedNode\). doc is an optional documentation string.
 
 <a name="EngineUniversal.ProcessBytes"></a>
-### func \(\*EngineUniversal\) [ProcessBytes](<https://github.com/pt-main/Lc/blob/main/engine.go#L60>)
+### func \(\*EngineUniversal\) [ProcessBytes](<https://github.com/pt-main/Lc/blob/main/engine.go#L61>)
 
 ```go
-func (e *EngineUniversal) ProcessBytes(input []byte) error
+func (e *EngineUniversal) ProcessBytes(input []byte) core.ErrorInterface
 ```
 
 ProcessBytes feeds a byte slice into the engine \(ByteEngineType only\). The input is passed via scope under key "input\_\[\]byte", then parsed and processed.
 
 <a name="EngineUniversal.ProcessBytesWithCtx"></a>
-### func \(\*EngineUniversal\) [ProcessBytesWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L39>)
+### func \(\*EngineUniversal\) [ProcessBytesWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L40>)
 
 ```go
-func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) error
+func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) core.ErrorInterface
 ```
 
 
 
 <a name="EngineUniversal.ProcessString"></a>
-### func \(\*EngineUniversal\) [ProcessString](<https://github.com/pt-main/Lc/blob/main/engine.go#L54>)
+### func \(\*EngineUniversal\) [ProcessString](<https://github.com/pt-main/Lc/blob/main/engine.go#L55>)
 
 ```go
-func (e *EngineUniversal) ProcessString(input string) error
+func (e *EngineUniversal) ProcessString(input string) core.ErrorInterface
 ```
 
-ProcessString feeds a string input into the engine. It works only for engines of type StringEngineType; otherwise returns an error. Internally triggers the parse and call events, executing registered handlers.
+ProcessString feeds a string input into the engine. It works only for engines of type StringEngineType; otherwise returns an core.ErrorInterface. Internally triggers the parse and call events, executing registered handlers.
 
 <a name="EngineUniversal.ProcessStringWithCtx"></a>
-### func \(\*EngineUniversal\) [ProcessStringWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L27>)
+### func \(\*EngineUniversal\) [ProcessStringWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L28>)
 
 ```go
-func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) error
+func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) core.ErrorInterface
 ```
 
 

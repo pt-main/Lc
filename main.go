@@ -12,7 +12,7 @@ import (
 	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.5.7"
+const Version = "1.5.8"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:

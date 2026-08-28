@@ -17,7 +17,7 @@ import "github.com/pt-main/lc/engine"
   - [func \(e \*ByteEngine\) GetUep\(\) \*core.UniversalEngineParams](<#ByteEngine.GetUep>)
   - [func \(e \*ByteEngine\) NewCommand\(cmd\_switch int, handler byteCmdType, o \*core.SimpleInput\) error](<#ByteEngine.NewCommand>)
   - [func \(e \*ByteEngine\) NewCommandFull\(cmd\_switch int, handler core.CommandType\[ByteEngineInterface, byteParsing.ParsedBytes\], name string, autoBytecodeIndexShift bool\)](<#ByteEngine.NewCommandFull>)
-  - [func \(e \*ByteEngine\) Process\(input \[\]byte\) error](<#ByteEngine.Process>)
+  - [func \(e \*ByteEngine\) Process\(input \[\]byte\) core.ErrorInterface](<#ByteEngine.Process>)
   - [func \(e \*ByteEngine\) SetBytecodeIdx\(n int\)](<#ByteEngine.SetBytecodeIdx>)
 - [type ByteEngineInterface](<#ByteEngineInterface>)
 - [type EngineInterface](<#EngineInterface>)
@@ -27,7 +27,7 @@ import "github.com/pt-main/lc/engine"
   - [func \(e \*StringEngine\) GetUep\(\) \*core.UniversalEngineParams](<#StringEngine.GetUep>)
   - [func \(e \*StringEngine\) NewCommand\(cmd\_switch string, handler core.CommandType\[StringEngineInterface, stringParsing.ParsedNode\], o \*core.SimpleInput\) error](<#StringEngine.NewCommand>)
   - [func \(e \*StringEngine\) NewCommandFull\(cmd\_switch string, handler core.CommandType\[StringEngineInterface, stringParsing.ParsedNode\], doc string\)](<#StringEngine.NewCommandFull>)
-  - [func \(e \*StringEngine\) Process\(input string\) error](<#StringEngine.Process>)
+  - [func \(e \*StringEngine\) Process\(input string\) core.ErrorInterface](<#StringEngine.Process>)
 - [type StringEngineInterface](<#StringEngineInterface>)
 
 
@@ -136,7 +136,7 @@ AddToBytecodeIdx(-1) // prev instruction
 ### func \(\*ByteEngine\) [Process](<https://github.com/pt-main/Lc/blob/main/engine/byteEngine.go#L35>)
 
 ```go
-func (e *ByteEngine) Process(input []byte) error
+func (e *ByteEngine) Process(input []byte) core.ErrorInterface
 ```
 
 Process transforms a byte slice by parsing it and invoking the registered bytecode handlers.
@@ -169,7 +169,7 @@ type ByteEngineInterface = EngineInterface[int, []byte, byteParsing.ParsedBytes]
 ```go
 type EngineInterface[CmdT int | string | byte | float32 | float64,
     ParserInput any, ParserOutput any] interface {
-    Process(ParserInput) error
+    Process(ParserInput) core.ErrorInterface
     NewCommand(CmdT, core.CommandType[EngineInterface[
         CmdT, ParserInput, ParserOutput], ParserOutput], *core.SimpleInput) error
     GetUep() *core.UniversalEngineParams
@@ -242,7 +242,7 @@ func (e *StringEngine) NewCommandFull(cmd_switch string, handler core.CommandTyp
 ### func \(\*StringEngine\) [Process](<https://github.com/pt-main/Lc/blob/main/engine/stringEngine.go#L33>)
 
 ```go
-func (e *StringEngine) Process(input string) error
+func (e *StringEngine) Process(input string) core.ErrorInterface
 ```
 
 Process executes the compilation pipeline for a string input. It stores the input in scope\["input\_string"\], then calls the StringParseEvent \(to parse into \[\]ParsedNode\) and StringCallEvent \(to dispatch commands\). Any error stops execution.

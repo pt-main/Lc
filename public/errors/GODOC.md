@@ -70,7 +70,10 @@ const (
 ```go
 const (
     CorePackageSystemError ErrorCodeType = "SYSTEM@CORE"
+    CorePackageLcError     ErrorCodeType = "SYSTEM@LC"
     WrappedError           ErrorCodeType = "WrappedError"
+
+    CorePackageLcLifecycleError ErrorCodeType = "SYSTEM@LC:LIFECYCLE"
 )
 ```
 

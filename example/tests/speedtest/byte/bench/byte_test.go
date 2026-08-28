@@ -2,7 +2,6 @@ package speedtest
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/pt-main/lc"
@@ -14,8 +13,7 @@ import (
 )
 
 func BenchmarkByteProcessing(b *testing.B) {
-	fmt.Println("Lc version -", lc.Version)
-	const ITERATIONS = 1_000_000_000
+	const ITERATIONS = 100_000_000
 	_idx := 0
 	end := public.BigEndian
 	gc := byteParsing.Parser1Config{
@@ -47,84 +45,82 @@ func BenchmarkByteProcessing(b *testing.B) {
 }
 
 /* ----==== RESULTS ====----
-ITERATIONS=1_000_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/test/speedtest/byte/bench -count=10
-Lc version - 1.5.1
+
+Lc version - 1.5.7
+
+ITERATIONS=1_000_000_000
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/tests/speedtest/byte/bench -count=10
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/test/speedtest/byte/bench
+pkg: github.com/pt-main/lc/example/tests/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkByteProcessing-8              1        5762814944 ns/op               173.5 Mops/s        16344 B/op        176 allocs/op
-BenchmarkByteProcessing-8              1        5751776315 ns/op               173.9 Mops/s        16184 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        5897353936 ns/op               169.6 Mops/s        16952 B/op        184 allocs/op
-BenchmarkByteProcessing-8              1        6498543824 ns/op               153.9 Mops/s        16376 B/op        176 allocs/op
-BenchmarkByteProcessing-8              1        6598746076 ns/op               151.5 Mops/s        14776 B/op        161 allocs/op
-BenchmarkByteProcessing-8              1        7007383883 ns/op               142.7 Mops/s        16264 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        6527556070 ns/op               153.2 Mops/s        16280 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        6253077383 ns/op               159.9 Mops/s        16424 B/op        177 allocs/op
-BenchmarkByteProcessing-8              1        6086296262 ns/op               164.3 Mops/s        16248 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        6452127563 ns/op               155.0 Mops/s        16248 B/op        175 allocs/op
+BenchmarkByteProcessing-8               1        4636165728 ns/op               215.7 Mops/s         6992 B/op        105 allocs/op
+BenchmarkByteProcessing-8               1        4678134135 ns/op               213.8 Mops/s         6976 B/op        104 allocs/op
+BenchmarkByteProcessing-8               1        4545117089 ns/op               220.0 Mops/s         6576 B/op        102 allocs/op
+BenchmarkByteProcessing-8               1        4521750876 ns/op               221.2 Mops/s         6976 B/op        104 allocs/op
+BenchmarkByteProcessing-8               1        5308026598 ns/op               188.4 Mops/s         6976 B/op        104 allocs/op
+BenchmarkByteProcessing-8               1        4701634606 ns/op               212.7 Mops/s         6976 B/op        104 allocs/op
+BenchmarkByteProcessing-8               1        4964960666 ns/op               201.4 Mops/s         6528 B/op        101 allocs/op
+BenchmarkByteProcessing-8               1        4707789927 ns/op               212.4 Mops/s         6528 B/op        101 allocs/op
+BenchmarkByteProcessing-8               1        4483261343 ns/op               223.1 Mops/s         6528 B/op        101 allocs/op
+BenchmarkByteProcessing-8               1        4644296688 ns/op               215.3 Mops/s         6912 B/op        104 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/test/speedtest/byte/bench   63.261s
+ok      github.com/pt-main/lc/example/tests/speedtest/byte/bench        47.634s
 
-ITERATIONS=500_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/test/speedtest/byte/bench -count=10
-Lc version - 1.5.1
+ITERATIONS=500_000_000
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/tests/speedtest/byte/bench -count=10
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/test/speedtest/byte/bench
+pkg: github.com/pt-main/lc/example/tests/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkByteProcessing-8              1        2725905999 ns/op               183.4 Mops/s        20904 B/op        174 allocs/op
-BenchmarkByteProcessing-8              1        2735958753 ns/op               182.8 Mops/s        15592 B/op        170 allocs/op
-BenchmarkByteProcessing-8              1        2721029300 ns/op               183.8 Mops/s        15480 B/op        168 allocs/op
-BenchmarkByteProcessing-8              1        2904751570 ns/op               172.1 Mops/s        16408 B/op        177 allocs/op
-BenchmarkByteProcessing-8              1        2868240595 ns/op               174.3 Mops/s        16904 B/op        182 allocs/op
-BenchmarkByteProcessing-8              1        2987468020 ns/op               167.4 Mops/s        15576 B/op        168 allocs/op
-BenchmarkByteProcessing-8              1        2805655377 ns/op               178.2 Mops/s        16344 B/op        176 allocs/op
-BenchmarkByteProcessing-8              1        2860468821 ns/op               174.8 Mops/s        15560 B/op        168 allocs/op
-BenchmarkByteProcessing-8              1        2881849876 ns/op               173.5 Mops/s        16168 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        3005677711 ns/op               166.4 Mops/s        16952 B/op        182 allocs/op
+BenchmarkByteProcessing-8              1        2416450521 ns/op               206.9 Mops/s         8440 B/op        109 allocs/op
+BenchmarkByteProcessing-8              1        2308473392 ns/op               216.6 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2233277662 ns/op               223.9 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2194493841 ns/op               227.8 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2419690868 ns/op               206.6 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2407318933 ns/op               207.7 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        2760941809 ns/op               181.1 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        2616158593 ns/op               191.1 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2629497097 ns/op               190.2 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        2482259449 ns/op               201.4 Mops/s         8376 B/op        108 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/test/speedtest/byte/bench   28.963s
+ok      github.com/pt-main/lc/example/tests/speedtest/byte/bench        24.940s
 
-ITERATIONS=300_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/test/speedtest/byte/bench -count=10
-Lc version - 1.5.1
+ITERATIONS=250_000_000
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/tests/speedtest/byte/bench -count=10
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/test/speedtest/byte/bench
+pkg: github.com/pt-main/lc/example/tests/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkByteProcessing-8              1        1788257526 ns/op               167.8 Mops/s        21896 B/op        183 allocs/op
-BenchmarkByteProcessing-8              1        1735185620 ns/op               172.9 Mops/s        17048 B/op        182 allocs/op
-BenchmarkByteProcessing-8              1        1743715603 ns/op               172.0 Mops/s        16440 B/op        176 allocs/op
-BenchmarkByteProcessing-8              1        1698821182 ns/op               176.6 Mops/s        15512 B/op        168 allocs/op
-BenchmarkByteProcessing-8              1        1723587268 ns/op               174.1 Mops/s        16376 B/op        177 allocs/op
-BenchmarkByteProcessing-8              1        1753887836 ns/op               171.0 Mops/s        14872 B/op        161 allocs/op
-BenchmarkByteProcessing-8              1        1743975178 ns/op               172.0 Mops/s        17064 B/op        182 allocs/op
-BenchmarkByteProcessing-8              1        1924000551 ns/op               155.9 Mops/s        15576 B/op        168 allocs/op
-BenchmarkByteProcessing-8              1        1807119062 ns/op               166.0 Mops/s        16344 B/op        175 allocs/op
-BenchmarkByteProcessing-8              1        1769031176 ns/op               169.6 Mops/s        17000 B/op        182 allocs/op
+BenchmarkByteProcessing-8              1        1155587732 ns/op               216.3 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        1101299266 ns/op               227.0 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        1200872455 ns/op               208.2 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        1187507477 ns/op               210.5 Mops/s         8392 B/op        109 allocs/op
+BenchmarkByteProcessing-8              1        1209859392 ns/op               206.6 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        1182012312 ns/op               211.5 Mops/s         8376 B/op        108 allocs/op
+BenchmarkByteProcessing-8              1        1182744295 ns/op               211.4 Mops/s         7784 B/op        104 allocs/op
+BenchmarkByteProcessing-8              1        1196835605 ns/op               208.9 Mops/s         7688 B/op        103 allocs/op
+BenchmarkByteProcessing-8              1        1188541998 ns/op               210.3 Mops/s         7848 B/op        104 allocs/op
+BenchmarkByteProcessing-8              1        1139287512 ns/op               219.4 Mops/s         8376 B/op        108 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/test/speedtest/byte/bench   18.120s
+ok      github.com/pt-main/lc/example/tests/speedtest/byte/bench        12.220s
 
-
-ITERATIONS=100_000_000:
-macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/test/speedtest/byte/bench -count=10
-Lc version - 1.5.1
+ITERATIONS=100_000_000
+macbook@MacBook-Pro lc % go test -test.fullpath=true -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ github.com/pt-main/lc/example/tests/speedtest/byte/bench -count=10
 goos: darwin
 goarch: amd64
-pkg: github.com/pt-main/lc/example/test/speedtest/byte/bench
+pkg: github.com/pt-main/lc/example/tests/speedtest/byte/bench
 cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkByteProcessing-8            933           1278002 ns/op                83.87 Mops/s       13039 B/op        158 allocs/op
-BenchmarkByteProcessing-8            930           1232047 ns/op                87.28 Mops/s       13038 B/op        158 allocs/op
-BenchmarkByteProcessing-8            838           1381281 ns/op                86.39 Mops/s       13099 B/op        158 allocs/op
-BenchmarkByteProcessing-8            924           1189648 ns/op                90.97 Mops/s       13053 B/op        158 allocs/op
-BenchmarkByteProcessing-8            914           1211689 ns/op                90.29 Mops/s       13026 B/op        157 allocs/op
-BenchmarkByteProcessing-8            909           1201342 ns/op                91.57 Mops/s       13058 B/op        158 allocs/op
-BenchmarkByteProcessing-8            904           1205359 ns/op                91.77 Mops/s       13062 B/op        158 allocs/op
-BenchmarkByteProcessing-8            927           1188666 ns/op                90.75 Mops/s       13054 B/op        158 allocs/op
-BenchmarkByteProcessing-8            915           1203756 ns/op                90.79 Mops/s       13034 B/op        158 allocs/op
-BenchmarkByteProcessing-8            770           1318173 ns/op                98.52 Mops/s       13203 B/op        158 allocs/op
+BenchmarkByteProcessing-8           6278            192517 ns/op                82.74 Mops/s        6591 B/op         98 allocs/op
+BenchmarkByteProcessing-8           6279            160522 ns/op                99.21 Mops/s        6591 B/op         98 allocs/op
+BenchmarkByteProcessing-8           5919            182307 ns/op                92.67 Mops/s        6496 B/op         98 allocs/op
+BenchmarkByteProcessing-8           6784            161409 ns/op                91.32 Mops/s        6550 B/op         98 allocs/op
+BenchmarkByteProcessing-8           6258            162812 ns/op                98.15 Mops/s        6592 B/op         98 allocs/op
+BenchmarkByteProcessing-8           6234            163855 ns/op                97.90 Mops/s        6594 B/op         98 allocs/op
+BenchmarkByteProcessing-8           5823            181810 ns/op                94.46 Mops/s        6503 B/op         98 allocs/op
+BenchmarkByteProcessing-8           4544            226392 ns/op                97.21 Mops/s        6499 B/op         98 allocs/op
+BenchmarkByteProcessing-8           5347            198100 ns/op                94.41 Mops/s        6543 B/op         98 allocs/op
+BenchmarkByteProcessing-8           5827            171721 ns/op                99.94 Mops/s        6503 B/op         98 allocs/op
 PASS
-ok      github.com/pt-main/lc/example/test/speedtest/byte/bench   92.990s
+ok      github.com/pt-main/lc/example/tests/speedtest/byte/bench        76.599s
 */

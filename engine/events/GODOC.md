@@ -25,7 +25,7 @@ import "github.com/pt-main/lc/engine/events"
 
 
 <a name="ByteCLDType"></a>
-## type [ByteCLDType](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L15>)
+## type [ByteCLDType](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L13>)
 
 
 
@@ -34,7 +34,7 @@ type ByteCLDType CallLoopData[ByteCallAttr, engine.ByteEngineInterface]
 ```
 
 <a name="ByteCallAttr"></a>
-## type [ByteCallAttr](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L38-L42>)
+## type [ByteCallAttr](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L36-L40>)
 
 
 
@@ -47,7 +47,7 @@ type ByteCallAttr struct {
 ```
 
 <a name="CallLoopData"></a>
-## type [CallLoopData](<https://github.com/pt-main/Lc/blob/main/engine/events/defaultEvents.go#L9-L14>)
+## type [CallLoopData](<https://github.com/pt-main/Lc/blob/main/engine/events/defaultEvents.go#L9-L15>)
 
 
 
@@ -55,6 +55,7 @@ type ByteCallAttr struct {
 type CallLoopData[P, E any] struct {
     Ctx    context.Context
     Parsed []P
+    Other  any
     Engine E
     Idx    *int
 }
@@ -70,7 +71,7 @@ type DefaultEvents struct{}
 ```
 
 <a name="DefaultEvents.ByteCallEvent"></a>
-### func \(\*DefaultEvents\) [ByteCallEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L77>)
+### func \(\*DefaultEvents\) [ByteCallEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L75>)
 
 ```go
 func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface)
@@ -79,7 +80,7 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 Err errors.DefaultEventsSystemError. Err errors.DefaultEventsPanicError. Err errors.DefaultEventsCallErrorContexted. With meta: EMK\(0, "int"\) \- cmd, EMK\(1, "int"\) \- bcIdx, EMK\(2, "string"\) \- pb.
 
 <a name="DefaultEvents.ByteCallEventIteration"></a>
-### func \(\*DefaultEvents\) [ByteCallEventIteration](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L177-L180>)
+### func \(\*DefaultEvents\) [ByteCallEventIteration](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L182-L185>)
 
 ```go
 func (de *DefaultEvents) ByteCallEventIteration(idx *int, parsed *ByteCallAttr, e engine.ByteEngineInterface) core.ErrorInterface
@@ -88,7 +89,7 @@ func (de *DefaultEvents) ByteCallEventIteration(idx *int, parsed *ByteCallAttr, 
 Err errors.DefaultEventsCallErrorHandler.
 
 <a name="DefaultEvents.ByteCallHotLoopEvent"></a>
-### func \(\*DefaultEvents\) [ByteCallHotLoopEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L144>)
+### func \(\*DefaultEvents\) [ByteCallHotLoopEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L141>)
 
 ```go
 func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface)
@@ -97,7 +98,7 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 Err errors.DefaultEventsCallErrorContex. Err errors.DefaultEventsCallErrorContexted.
 
 <a name="DefaultEvents.ByteCallPreprocess"></a>
-### func \(\*DefaultEvents\) [ByteCallPreprocess](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L46-L50>)
+### func \(\*DefaultEvents\) [ByteCallPreprocess](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L44-L48>)
 
 ```go
 func (de *DefaultEvents) ByteCallPreprocess(parsed []byteParsing.ParsedBytes, endianess public.EndianType, u bytecode.Utils, abis map[int]bool, cmds map[int]core.CommandMeta[engine.ByteEngineInterface, byteParsing.ParsedBytes]) ([]ByteCallAttr, core.ErrorInterface)
@@ -106,7 +107,7 @@ func (de *DefaultEvents) ByteCallPreprocess(parsed []byteParsing.ParsedBytes, en
 Err errors.DefaultEventsCallErrorCmdNotFound. With meta: EMK\(0, "int"\) \- opcode.
 
 <a name="DefaultEvents.ByteParsingEvent"></a>
-### func \(\*DefaultEvents\) [ByteParsingEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L20>)
+### func \(\*DefaultEvents\) [ByteParsingEvent](<https://github.com/pt-main/Lc/blob/main/engine/events/byteEngine.go#L18>)
 
 ```go
 func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInput) core.ErrorInterface
