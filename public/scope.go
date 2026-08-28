@@ -1,10 +1,11 @@
 package public
 
 const (
-	ByteEngineScopeParsed      = "PARSED []ParsedBytes"
-	ByteEngineScopeEndianess   = "ENDIANESS int"
-	ByteEngineScopeBytecodeIdx = "BYTECODE_IDX *int"
-	ByteEngineScopeInput       = "INPUT []byte"
+	ByteEngineScopeParsed                = "PARSED []ParsedBytes"
+	ByteEngineScopeEndianess             = "ENDIANESS int"
+	ByteEngineScopeBytecodeIdx           = "BYTECODE_IDX *int"
+	ByteEngineScopeHotloopCtxCheckPeriod = "CTX_CKECK_PERIOD int"
+	ByteEngineScopeInput                 = "INPUT []byte"
 )
 
 const (

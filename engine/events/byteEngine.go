@@ -151,7 +151,7 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 	e := hld.Engine
 	iter := 0
 	var checkInterval int
-	checkInterval, err = core.ScopeGet[int](e.GetUep().Scope, public.ByteEngineScopeBytecodeIdx)
+	checkInterval, err = core.ScopeGet[int](e.GetUep().Scope, public.ByteEngineScopeHotloopCtxCheckPeriod)
 	if err != nil {
 		checkInterval = 255 // 2^8-1
 	}
