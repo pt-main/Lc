@@ -48,7 +48,6 @@ func Process(config string) (string, error) {
 		WithStringParser(parser).
 		WithDefaultEvents(true).
 		WithContext(context.Background()).
-		WithColors().
 		Build()
 	if err != nil {
 		return "", err

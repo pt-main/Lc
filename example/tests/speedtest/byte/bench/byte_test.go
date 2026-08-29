@@ -24,7 +24,7 @@ func BenchmarkByteProcessing(b *testing.B) {
 	}
 	e := lc.NewByteEngine(
 		0, nil, true, &byteParsing.Parser1{Config: gc},
-		end, true, context.Background(),
+		end, context.Background(),
 	)
 	var iteration int
 	e.NewCommandFull(0, func(bei engine.ByteEngineInterface, pb *byteParsing.ParsedBytes) core.ErrorInterface {

@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pt-main/tap/core"
+	"github.com/pt-main/lc/engine/core"
 )
 
 func test1() {

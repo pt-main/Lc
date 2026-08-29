@@ -142,7 +142,6 @@ func main() {
 		WithPipeline([]string{"main"}).
 		WithByteParser(parser).
 		WithDefaultEvents(true).
-		WithColors().
 		Build()
 	if err != nil {
 		panic(err)

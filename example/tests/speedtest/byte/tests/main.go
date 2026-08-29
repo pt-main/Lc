@@ -20,7 +20,7 @@ func test1(ITERATIONS int) int {
 	idx := &_idx
 	e := lc.NewByteEngine(
 		0, nil, true, &byteParsing.Parser1{},
-		0, true, context.Background(),
+		0, context.Background(),
 	) // pseudo engine
 
 	parsed := make([]events.ByteCallAttr, 0, ITERATIONS)
@@ -79,7 +79,7 @@ func test2(ITERATIONS int) int {
 	idx := &_idx
 	e := lc.NewByteEngine(
 		0, nil, true, &byteParsing.Parser1{},
-		0, true, context.Background(),
+		0, context.Background(),
 	) // pseudo engine
 
 	allIters := 0

@@ -84,11 +84,6 @@ func (b *EngineBuilder) WithScope(scope core.ScopeType) *EngineBuilder {
 	return b
 }
 
-func (b *EngineBuilder) WithColors() *EngineBuilder {
-	b.colorEnabled = true
-	return b
-}
-
 func (b *EngineBuilder) WithStringParser(parser stringParser) *EngineBuilder {
 	b.stringParser = parser
 	return b
@@ -126,7 +121,6 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			b.pipeline,
 			b.addDefaultEvents,
 			b.stringParser,
-			b.colorEnabled,
 			b.context,
 		)
 		if b.logger != nil {
@@ -152,7 +146,6 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			b.addDefaultEvents,
 			b.byteParser,
 			b.endianess,
-			b.colorEnabled,
 			b.context,
 		)
 		if b.logger != nil {
