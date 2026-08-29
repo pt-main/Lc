@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/pt-main/tap/color"
 )
 
 // FormatError renders a parser3 error with optional ANSI color codes.
@@ -18,22 +16,7 @@ func FormatError(err error, useColors bool) string {
 	// Build a chain of structured errors.
 	var parts []string
 	walk(err, &parts)
-
-	if !useColors {
-		return strings.Join(parts, " -> ")
-	}
-
-	// Colorize each part.
-	colored := make([]string, len(parts))
-	for i, p := range parts {
-		if i == len(parts)-1 {
-			// The root cause — highlight in red.
-			colored[i] = color.Set(fmt.Sprintf("[?RD]%s[?RT]", p))
-		} else {
-			colored[i] = color.Set(fmt.Sprintf("[?YW]%s[?RT]", p))
-		}
-	}
-	return strings.Join(colored, " -> ")
+	return strings.Join(parts, " -> ")
 }
 
 // FormatErrorPretty is a convenience wrapper for CLI output (colors enabled).

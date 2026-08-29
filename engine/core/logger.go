@@ -5,9 +5,14 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/pt-main/tap/color"
 )
+
+type LogerInterface interface {
+	GetStatusForm(status string) string
+	SetStatusForm(status, form string)
+	PrintLog(status, message string)
+	GetLog() string
+}
 
 // Logger is a thread-safe structured logger for engine diagnostics.
 // It stores a list of log lines, supports custom status formats, and
@@ -34,6 +39,12 @@ func (l *Logger) GetStatusForm(status string) string {
 	return l.DefaultStatusForm
 }
 
+func (l *Logger) SetStatusForm(status, form string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.Statuses[status] = form
+}
+
 // PrintLog writes a log entry to stdout and appends it to the internal slice.
 // The status string determines the format via GetStatusForm (if a custom
 // format for that status exists). The message is inserted into the format.
@@ -42,11 +53,11 @@ func (l *Logger) PrintLog(status string, message string) {
 	format := l.GetStatusForm(status)
 	line := fmt.Sprintf(format, status, time.Now().UTC(), message)
 	if ok, val := l.Logging[status]; ok && val {
-		fmt.Println(color.Set(line))
+		fmt.Println(line)
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Log = append(l.Log, color.ReplaceColors(line))
+	l.Log = append(l.Log, line)
 	if len(l.Log) > l.MaxLogLength && l.MaxLogLength > 0 {
 		l.Log = l.Log[1:]
 	}
@@ -64,7 +75,7 @@ func (l *Logger) GetLog() string {
 // If empty string is passed, the default format is used.
 func NewLogger(defaultStatusForm string) *Logger {
 	if defaultStatusForm == "" {
-		defaultStatusForm = "[?BE]%s[?RT] [?CN][%v][?RT] [?GN][%s][?RT]\n"
+		defaultStatusForm = "%s [%v] [%s]\n"
 	}
 	return &Logger{
 		Log:               make([]string, 0),

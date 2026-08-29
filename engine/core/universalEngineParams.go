@@ -21,8 +21,7 @@ type UniversalEngineParams struct {
 	//   variables between events, parsers, and command handlers.
 	Scope ScopeType
 	// Logger *Logger - if set, logs internal steps (event calls, errors).
-	Logger *Logger
-	// If true - enable colored messages in enine (like errors, etc.).
+	Logger LogerInterface
 
 	Context context.Context
 }

@@ -9,10 +9,9 @@ import (
 	"github.com/pt-main/lc/parsing/byteParsing"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/public"
-	"github.com/pt-main/tap/color"
 )
 
-const Version = "1.5.8"
+const Version = "1.6.0"
 
 // NewStringEngine creates a ready-to-use string-based engine.
 // Parameters:
@@ -28,10 +27,8 @@ func NewStringEngine(
 	pipeline []string,
 	add_default_events bool,
 	parser stringParser,
-	colorEnable bool,
 	context context.Context,
 ) *engine.StringEngine {
-	color.ColorEnabled = colorEnable
 	e := core.NewEvents(context)
 	if add_default_events {
 		de := events.DefaultEvents{}
@@ -61,10 +58,8 @@ func NewByteEngine(
 	add_default_events bool,
 	parser byteParser,
 	endianess public.EndianType,
-	colorEnable bool,
 	context context.Context,
 ) *engine.ByteEngine {
-	color.ColorEnabled = colorEnable
 	idx := 0
 	e := core.NewEvents(context)
 	if add_default_events {
@@ -84,5 +79,28 @@ func NewByteEngine(
 		AutoBytecodeIndexShift: make(map[int]bool),
 		Commands:               make(map[int]core.CommandMeta[engine.ByteEngineInterface, byteParsing.ParsedBytes]),
 		Parser:                 parser,
+	}
+}
+
+func NewAstEngine(
+	generator_res_type public.ResType,
+	pipeline []string,
+	add_default_events bool,
+	parser stringParser,
+	context context.Context,
+	canNodeBeUnknown,
+	canMainNodeBeUnknown bool,
+) *engine.AstEngine {
+	e := core.NewEvents(context)
+	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(
+		generator_res_type, pipeline,
+	), e, core.ScopeType{}, core.NewLogger(""), context)
+	return &engine.AstEngine{
+		UEP:                  uep,
+		Parser:               parser,
+		Commands:             make(map[string]core.CommandMeta[engine.EngineInterface[string, string, stringParsing.ParsedNode], stringParsing.ParsedNode]),
+		CanBeUnknown:         canNodeBeUnknown,
+		CanMainNodeBeUnknown: canMainNodeBeUnknown,
+		AstCommandCtx:        make(map[string]*engine.AstCommandCtx),
 	}
 }

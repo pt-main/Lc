@@ -13,7 +13,7 @@ import (
 const AutoshiftNewCommandFlag = "autoShift"
 
 type byteParser = parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
-type byteCmdType = core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes]
+type byteCommandType = core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes]
 type byteCommandMeta = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]
 
 // ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
@@ -38,13 +38,13 @@ func (e *ByteEngine) Process(input []byte) core.ErrorInterface {
 		Input: e,
 	}, public.ByteParseEvent, false)
 	if err1 != nil {
-		return core.Wrap(errors.ByteEngineProcessError1, err1, core.GetRealError(err1))
+		return core.Wrap(errors.ByteEngineProcessError1, err1, core.GetRealErrorReverse(err1))
 	}
 	err2 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.ByteCallEvent, false)
 	if err2 != nil {
-		return core.Wrap(errors.ByteEngineProcessError2, err2, core.GetRealError(err2))
+		return core.Wrap(errors.ByteEngineProcessError2, err2, core.GetRealErrorReverse(err2))
 	}
 	return nil
 }
@@ -75,7 +75,7 @@ func (e *ByteEngine) NewCommandFull(
 //
 // Err errors.CorePackageSystemError.
 func (e *ByteEngine) NewCommand(
-	cmd_switch int, handler byteCmdType,
+	cmd_switch int, handler byteCommandType,
 	o *core.SimpleInput) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()

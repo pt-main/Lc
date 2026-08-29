@@ -19,12 +19,12 @@ type stringCommandMeta = core.CommandMeta[StringEngineInterface, stringParsing.P
 type StringEngine struct {
 	Commands map[string]stringCommandMeta
 	Parser   stringParser
-	UEP      *core.UniversalEngineParams
 	mu       sync.RWMutex
+	UEP      *core.UniversalEngineParams
 }
 
 // Process executes the compilation pipeline for a string input.
-// It stores the input in scope["input_string"], then calls the
+// It stores the input in scope[public.StringEngineScopeInput], then calls the
 // StringParseEvent (to parse into []ParsedNode) and StringCallEvent
 // (to dispatch commands). Any error stops execution.
 //
@@ -36,13 +36,13 @@ func (e *StringEngine) Process(input string) core.ErrorInterface {
 		Input: e,
 	}, public.StringParseEvent, false)
 	if err1 != nil {
-		return core.Wrap(errors.StringEngineProcessError1, err1, core.GetRealError(err1))
+		return core.Wrap(errors.StringEngineProcessError1, err1, core.GetRealErrorReverse(err1))
 	}
 	err2 := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
 	}, public.StringCallEvent, false)
 	if err2 != nil {
-		return core.Wrap(errors.StringEngineProcessError2, err2, core.GetRealError(err2))
+		return core.Wrap(errors.StringEngineProcessError2, err2, core.GetRealErrorReverse(err2))
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func (e *StringEngine) NewCommandFull(cmd_switch string,
 	handler core.CommandType[StringEngineInterface, stringParsing.ParsedNode], doc string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Commands[cmd_switch] = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]{
+	e.Commands[cmd_switch] = stringCommandMeta{
 		Handler: handler,
 		Doc:     doc,
 	}
@@ -71,7 +71,7 @@ func (e *StringEngine) NewCommand(cmd_switch string,
 	if !ok {
 		return core.Err(errors.CorePackageSystemError, "Invalid input: 'o.Input' must be string")
 	}
-	e.Commands[cmd_switch] = core.CommandMeta[StringEngineInterface, stringParsing.ParsedNode]{
+	e.Commands[cmd_switch] = stringCommandMeta{
 		Handler: handler,
 		Doc:     doc,
 	}

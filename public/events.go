@@ -1,12 +1,18 @@
 package public
 
 const (
-	StringParseEvent       = "INPUT string->PARSED []ParsedNode"
-	StringCallEvent        = "call(PARSED []ParsedNode)"
-	StringCallCalloopEvent = "CALLOP call(PARSED []ParsedNode)"
-	ByteParseEvent         = "INPUT []byte->PARSED []ParsedBytes"
-	ByteCallEvent          = "call(PARSED []ParsedBytes)"
-	ByteCallHotloopEvent   = "HOTLOOP call(PARSED []ParsedBytes)"
+	StringParseEvent       = "STRING:INPUT string->PARSED []ParsedNode"
+	StringCallEvent        = "STRING:call(PARSED []ParsedNode)"
+	StringCallCalloopEvent = "STRINGCALLOP call(PARSED []ParsedNode)"
+
+	// Has no AstParseEvent, uses StringParseEvent
+	AstCallCalloopEvent = "AST:CALLOP call(PARSED []ParsedNode)"
+	AstCallEvent        = "AST:call(PARSED []ParsedNode)"
+	AstCommandCallEvent = "AST:callCommand(PARSED []ParsedNode)" // with input = *AstCommandCtx
+
+	ByteParseEvent       = "BYTE:INPUT []byte->PARSED []ParsedBytes"
+	ByteCallEvent        = "BYTE:call(PARSED []ParsedBytes)"
+	ByteCallHotloopEvent = "BYTE:HOTLOOP call(PARSED []ParsedBytes)"
 )
 
 const (

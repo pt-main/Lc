@@ -69,13 +69,57 @@ func Walk(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedNode) err
 	if node == nil {
 		return nil
 	}
-	if err := fn(node); err != nil {
-		return err
-	}
-	for _, child := range GetChildren(node) {
-		if err := Walk(&child, fn); err != nil {
+
+	stack := []*stringParsing.ParsedNode{node}
+	for len(stack) > 0 {
+		cur := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if err := fn(cur); err != nil {
 			return err
+		}
+
+		children := GetChildren(cur)
+		for i := len(children) - 1; i >= 0; i-- {
+			stack = append(stack, &children[i])
 		}
 	}
 	return nil
+}
+
+func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedNode, []string) error) error {
+	if node == nil {
+		return nil
+	}
+
+	type frame struct {
+		node *stringParsing.ParsedNode
+		path []string
+	}
+	stack := []frame{{node, []string{getNodeName(node)}}}
+
+	for len(stack) > 0 {
+		f := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if err := fn(f.node, f.path); err != nil {
+			return err
+		}
+
+		children := GetChildren(f.node)
+
+		for i := len(children) - 1; i >= 0; i-- {
+			child := &children[i]
+			childPath := append(f.path, getNodeName(node))
+			stack = append(stack, frame{child, childPath})
+		}
+	}
+	return nil
+}
+
+func getNodeName(n *stringParsing.ParsedNode) string {
+	if n.Switch != "" {
+		return n.Switch
+	}
+	return ""
 }

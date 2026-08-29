@@ -20,3 +20,4 @@ type EngineInterface[CmdT int | string | byte | float32 | float64,
 
 type StringEngineInterface = EngineInterface[string, string, stringParsing.ParsedNode]
 type ByteEngineInterface = EngineInterface[int, []byte, byteParsing.ParsedBytes]
+type AstEngineInterface = StringEngineInterface

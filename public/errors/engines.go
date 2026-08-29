@@ -1,10 +1,18 @@
 package errors
 
 const (
-	ByteEngineProcessError1   ErrorCodeType = "Byte:PROCESS_ERR1"
-	ByteEngineProcessError2   ErrorCodeType = "Byte:PROCESS_ERR2"
+	ByteEngineProcessError1 ErrorCodeType = "Byte:PROCESS_ERR1"
+	ByteEngineProcessError2 ErrorCodeType = "Byte:PROCESS_ERR2"
+
 	StringEngineProcessError1 ErrorCodeType = "String:PROCESS_ERR1"
 	StringEngineProcessError2 ErrorCodeType = "String:PROCESS_ERR2"
+
+	AstEngineProcessError1 ErrorCodeType = "Ast:PROCESS_ERR1"
+	AstEngineProcessError2 ErrorCodeType = "Ast:PROCESS_ERR2"
+	AstEngineHandlerError  ErrorCodeType = "Ast:HANDLER_ERROR"
+	AstEngineUnknown       ErrorCodeType = "Ast:UNKNOWN_NODE"
+
+	EngineLifecycleEnd ErrorCodeType = "Engine:LIFECYCLE_END"
 )
 
 const (
