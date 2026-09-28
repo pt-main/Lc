@@ -15,36 +15,36 @@ type Parser1Config struct {
 	Shifter bytecode.Shift
 }
 
-// Parser1 decodes a binary stream according to a fixed‑length field layout.
+// Parser1 decodes a binary stream according to a fixed-length field layout.
 // Each bytecode instruction consists of:
 //
 //	command (CommandBytelen bytes)
 //	argscount (ArgscountBytelen bytes)
 //	for each argument: arglen (ArglenBytelen bytes) followed by arg data.
 //
-// Endianess (Little/BigEndian) is used to decode integer fields.
+// Endianness (Little/BigEndian) is used to decode integer fields.
 type Parser1 struct {
 	Config Parser1Config
 }
 
 // Parse reads the byte slice and returns a slice of ParsedBytes.
 // Each ParsedBytes contains the raw command bytes, the raw arguments,
-// and the original slice of the whole instruction. The ShiftStruct utility
+// and the original slice of the whole instruction. The Shift utility
 // is used internally for safe bounds checking.
 //
 // Err errors.ParsingError:
-//   - On panic recovery. Meta: EMK(0, "string") – the panic value.
-//   - On shift error (unexpected end of data). Meta: EMK(0, "int") – attempted length,
-//     EMK(1, "int") – current byte index.
-//   - On zero argument length. Meta: EMK(0, "int") – argument number.
-//   - On any other parsing error. Meta: EMK(0, "int") – command byte index.
+//   - On panic recovery. Meta: EMK(0, "string") - the panic value.
+//   - On shift error (unexpected end of data). Meta: EMK(0, "int") - attempted length,
+//     EMK(1, "int") - current byte index.
+//   - On zero argument length. Meta: EMK(0, "int") - argument number.
+//   - On any other parsing error. Meta: EMK(0, "int") - command byte index.
 //
 // The returned error always contains the command bytes, raw bytes, and byte index in metadata.
 func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []ParsedBytes, err core.ErrorInterface) {
-	var lastCmdSwitch []byte = []byte{0}
+	lastCmdSwitch := []byte{0}
 	var raw []byte
-	_idx := 0
-	var idx *int = &_idx
+	idxVal := 0
+	idx := &idxVal
 
 	oldIdxPtr := p.Config.Shifter.Idx
 	oldIdxVal := 0
@@ -62,45 +62,39 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			err = core.Err(errors.ParsingError, "Panic recovered during parsing: %v", r).
 				WithMeta(core.EMK(0, "string"), fmt.Sprintf("%v", r))
 		}
-		if err != nil {
-			var cmdStr string
-			var rawStr string
-			if len(lastCmdSwitch) > 0 {
-				cmdStr = fmt.Sprintf("%v", lastCmdSwitch)
-			} else {
-				cmdStr = "<unknown>"
-			}
-			if raw != nil {
-				rawStr = fmt.Sprintf("%v", raw)
-			} else {
-				rawStr = "<none>"
-			}
-			idxVal := 0
-			if idx != nil {
-				idxVal = *idx
-			}
-			if ce, ok := err.(*core.Error); ok {
-				if _, ok := ce.Meta[core.EMK(1, "string")]; !ok {
-					ce.WithMeta(core.EMK(1, "string"), rawStr)
-				}
-				if _, ok := ce.Meta[core.EMK(2, "string")]; !ok {
-					ce.WithMeta(core.EMK(2, "string"), cmdStr)
-				}
-				if _, ok := ce.Meta[core.EMK(3, "int")]; !ok {
-					ce.WithMeta(core.EMK(3, "int"), idxVal)
-				}
-				err = ce
-			} else {
-				err = core.Wrap(errors.ParsingError, err, "Parsing error at cmd=%v, raw=%v, idx=%d", cmdStr, rawStr, idxVal).
-					WithMeta(core.EMK(0, "string"), cmdStr).
-					WithMeta(core.EMK(1, "string"), rawStr).
-					WithMeta(core.EMK(2, "int"), idxVal)
-			}
+		if err == nil {
+			return
 		}
+		// A failed parse must not hand back a half decoded stream.
+		result = nil
+		cmdStr := fmt.Sprintf("%v", lastCmdSwitch)
+		if len(lastCmdSwitch) == 0 {
+			cmdStr = "<unknown>"
+		}
+		rawStr := fmt.Sprintf("%v", raw)
+		if raw == nil {
+			rawStr = "<none>"
+		}
+		if ce, ok := err.(*core.Error); ok {
+			if _, ok := ce.Meta[core.EMK(1, "string")]; !ok {
+				ce.WithMeta(core.EMK(1, "string"), rawStr)
+			}
+			if _, ok := ce.Meta[core.EMK(2, "string")]; !ok {
+				ce.WithMeta(core.EMK(2, "string"), cmdStr)
+			}
+			if _, ok := ce.Meta[core.EMK(3, "int")]; !ok {
+				ce.WithMeta(core.EMK(3, "int"), *idx)
+			}
+			return
+		}
+		err = core.Wrap(errors.ParsingError, err, "Parsing error at cmd=%v, raw=%v, idx=%d", cmdStr, rawStr, *idx).
+			WithMeta(core.EMK(0, "string"), cmdStr).
+			WithMeta(core.EMK(1, "string"), rawStr).
+			WithMeta(core.EMK(2, "int"), *idx)
 	}()
 
 	log := func(text string) {
-		if len(opts) > 0 && opts[0] != nil {
+		if len(opts) > 0 && opts[0] != nil && opts[0].UEP != nil {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
 				logger.PrintLog(public.LogParsing, text)
@@ -108,64 +102,60 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		}
 	}
 
-	log(fmt.Sprintf("=========== START ==========="))
+	log("=========== START ===========")
 	log(fmt.Sprintf("start parsing code: '%v'", code))
 	log(fmt.Sprintf("config: %v", p.Config))
 
 	u := bytecode.Utils{}
-	_Idx := p.Config.Shifter.Idx
+	shift := p.Config.Shifter.ShiftError
 	p.Config.Shifter.Idx = idx
 	p.Config.Shifter.Code = code
-	shift := p.Config.Shifter.ShiftError
 
 	for *idx < len(code) {
 		idxStart := *idx
-		var command []byte
-		command, err = shift(p.Config.GConfig.CommandBytelen)
+		command, err := shift(p.Config.GConfig.CommandBytelen)
 		if err != nil {
-			err = core.Wrap(errors.ParsingError, err, "Shift error while reading command").
+			return nil, core.Wrap(errors.ParsingError, err, "Shift error while reading command").
 				WithMeta(core.EMK(0, "int"), p.Config.GConfig.CommandBytelen).
 				WithMeta(core.EMK(1, "int"), *idx)
-			return
 		}
-		var argscountBytes []byte
-		argscountBytes, err = shift(p.Config.GConfig.ArgscountBytelen)
+		argscountBytes, err := shift(p.Config.GConfig.ArgscountBytelen)
 		if err != nil {
-			err = core.Wrap(errors.ParsingError, err, "Shift error while reading argscount").
+			return nil, core.Wrap(errors.ParsingError, err, "Shift error while reading argscount").
 				WithMeta(core.EMK(0, "int"), p.Config.GConfig.ArgscountBytelen).
 				WithMeta(core.EMK(1, "int"), *idx)
-			return
 		}
-		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianess)
+		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianness)
+		if argscount < 0 {
+			// BytesToInt sign-extends, so a count with the high bit set decodes
+			// negative. It must be rejected instead of yielding a 0-arg node.
+			return nil, core.Err(errors.ParsingError, "Negative argument count: %d", argscount).
+				WithMeta(core.EMK(0, "int"), argscount)
+		}
 		args := [][]byte{}
 		lastCmdSwitch = command
 		log(fmt.Sprintf("cmd %v, argscount %v", command, argscount))
 
 		for argNum := 0; argNum < argscount; argNum++ {
-			var arglenBytes []byte
-			arglenBytes, err = shift(p.Config.GConfig.ArglenBytelen)
+			arglenBytes, err := shift(p.Config.GConfig.ArglenBytelen)
 			if err != nil {
-				err = core.Wrap(errors.ParsingError, err, "Shift error while reading argument length").
+				return nil, core.Wrap(errors.ParsingError, err, "Shift error while reading argument length").
 					WithMeta(core.EMK(0, "int"), p.Config.GConfig.ArglenBytelen).
 					WithMeta(core.EMK(1, "int"), *idx).
 					WithMeta(core.EMK(2, "int"), argNum)
-				return
 			}
-			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianess)
+			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianness)
 			log(fmt.Sprintf("arglen %v", arglen))
 			if arglen == 0 {
-				err = core.Err(errors.ParsingError, "Zero argument length").
+				return nil, core.Err(errors.ParsingError, "Zero argument length").
 					WithMeta(core.EMK(0, "int"), argNum)
-				return
 			}
-			var arg []byte
-			arg, err = shift(arglen)
+			arg, err := shift(arglen)
 			if err != nil {
-				err = core.Wrap(errors.ParsingError, err, "Shift error while reading argument data").
+				return nil, core.Wrap(errors.ParsingError, err, "Shift error while reading argument data").
 					WithMeta(core.EMK(0, "int"), arglen).
 					WithMeta(core.EMK(1, "int"), *idx).
 					WithMeta(core.EMK(2, "int"), argNum)
-				return
 			}
 			log(fmt.Sprintf("arglen, args %v; %v", arglen, args))
 			args = append(args, arg)
@@ -178,9 +168,8 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			Metadata: make(map[string]interface{}),
 		})
 	}
-	p.Config.Shifter.Idx = _Idx
 	log(fmt.Sprintf("end parsing code:\n %v", result))
-	log(fmt.Sprintf("=========== END ==========="))
+	log("=========== END ===========")
 	return result, nil
 }
 

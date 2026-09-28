@@ -6,34 +6,16 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
-// # PluginManager
-//
-// Plugin manager contains plugins, and scope with flags (for plugins communicating)
-//
-// # Methods:
-//
-//	AddPlugin(PluginInterface) // Add plugin to manager. Name will got from plugin.Name(). If plugin with same name was already registred -> error. Calling plugin.Init(Scope, *PluginManager), and return result.
-//
-//	DeletePlugin(string) // Delete plugin from manager. No return if plugin is not found. Calling plugin.Close(), and return result.
-//
-//	GetPlugin(string) // Get plugin. Return error if not found.
-//
-//	RunPlugin(string, any) // Run plugin. Call plugin.Run(input) and return result. Return error if plugin is not found.
-//
-//	CallPluginMethod(string, string, core.Option...) // Call plugin method. Call plugin.Call(method, opts...) and return result. Return error if plugin not found.
-//
-//	End() // End plugin lifecycle
+// PluginManager holds the registered plugins and the scope they communicate
+// through. The private flags are only reachable through Tools.
 type PluginManager struct {
 	Plugins map[string]PluginInterface
 	Scope   core.ScopeType
-	flags   []string // You can work with flags with Tools
+	flags   []string
 }
 
-// Create new plugin manager.
-//
-// Args:
-//
-// - scope: scope (of engine, or empty), or nil
+// NewPluginManager creates a manager over the given scope, or over a fresh
+// empty one when scope is nil.
 func NewPluginManager(scope core.ScopeType) *PluginManager {
 	if scope == nil {
 		scope = make(core.ScopeType)
@@ -44,8 +26,8 @@ func NewPluginManager(scope core.ScopeType) *PluginManager {
 	}
 }
 
-// Add plugin to manager. Name will got from plugin.Name(). If plugin with same name was
-// already registred -> error.  Calling plugin.Init(Scope, *PluginManager), and return result.
+// AddPlugin registers the plugin under plugin.Name() and initialises it. A
+// name that is already taken is an error.
 func (pm *PluginManager) AddPlugin(plugin PluginInterface) error {
 	name := plugin.Name()
 	if _, exists := pm.Plugins[name]; exists {
@@ -55,8 +37,8 @@ func (pm *PluginManager) AddPlugin(plugin PluginInterface) error {
 	return plugin.Init(pm.Scope, pm)
 }
 
-// Delete plugin from manager. No return if plugin is not found. Calling plugin.Close(), and
-// return result.
+// DeletePlugin closes the plugin and drops it. A name that is not registered
+// is not an error.
 func (pm *PluginManager) DeletePlugin(name string) error {
 	if plugin, exists := pm.Plugins[name]; exists {
 		err := plugin.Close()
@@ -68,7 +50,7 @@ func (pm *PluginManager) DeletePlugin(name string) error {
 	return nil
 }
 
-// Get plugin. Return error if not found.
+// GetPlugin looks a plugin up by name.
 func (pm *PluginManager) GetPlugin(name string) (PluginInterface, error) {
 	plugin, ok := pm.Plugins[name]
 	if !ok {
@@ -77,7 +59,7 @@ func (pm *PluginManager) GetPlugin(name string) (PluginInterface, error) {
 	return plugin, nil
 }
 
-// Run plugin. Call plugin.Run(input) and return result. Return error if plugin is not found.
+// RunPlugin calls Run on the named plugin with the given input.
 func (pm *PluginManager) RunPlugin(name string, input any) (any, error) {
 	plugin, err := pm.GetPlugin(name)
 	if err != nil {
@@ -86,7 +68,7 @@ func (pm *PluginManager) RunPlugin(name string, input any) (any, error) {
 	return plugin.Run(input)
 }
 
-// Call plugin method. Call plugin.Call(method, opts...) and return result. Return error if plugin not found.
+// CallPluginMethod calls the named method of the named plugin.
 func (pm *PluginManager) CallPluginMethod(name, method string, opts ...core.Option) (any, error) {
 	plugin, err := pm.GetPlugin(name)
 	if err != nil {
@@ -95,13 +77,12 @@ func (pm *PluginManager) CallPluginMethod(name, method string, opts ...core.Opti
 	return plugin.Call(method, opts...)
 }
 
-// End plugin lifecycle
-func (pm *PluginManager) End() (err error) {
-	for plugin := range pm.Plugins {
-		err = pm.DeletePlugin(plugin)
-		if err != nil {
-			return
+// End closes and drops every plugin, stopping at the first error.
+func (pm *PluginManager) End() error {
+	for name := range pm.Plugins {
+		if err := pm.DeletePlugin(name); err != nil {
+			return err
 		}
 	}
-	return
+	return nil
 }

@@ -17,6 +17,10 @@ import (
 
 const Name = "profiler"
 
+// scopeStartTime is the key the pre hook stores the command start under in the
+// shared scope, where the post hook reads it back.
+const scopeStartTime = "profiler_start_time"
+
 type Metric struct {
 	Count     int64
 	TotalTime time.Duration
@@ -31,20 +35,11 @@ func (m *Metric) Avg() time.Duration {
 	return m.TotalTime / time.Duration(m.Count)
 }
 
-// # ProfilerPlugin
+// ProfilerPlugin counts and times every command through the hooks of
+// ExtensibleCLPlugin, which therefore has to be installed first.
 //
-// Connects to EngineUniversal,
-// requires ExtensibleCLPlugin.
-//
-// # Methods:
-//
-//	Call("report") -> (string, error) // Return report saved from last "reset"
-//
-//	Call("reset") -> ("reset done", error)
-//
-//	Call("enable") -> ("enabled", error)
-//
-//	Call("disable") -> ("disabled", error)
+// Call("report") returns the collected metrics, Call("reset") clears them and
+// Call("enable") / Call("disable") switch collecting on and off.
 type ProfilerPlugin struct {
 	plugin.Plugin
 	mu               sync.Mutex
@@ -73,7 +68,7 @@ func (p *ProfilerPlugin) Name() string {
 }
 
 func (p *ProfilerPlugin) Init(scope core.ScopeType, pm *plugin.PluginManager) error {
-	if !(&plugin.Tools{Pm: pm}).IsPluginInstaled(extensiblePlugin.Name) {
+	if !(&plugin.Tools{Pm: pm}).IsPluginInstalled(extensiblePlugin.Name) {
 		return fmt.Errorf("Extensible plugin is not installed, can't init profiler")
 	}
 	p.scope = scope
@@ -95,20 +90,25 @@ func (p *ProfilerPlugin) Init(scope core.ScopeType, pm *plugin.PluginManager) er
 	return nil
 }
 
-func (p *ProfilerPlugin) preEvent(ev *core.Events, i *core.EventInput) core.ErrorInterface {
-	if !p.enabled {
+func (p *ProfilerPlugin) isEnabled() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.enabled
+}
+
+func (p *ProfilerPlugin) preEvent(ev *core.Events, _ *core.EventInput) core.ErrorInterface {
+	if !p.isEnabled() {
 		return nil
 	}
-
-	ev.Scope()["profiler_start_time"] = time.Now()
+	ev.Scope()[scopeStartTime] = time.Now()
 	return nil
 }
 
-func (p *ProfilerPlugin) postEvent(ev *core.Events, i *core.EventInput) core.ErrorInterface {
-	if !p.enabled {
+func (p *ProfilerPlugin) postEvent(ev *core.Events, _ *core.EventInput) core.ErrorInterface {
+	if !p.isEnabled() {
 		return nil
 	}
-	startVal, ok := ev.Scope()["profiler_start_time"]
+	startVal, ok := ev.Scope()[scopeStartTime]
 	if !ok {
 		return nil
 	}
@@ -129,17 +129,18 @@ func (p *ProfilerPlugin) postEvent(ev *core.Events, i *core.EventInput) core.Err
 			attr := data.Parsed[*idx]
 			opcode := 0
 			if attr.RawNode != nil {
-				opcode = int((&bytecode.Utils{}).BytesToInt(attr.RawNode.Switch, public.LittleEndian))
+				opcode = (&bytecode.Utils{}).BytesToInt(attr.RawNode.Switch, public.LittleEndian)
 			}
 			p.updateMetricByte(opcode, elapsed)
 		}
-	} else if data, err := core.ScopeGet[extensiblePlugin.SCLEData](ev.Scope(), extensiblePlugin.CLEScopeData); err == nil {
+		return nil
+	}
+	if data, err := core.ScopeGet[extensiblePlugin.SCLEData](ev.Scope(), extensiblePlugin.CLEScopeData); err == nil {
 		p.totalStringCalls++
 		p.totalStringTime += elapsed
 		idx := data.Idx
 		if idx != nil && *idx >= 0 && *idx < len(data.Parsed) {
-			node := data.Parsed[*idx]
-			p.updateMetricString(node.Switch, elapsed)
+			p.updateMetricString(data.Parsed[*idx].Switch, elapsed)
 		}
 	}
 	return nil
@@ -227,14 +228,23 @@ func (p *ProfilerPlugin) Reset() {
 	p.startTime = time.Now()
 }
 
-func (p *ProfilerPlugin) Enable()  { p.enabled = true }
-func (p *ProfilerPlugin) Disable() { p.enabled = false }
+func (p *ProfilerPlugin) Enable() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.enabled = true
+}
+
+func (p *ProfilerPlugin) Disable() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.enabled = false
+}
 
 func (p *ProfilerPlugin) Close() error {
 	return nil
 }
 
-func (p *ProfilerPlugin) Call(name string, opts ...core.Option) (any, error) {
+func (p *ProfilerPlugin) Call(name string, _ ...core.Option) (any, error) {
 	switch name {
 	case "report":
 		return p.Report(), nil
@@ -252,6 +262,6 @@ func (p *ProfilerPlugin) Call(name string, opts ...core.Option) (any, error) {
 	}
 }
 
-func (p *ProfilerPlugin) Run(input any) (any, error) {
+func (p *ProfilerPlugin) Run(any) (any, error) {
 	return nil, nil
 }

@@ -3,6 +3,7 @@ package stringParsing
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/engine/core"
@@ -52,5 +53,30 @@ begin{
 		if nodes[idx].Switch != expected {
 			t.Fatalf("Mismatch at index %d: expected %q, got %q", idx, expected, nodes[idx].Switch)
 		}
+	}
+}
+
+func TestLexer_ZeroLengthMatchDoesNotHang(t *testing.T) {
+	rules := []LexerRule{
+		{Type: "EMPTY", Pattern: regexp2.MustCompile(`x*`, 0)},
+		{Type: "A", Pattern: regexp2.MustCompile(`a`, 0)},
+	}
+	lexer := NewLexer(rules, nil)
+
+	done := make(chan struct{})
+	var nodes []ParsedNode
+	var err error
+	go func() {
+		nodes, err = lexer.Parse("abc")
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("a rule that can match the empty string made the lexer spin forever")
+	}
+	if err == nil {
+		t.Fatalf("an empty match must not be accepted as a token, got %d nodes", len(nodes))
 	}
 }

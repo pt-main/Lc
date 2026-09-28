@@ -7,12 +7,12 @@ import (
 )
 
 // StringCallLoopEvent is the main loop for string-based command execution.
-// It wraps the standard events with pre‑ and post‑iteration hooks.
+// It wraps the standard events with pre- and post-iteration hooks.
 //
 // Err errors.ExtensiblePluginError:
 //   - If core.ScopeGet fails to retrieve SCLEData.
 //   - If StringCallEventIteration fails.
-//   - Meta: EMK(0, "string") – the raw line that caused the error (if available).
+//   - Meta: EMK(0, "string") - the raw line that caused the error (if available).
 func (ep *ExtensibleCLPlugin) StringCallLoopEvent(ev *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	cld := i.Input.(events.StringCLDType)
 	idx := cld.Idx
@@ -28,7 +28,7 @@ func (ep *ExtensibleCLPlugin) StringCallLoopEvent(ev *core.Events, i *core.Event
 		Ctx:    ctx,
 		E:      e,
 	}
-	ep.Events.CallEvents(nil, CLEPreEvent, true) // ignore error (canWorkWithoutHandler)
+	ep.Events.CallEvents(nil, CLEPreEvent, true)
 	sd, err := core.ScopeGet[SCLEData](ep.Events.Scope(), CLEScopeData)
 	if err != nil {
 		return core.Wrap(errors.ExtensiblePluginError, err, "Failed to retrieve SCLEData from scope").
@@ -41,10 +41,9 @@ func (ep *ExtensibleCLPlugin) StringCallLoopEvent(ev *core.Events, i *core.Event
 	ctx = sd.Ctx
 	e = sd.E
 	for *idx < pLen && *idx >= 0 {
-		ep.Events.CallEvents(nil, CLEInPreEvent, true) // ignore error
+		ep.Events.CallEvents(nil, CLEInPreEvent, true)
 		err = ep.de.StringCallEventIteration(parsed, idx, ev, ctx, e)
 		if err != nil {
-			// Обогащаем ошибку, если это core.Error
 			if ce, ok := err.(*core.Error); ok {
 				ce.WithMeta(core.EMK(0, "string"), "StringCallLoopEvent")
 			} else {
@@ -53,21 +52,21 @@ func (ep *ExtensibleCLPlugin) StringCallLoopEvent(ev *core.Events, i *core.Event
 			}
 			return err
 		}
-		ep.Events.CallEvents(nil, CLEInPostEvent, true) // ignore error
+		ep.Events.CallEvents(nil, CLEInPostEvent, true)
 	}
-	ep.Events.CallEvents(nil, CLEPostEvent, true) // ignore error
+	ep.Events.CallEvents(nil, CLEPostEvent, true)
 	return nil
 }
 
 // ByteCallHotLoopEvent is the main loop for bytecode execution.
-// It wraps the standard byte‑call loop with pre‑ and post‑iteration hooks.
+// It wraps the standard byte-call loop with pre- and post-iteration hooks.
 //
 // Err errors.ExtensiblePluginError:
 //   - If the input is not of type ByteCLDType.
-//     Meta: EMK(0, "string") – the actual type (if available).
+//     Meta: EMK(0, "string") - the actual type (if available).
 //   - If core.ScopeGet fails to retrieve BCLEData.
 //   - If ByteCallEventIteration fails.
-//   - Meta: EMK(0, "int") – bytecode index where the error occurred.
+//   - Meta: EMK(0, "int") - bytecode index where the error occurred.
 func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	hld, ok := i.Input.(events.ByteCLDType)
 	if !ok {
@@ -87,7 +86,7 @@ func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.Even
 		Ctx:    ctx,
 		E:      e,
 	}
-	ep.Events.CallEvents(nil, CLEPreEvent, true) // ignore error
+	ep.Events.CallEvents(nil, CLEPreEvent, true)
 	sd, err := core.ScopeGet[BCLEData](ep.Events.Scope(), CLEScopeData)
 	if err != nil {
 		return core.Wrap(errors.ExtensiblePluginError, err, "Failed to retrieve BCLEData from scope").
@@ -100,7 +99,7 @@ func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.Even
 	ctx = sd.Ctx
 	e = sd.E
 	for *idx < p2len && *idx >= 0 {
-		ep.Events.CallEvents(nil, CLEInPreEvent, true) // ignore error
+		ep.Events.CallEvents(nil, CLEInPreEvent, true)
 		if ctx.Err() != nil {
 			err = core.Wrap(errors.ExtensiblePluginError, ctx.Err(), "Context cancelled during loop").
 				WithMeta(core.EMK(0, "int"), *idx)
@@ -108,7 +107,6 @@ func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.Even
 		}
 		err = ep.de.ByteCallEventIteration(idx, &parsed[*idx], e)
 		if err != nil {
-			// Обогащаем ошибку
 			if ce, ok := err.(*core.Error); ok {
 				ce.WithMeta(core.EMK(0, "int"), *idx)
 			} else {
@@ -117,8 +115,8 @@ func (ep *ExtensibleCLPlugin) ByteCallHotLoopEvent(ev *core.Events, i *core.Even
 			}
 			break
 		}
-		ep.Events.CallEvents(nil, CLEInPostEvent, true) // ignore error
+		ep.Events.CallEvents(nil, CLEInPostEvent, true)
 	}
-	ep.Events.CallEvents(nil, CLEPostEvent, true) // ignore error
-	return
+	ep.Events.CallEvents(nil, CLEPostEvent, true)
+	return err
 }

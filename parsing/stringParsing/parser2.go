@@ -8,19 +8,18 @@ import (
 	"github.com/pt-main/lc/public/errors"
 )
 
-// Parser2 is a simple command‑args line parser.
+// Parser2 is a simple command-args line parser.
 type Parser2 struct{}
 
-// Parse converts each non‑empty line into a ParsedNode.
+// Parse converts each non-empty line into a ParsedNode.
 //
 // Err errors.ParsingError:
 //   - If no valid lines are found in the input.
-//     Meta: EMK(0, "string") – the whole input string.
-func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
-	lines := strings.Split(code, "\n")
+//     Meta: EMK(0, "string") - the whole input string.
+func (Parser2) Parse(code string, _ ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
 	result := []ParsedNode{}
 
-	for _, rawLine := range lines {
+	for _, rawLine := range strings.Split(code, "\n") {
 		line := strings.TrimSpace(rawLine)
 		if line == "" {
 			continue
@@ -33,18 +32,15 @@ func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 			args = parts[1]
 		}
 
-		meta := map[string]interface{}{
-			"command": command,
-			"args":    args,
-			"__raw":   rawLine,
-		}
-
-		node := ParsedNode{
-			Raw:      rawLine,
-			Switch:   command,
-			Metadata: meta,
-		}
-		result = append(result, node)
+		result = append(result, ParsedNode{
+			Raw:    rawLine,
+			Switch: command,
+			Metadata: map[string]interface{}{
+				"command": command,
+				"args":    args,
+				"__raw":   rawLine,
+			},
+		})
 	}
 
 	if len(result) == 0 {
@@ -54,6 +50,6 @@ func (p *Parser2) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 	return addPrevNextNodes(result), nil
 }
 
-func (p *Parser2) String() string {
+func (Parser2) String() string {
 	return "lc/parsing/stringParsing/Parser2"
 }

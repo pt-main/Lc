@@ -19,7 +19,7 @@ func BenchmarkByteProcessing(b *testing.B) {
 	gc := byteParsing.Parser1Config{
 		GConfig: bytecode.GenerationConfig{
 			CommandBytelen: 1, ArgscountBytelen: 1,
-			ArglenBytelen: 1, Endianess: end,
+			ArglenBytelen: 1, Endianness: end,
 		}, Shifter: *bytecode.NewShift(make([]byte, 0), &_idx),
 	}
 	e := lc.NewByteEngine(

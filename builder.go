@@ -12,46 +12,40 @@ import (
 	"github.com/pt-main/lc/tooling/plugin"
 )
 
-type stringParser parsing.ParserInterface[string, stringParsing.ParsedNode]
-type byteParser parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
+type (
+	stringParser parsing.ParserInterface[string, stringParsing.ParsedNode]
+	byteParser   parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
+)
 
-// EngineBuilder is a fluent builder for constructing universal engines.
-// It allows to configure pipeline stages, event handling, logging,
-// custom parsers, scope variables, and byte order before calling Build().
-// Use NewEngineBuilder to create a builder instance.
+// EngineBuilder is a fluent builder for universal engines. It configures
+// pipeline stages, event handling, logging, custom parsers, scope variables
+// and byte order before Build produces the engine.
 type EngineBuilder struct {
 	engineType       public.EngineType
+	resType          public.ResType
 	pipeline         []string
 	addDefaultEvents bool
 	logger           *core.Logger
 	scope            core.ScopeType
 	stringParser     stringParser
 	byteParser       byteParser
-	endianess        public.EndianType
-	colorEnabled     bool
-	context          context.Context
-	pm               bool
+	endianness       public.EndianType
+	hasPlugins       bool
 	plugins          []plugin.PluginInterface
+	context          context.Context
 	cancel           context.CancelCauseFunc
-	resType          public.ResType
 }
 
-// NewEngineBuilder creates a new EngineBuilder for the given engine type.
-// engineType must be either ByteEngineType or StringEngineType.
+// NewEngineBuilder creates a builder for the given engine and result type.
 // Defaults: pipeline = []string{"main"}, default events enabled,
-// endianess = bytecode.LittleEndian, empty scope.
-// Example:
-//
-//	builder := lc.NewEngineBuilder(lc.StringEngineType).
-//	            WithPipeline([]string{"pre","main"}).
-//	            WithStringParser(myParser)
+// endianness = public.LittleEndian, empty scope.
 func NewEngineBuilder(engineType public.EngineType, resType public.ResType) *EngineBuilder {
 	return &EngineBuilder{
 		engineType:       engineType,
 		resType:          resType,
 		pipeline:         []string{"main"},
 		addDefaultEvents: true,
-		endianess:        public.LittleEndian,
+		endianness:       public.LittleEndian,
 		scope:            make(core.ScopeType),
 		context:          context.Background(),
 	}
@@ -94,21 +88,19 @@ func (b *EngineBuilder) WithByteParser(parser byteParser) *EngineBuilder {
 	return b
 }
 
-func (b *EngineBuilder) WithEndianess(endianess public.EndianType) *EngineBuilder {
-	b.endianess = endianess
+func (b *EngineBuilder) WithEndianness(endianness public.EndianType) *EngineBuilder {
+	b.endianness = endianness
 	return b
 }
 
 func (b *EngineBuilder) WithPlugins(plugins ...plugin.PluginInterface) *EngineBuilder {
-	b.pm = true
+	b.hasPlugins = true
 	b.plugins = append(b.plugins, plugins...)
 	return b
 }
 
-// Build constructs and returns an EngineUniversal or an error if
-// required components are missing (e.g., a string parser for a StringEngine).
-// The returned engineUniversal can process strings or bytes depending
-// on its type and provides methods to register commands.
+// Build constructs the EngineUniversal, or returns an error when a required
+// component is missing, such as a parser for the selected engine type.
 func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 	var eu *EngineUniversal
 	switch b.engineType {
@@ -130,10 +122,10 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			strEngine.UEP.Scope[k] = v
 		}
 		eu = &EngineUniversal{
-			Plugins:        &plugin.PluginManager{},
-			Type:           b.engineType,
-			StringEngine:   strEngine,
-			opcode_counter: 0,
+			Plugins:      &plugin.PluginManager{},
+			Type:         b.engineType,
+			StringEngine: strEngine,
+			Context:      b.context,
 		}
 
 	case public.ByteEngineType:
@@ -145,7 +137,7 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			b.pipeline,
 			b.addDefaultEvents,
 			b.byteParser,
-			b.endianess,
+			b.endianness,
 			b.context,
 		)
 		if b.logger != nil {
@@ -155,10 +147,10 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 			byteEngine.UEP.Scope[k] = v
 		}
 		eu = &EngineUniversal{
-			Plugins:        &plugin.PluginManager{},
-			Type:           b.engineType,
-			ByteEngine:     byteEngine,
-			opcode_counter: 0,
+			Plugins:    &plugin.PluginManager{},
+			Type:       b.engineType,
+			ByteEngine: byteEngine,
+			Context:    b.context,
 		}
 
 	default:
@@ -169,22 +161,28 @@ func (b *EngineBuilder) Build() (*EngineUniversal, error) {
 		Scope:   core.ScopeType{public.PluginsScopeEuPtr: eu},
 	}
 	uep, _ := eu.GetUEP()
-	if b.pm {
-		if b.plugins != nil {
-			for _, plugin := range b.plugins {
-				err := pm.AddPlugin(plugin)
-				if err != nil {
-					return nil, errors.New("EngineBuilder.Build: " + err.Error())
-				}
-			}
-			for k, v := range uep.Scope {
-				pm.Scope[k] = v
-			}
-		}
-	}
+	// The manager has to be published before the plugins initialise, otherwise
+	// Init sees a nil eu.Plugins and a scope without EuScopePmPtr.
 	eu.CtxCancelCause = b.cancel
-	eu.ended = false
+	eu.ended.Store(false)
 	eu.Plugins = pm
 	uep.Scope[public.EuScopePmPtr] = pm
+	if !b.hasPlugins {
+		return eu, nil
+	}
+	for k, v := range uep.Scope {
+		pm.Scope[k] = v
+	}
+	for _, p := range b.plugins {
+		if err := pm.AddPlugin(p); err != nil {
+			// Plugins already added hold engine resources, so a failed
+			// build must not leave them running.
+			_ = pm.End()
+			if b.cancel != nil {
+				b.cancel(errors.New("EngineBuilder.Build: " + err.Error()))
+			}
+			return nil, errors.New("EngineBuilder.Build: " + err.Error())
+		}
+	}
 	return eu, nil
 }

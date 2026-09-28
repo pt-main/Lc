@@ -6,12 +6,9 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
-// # Plugin
-//
-// PluginInterface realization base working on events.
-//
-// Method calling calls evant named as method name from local Events engine.
-// Name of plugin is constant and immutable.
+// Plugin is the event-based PluginInterface realization. Method calls are
+// dispatched to the event named after the method in the local Events engine.
+// The name of a plugin is constant and immutable.
 type Plugin struct {
 	Events             *core.Events
 	ScopeRunResultKey  string
@@ -29,15 +26,15 @@ func NewPlugin(
 	mainEvent, closeEvent,
 	scopeRunResultKey,
 	scopeCallResultKey string,
-	context context.Context,
+	ctx context.Context,
 ) *Plugin {
 	return &Plugin{
-		Events:             core.NewEvents(context),
+		Events:             core.NewEvents(ctx),
 		name:               name,
 		InitEvent:          initEvent,
 		MainEvent:          mainEvent,
 		CloseEvent:         closeEvent,
-		ScopeRunResultKey:  scopeCallResultKey,
+		ScopeRunResultKey:  scopeRunResultKey,
 		ScopeCallResultKey: scopeCallResultKey,
 	}
 }
@@ -79,6 +76,6 @@ func (p *Plugin) Call(name string, opts ...core.Option) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _ := core.ScopeGet[any](p.Events.Scope(), p.ScopeRunResultKey)
+	res, _ := core.ScopeGet[any](p.Events.Scope(), p.ScopeCallResultKey)
 	return res, nil
 }

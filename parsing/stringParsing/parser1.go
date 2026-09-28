@@ -23,7 +23,7 @@ type Parser1Config struct {
 	TrimBlocksSpace     bool
 }
 
-// Parser1 implements a regex‑based grammar parser with line continuation
+// Parser1 implements a regex-based grammar parser with line continuation
 // and bracket balancing support.
 type Parser1 struct {
 	grammar     []GrammarRule
@@ -52,28 +52,26 @@ func NewParser1(rules []GrammarRule, config Parser1Config) *Parser1 {
 	}
 }
 
-// Parse splits the input into logical blocks and applies grammar rules.
+// Parse splits the input into logical blocks and applies the grammar rules to
+// each of them.
 //
 // Err errors.ParsingError:
 //   - If no rule matches a block.
-//     Meta: EMK(0, "string") – the block that failed to match.
+//     Meta: EMK(0, "string") - the block that failed to match.
 func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
 	log := func(text string) {
-		text = "\n" + text
-		if len(opts) > 0 {
+		if len(opts) > 0 && opts[0] != nil && opts[0].UEP != nil {
 			logger := opts[0].UEP.Logger
 			if logger != nil {
-				logger.PrintLog(public.LogParsing, text)
+				logger.PrintLog(public.LogParsing, "\n"+text)
 			}
 		}
 	}
 	log("start parsing code " + code)
-	lines := strings.Split(code, "\n")
 	var result []ParsedNode
 
 	var blockLines []string
 	bracketStack := []rune{}
-
 	flush := func(block string) core.ErrorInterface {
 		node, err := p.matchGrammar(block)
 		if err != nil {
@@ -86,7 +84,7 @@ func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 		return nil
 	}
 
-	for _, rawLine := range lines {
+	for _, rawLine := range strings.Split(code, "\n") {
 		line := strings.TrimRight(rawLine, " \t")
 
 		if line == "" && len(bracketStack) == 0 && !p.config.UseBracketBalance {
@@ -141,7 +139,7 @@ func (p *Parser1) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode
 }
 
 func (p *Parser1) matchGrammar(block string) (ParsedNode, core.ErrorInterface) {
-	absolutely_raw := block
+	untrimmed := block
 	if p.config.TrimBlocksSpace {
 		block = strings.TrimSpace(block)
 	}
@@ -149,22 +147,22 @@ func (p *Parser1) matchGrammar(block string) (ParsedNode, core.ErrorInterface) {
 		return ParsedNode{Raw: ""}, nil
 	}
 	for _, rule := range p.grammar {
-		if rule.Pattern.MatchString(block) {
-			meta := make(map[string]interface{})
-			matches := rule.Pattern.FindStringSubmatch(block)
-			names := rule.Pattern.SubexpNames()
-			for i, name := range names {
-				if i != 0 && name != "" && i < len(matches) {
-					meta[name] = matches[i]
-				}
-			}
-			meta["__raw"] = absolutely_raw
-			return ParsedNode{
-				Raw:      block,
-				Switch:   rule.Type,
-				Metadata: meta,
-			}, nil
+		if !rule.Pattern.MatchString(block) {
+			continue
 		}
+		meta := make(map[string]interface{})
+		matches := rule.Pattern.FindStringSubmatch(block)
+		for i, name := range rule.Pattern.SubexpNames() {
+			if i != 0 && name != "" && i < len(matches) {
+				meta[name] = matches[i]
+			}
+		}
+		meta["__raw"] = untrimmed
+		return ParsedNode{
+			Raw:      block,
+			Switch:   rule.Type,
+			Metadata: meta,
+		}, nil
 	}
 	return ParsedNode{}, core.Err(errors.ParsingError, "Syntax error: no rule matches block: %q", block).
 		WithMeta(core.EMK(0, "string"), block)

@@ -22,9 +22,8 @@ type EventsInterface interface {
 }
 
 // Events manages an ordered collection of event handlers. Each event has a
-// name (string) and a list of EventType functions. The CallEvents method
-// invokes all handlers of an event in registration order. Events can also
-// automatically wrap calls with start/end events for logging.
+// name and a list of EventType functions, and CallEvents invokes the
+// handlers of an event in registration order.
 type Events struct {
 	scope      ScopeType
 	Context    context.Context
@@ -40,18 +39,20 @@ func (e *Events) GetEvents(name string) ([]EventType, ErrorInterface) {
 	defer e.mu.RUnlock()
 	val, ok := e.events[name]
 	if !ok {
-		return nil, Err(errors.EventsEventIsNotFound, name)
+		return nil, Err(errors.EventsEventIsNotFound, "%s", name)
 	}
-	return val, nil
+	return append(make([]EventType, 0, len(val)), val...), nil
 }
 
 func (e *Events) SetEvents(name string, events []EventType, coreEvent int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if events == nil {
-		events = make([]EventType, 0)
+		events = []EventType{}
 	}
-	e.events[name] = events
+	// A copy is stored, otherwise a caller keeping the slice could mutate the
+	// handler list without holding e.mu.
+	e.events[name] = append(make([]EventType, 0, len(events)), events...)
 	e.coreEvents[name] = coreEvent
 }
 
@@ -61,13 +62,19 @@ func (e *Events) GetCoreEventIdx(name string) (int, ErrorInterface) {
 	defer e.mu.RUnlock()
 	ce, ok := e.coreEvents[name]
 	if !ok {
-		return -1, Err(errors.EventsEventIsNotFound, name)
+		return -1, Err(errors.EventsEventIsNotFound, "%s", name)
 	}
 	return ce, nil
 }
 
 func (e *Events) CoreEvents() map[string]int {
-	return e.coreEvents
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	res := make(map[string]int, len(e.coreEvents))
+	for k, v := range e.coreEvents {
+		res[k] = v
+	}
+	return res
 }
 
 func (e *Events) NewEvent(name string, event EventType) {
@@ -105,13 +112,11 @@ func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandle
 	if err != nil {
 		if canWorkWithoutHandler {
 			return nil
-		} else {
-			return Wrap(errors.EventsEventError, err, "Can't found event")
 		}
+		return Wrap(errors.EventsEventError, err, "Can't find event")
 	}
 	for _, event := range res {
-		err := event(e, input)
-		if err != nil {
+		if err := event(e, input); err != nil {
 			return Wrap(errors.EventsEventError, err, "Event handler failed")
 		}
 	}
@@ -119,32 +124,37 @@ func (e *Events) callEvents(input *EventInput, name string, canWorkWithoutHandle
 }
 
 // Err errors.EventsEventError (from 'callEvents')
-func (e *Events) CallEvents(input *EventInput, name string,
-	canWorkWithoutHandler bool) ErrorInterface {
-	e.scope[public.EventsScopeCallName] = name
+func (e *Events) CallEvents(input *EventInput, name string, canWorkWithoutHandler bool) ErrorInterface {
+	// e.mu guards the maps in this struct, so the two bookkeeping writes go
+	// through it; without it concurrent calls raced on the shared scope map.
+	ScopeSetSynced(e.scope, public.EventsScopeCallName, name)
 	var err ErrorInterface
-	if e.debug {
-		err = e.callEvents(nil, public.CallEventsStartEvent, true)
-		if err != nil {
+	if e.isDebug() {
+		if err = e.callEvents(nil, public.CallEventsStartEvent, true); err != nil {
 			return err
 		}
 	}
 	err = e.callEvents(input, name, canWorkWithoutHandler)
-	e.scope[public.EventsScopeCallError] = err
-	if e.debug {
-		err1 := e.callEvents(nil, public.CallEventsEndEvent, true)
-		if err1 != nil {
+	ScopeSetSynced(e.scope, public.EventsScopeCallError, err)
+	if e.isDebug() {
+		// A failure of the debug end handler must not hide the real error, so
+		// it is only reported when the call itself succeeded.
+		if err1 := e.callEvents(nil, public.CallEventsEndEvent, true); err1 != nil && err == nil {
 			return err1
 		}
 	}
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
+}
 
+func (e *Events) isDebug() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.debug
 }
 
 func (e *Events) ReplaceEvent(name string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	delete(e.events, name)
 	delete(e.coreEvents, name)
 }
@@ -153,11 +163,13 @@ func (e *Events) ReplaceEvent(name string) {
 func (e *Events) SetProperty(name string, value interface{}) ErrorInterface {
 	switch name {
 	case "debug":
-		var ok bool
-		e.debug, ok = value.(bool)
+		flag, ok := value.(bool)
 		if !ok {
 			return Err(errors.EventsSystemError, "Invalid property value (must be bool): %v", value)
 		}
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		e.debug = flag
 		return nil
 	default:
 		return Err(errors.EventsSystemError, "Invalid property name: %v", name)
@@ -168,22 +180,25 @@ func (e *Events) Scope() ScopeType {
 	return e.scope
 }
 
-// NewEvents creates an empty Events instance with an ordered map.
-// The Scope map is initially empty but can be used to pass data between
-// event handlers.
-func NewEvents(context context.Context) *Events {
+// NewEvents creates an empty Events instance. The Scope map starts empty and
+// is shared by the event handlers.
+func NewEvents(ctx context.Context) *Events {
 	return &Events{
 		scope:      make(ScopeType),
 		events:     make(map[string][]EventType),
 		coreEvents: make(map[string]int),
-		Context:    context,
+		Context:    ctx,
 	}
 }
 
+// EventsTools works with the core event of an event, the first handler
+// registered under its name.
 type EventsTools struct {
 	Events EventsInterface
 }
 
+// ChangeCoreEvent replaces the core event of name, leaving every other
+// handler of that event in place.
 func (et *EventsTools) ChangeCoreEvent(name string, event EventType) ErrorInterface {
 	e := et.Events
 	idx, err := e.GetCoreEventIdx(name)
@@ -197,26 +212,24 @@ func (et *EventsTools) ChangeCoreEvent(name string, event EventType) ErrorInterf
 	if idx < 0 {
 		return Err(errors.EventsSystemError, "Can't change core event: %v", name)
 	}
-	pre := events[:idx]
-	post := events[idx+1:]
-	done := append(append(pre, event), post...)
+	done := append(append(events[:idx:idx], event), events[idx+1:]...)
 	e.SetEvents(name, done, idx)
 	return nil
 }
 
+// GetCoreEvent returns the core event of name.
 func (et *EventsTools) GetCoreEvent(name string) (EventType, ErrorInterface) {
-	var etn EventType
 	e := et.Events
 	idx, err := e.GetCoreEventIdx(name)
 	if err != nil {
-		return etn, err
+		return nil, err
 	}
 	ev, err := e.GetEvents(name)
 	if err != nil {
-		return etn, err
+		return nil, err
 	}
-	if idx < 0 || idx > (len(ev)-1) {
-		return etn, Err(errors.EventsSystemError, "Invalid core event idx")
+	if idx < 0 || idx > len(ev)-1 {
+		return nil, Err(errors.EventsSystemError, "Invalid core event idx")
 	}
 	return ev[idx], nil
 }

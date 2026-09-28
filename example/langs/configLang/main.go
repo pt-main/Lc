@@ -101,9 +101,12 @@ func Process(config string) (string, error) {
 	}
 	cfg := uep.Scope["config"].(map[string]map[string]interface{})
 	jsonData, err := json.MarshalIndent(cfg, "", "  ")
-	report, err := engine.Plugins.CallPluginMethod("profiler", "report")
-	fmt.Println(report, err)
-	return string(jsonData), err
+	if err != nil {
+		return "", err
+	}
+	report, perr := engine.Plugins.CallPluginMethod("profiler", "report")
+	fmt.Println(report, perr)
+	return string(jsonData), nil
 }
 
 func parseValue(raw string) interface{} {

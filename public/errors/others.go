@@ -1,15 +1,15 @@
 package errors
 
 const (
-	ScopeGetError ErrorCodeType = "SCOPE_GET" /* metadata ScopeGetErrorMetakey : string */
+	// ScopeGetError carries the offending key in EMK(0, "string").
+	ScopeGetError ErrorCodeType = "SCOPE_GET"
 )
 
 const (
-	CorePackageSystemError ErrorCodeType = "SYSTEM@CORE"
-	CorePackageLcError     ErrorCodeType = "SYSTEM@LC"
-	WrappedError           ErrorCodeType = "WrappedError"
-
+	CorePackageSystemError      ErrorCodeType = "SYSTEM@CORE"
+	CorePackageLcError          ErrorCodeType = "SYSTEM@LC"
 	CorePackageLcLifecycleError ErrorCodeType = "SYSTEM@LC:LIFECYCLE"
+	WrappedError                ErrorCodeType = "WrappedError"
 )
 
 const (

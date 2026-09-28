@@ -2,6 +2,11 @@ package astools
 
 import "github.com/pt-main/lc/parsing/stringParsing"
 
+// GetChildren returns the child slice stored in the node metadata. The slice
+// shares its backing array with the tree, so &children[i] is a real pointer
+// into it. Appending to the returned slice can reallocate that array, after
+// which previously returned pointers no longer refer to the tree; re-look-up
+// instead of caching a pointer across a mutation.
 func GetChildren(node *stringParsing.ParsedNode) []stringParsing.ParsedNode {
 	if node == nil {
 		return nil
@@ -12,33 +17,36 @@ func GetChildren(node *stringParsing.ParsedNode) []stringParsing.ParsedNode {
 	return nil
 }
 
+// FindChild returns the first child with the given switch name, or nil.
 func FindChild(node *stringParsing.ParsedNode, switchName string) *stringParsing.ParsedNode {
-	for _, child := range GetChildren(node) {
-		if child.Switch == switchName {
-			return &child
+	children := GetChildren(node)
+	for i := range children {
+		if children[i].Switch == switchName {
+			return &children[i]
 		}
 	}
 	return nil
 }
 
+// FindChildIndex returns the index of the first child with the given switch
+// name, or -1 when there is none.
 func FindChildIndex(node *stringParsing.ParsedNode, switchName string) int {
-	if node == nil {
-		return -1
-	}
 	children := GetChildren(node)
-	for i, child := range children {
-		if child.Switch == switchName {
+	for i := range children {
+		if children[i].Switch == switchName {
 			return i
 		}
 	}
 	return -1
 }
 
+// FindChildren returns every child with the given switch name.
 func FindChildren(node *stringParsing.ParsedNode, switchName string) []stringParsing.ParsedNode {
 	var result []stringParsing.ParsedNode
-	for _, child := range GetChildren(node) {
-		if child.Switch == switchName {
-			result = append(result, child)
+	children := GetChildren(node)
+	for i := range children {
+		if children[i].Switch == switchName {
+			result = append(result, children[i])
 		}
 	}
 	return result
@@ -51,7 +59,8 @@ func GetTokenValue(node *stringParsing.ParsedNode) string {
 	if node.Raw != "" {
 		return node.Raw
 	}
-	if val, ok := node.Metadata["value"].(string); ok {
+	// The lexer stores the matched text under "__value".
+	if val, ok := node.Metadata["__value"].(string); ok {
 		return val
 	}
 	return ""
@@ -110,7 +119,11 @@ func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedN
 
 		for i := len(children) - 1; i >= 0; i-- {
 			child := &children[i]
-			childPath := append(f.path, getNodeName(node))
+			// A fresh slice per child: appending to f.path directly would let
+			// siblings share one backing array and overwrite each other.
+			childPath := make([]string, len(f.path), len(f.path)+1)
+			copy(childPath, f.path)
+			childPath = append(childPath, getNodeName(child))
 			stack = append(stack, frame{child, childPath})
 		}
 	}
@@ -118,8 +131,5 @@ func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedN
 }
 
 func getNodeName(n *stringParsing.ParsedNode) string {
-	if n.Switch != "" {
-		return n.Switch
-	}
-	return ""
+	return n.Switch
 }

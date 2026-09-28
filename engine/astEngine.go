@@ -11,6 +11,7 @@ import (
 	"github.com/pt-main/lc/tooling/astools"
 )
 
+// AstCommandCtxPath is the position of a node inside the tree walk.
 type AstCommandCtxPath struct {
 	Path  []string
 	Nodes []*stringParsing.ParsedNode
@@ -18,11 +19,13 @@ type AstCommandCtxPath struct {
 
 func MakeAstCommandCtxPath() *AstCommandCtxPath {
 	return &AstCommandCtxPath{
-		Path:  make([]string, 0),
-		Nodes: make([]*stringParsing.ParsedNode, 0),
+		Path:  []string{},
+		Nodes: []*stringParsing.ParsedNode{},
 	}
 }
 
+// AstCommandCtx is the per-command state a handler can inspect and set while
+// the tree is walked.
 type AstCommandCtx struct {
 	Name            string
 	Path            *AstCommandCtxPath
@@ -34,10 +37,10 @@ type AstCommandCtx struct {
 
 func AstMakeCommandCtx(name string, breakif, skipif [][]string) *AstCommandCtx {
 	if breakif == nil {
-		breakif = make([][]string, 0)
+		breakif = [][]string{}
 	}
 	if skipif == nil {
-		breakif = make([][]string, 0)
+		skipif = [][]string{}
 	}
 	return &AstCommandCtx{
 		Name:            name,
@@ -45,14 +48,13 @@ func AstMakeCommandCtx(name string, breakif, skipif [][]string) *AstCommandCtx {
 		CurrentChildren: make(map[string][]*stringParsing.ParsedNode),
 		BreakIf:         breakif,
 		SkipIf:          skipif,
-		Parent:          nil,
 	}
 }
 
 func (ctx *AstCommandCtx) FindChildren(command string, pn *stringParsing.ParsedNode, children []string) *AstCommandCtx {
 	for _, child := range children {
-		for _, findedChild := range astools.FindChildren(pn, child) {
-			ctx.CurrentChildren[child] = append(ctx.CurrentChildren[child], &findedChild)
+		for _, foundChild := range astools.FindChildren(pn, child) {
+			ctx.CurrentChildren[child] = append(ctx.CurrentChildren[child], &foundChild)
 		}
 	}
 	return ctx
@@ -72,16 +74,17 @@ type AstEngine struct {
 }
 
 func (ae *AstEngine) GetCommandCtx(command string) *AstCommandCtx {
-	if _, ok := ae.AstCommandCtx[command]; ok {
+	ae.mu.Lock()
+	defer ae.mu.Unlock()
+	if _, ok := ae.AstCommandCtx[command]; !ok {
 		ae.AstCommandCtx[command] = AstMakeCommandCtx(command, nil, nil)
 	}
 	return ae.AstCommandCtx[command]
 }
 
-// Process executes the compilation pipeline for a string input.
-// It stores the input in scope[public.StringEngineScopeInput], then calls the
-// AstParseEvent (to parse into []ParsedNode) and AstCallEvent
-// (to dispatch commands). Any error stops execution.
+// Process runs the pipeline for a string input. It stores the input in
+// scope[public.StringEngineScopeInput], calls the string parse event to fill
+// the parsed nodes, then walks them. Any error stops execution.
 //
 // Err errors.AstEngineProcessError1 | errors.AstEngineProcessError2.
 // (cause from 'CallEvents')
@@ -91,22 +94,22 @@ func (ae *AstEngine) Process(input string) core.ErrorInterface {
 		Input: ae,
 	}, public.StringParseEvent, false)
 	if err != nil {
-		return core.Wrap(errors.AstEngineProcessError1, err, core.GetRealErrorReverse(err))
+		return core.Wrap(errors.AstEngineProcessError1, err, "%s", core.GetRealErrorReverse(err))
 	}
-	parsed, err := core.ScopeGet[[]stringParsing.ParsedNode](ae.UEP.Scope, "")
+	parsed, err := core.ScopeGet[[]stringParsing.ParsedNode](ae.UEP.Scope, public.StringEngineScopeParsed)
 	if err != nil {
-		return core.Wrap(errors.CorePackageSystemError, err, "Process:ScopeGet: "+core.GetRealErrorReverse(err))
+		return core.Wrap(errors.CorePackageSystemError, err, "Process:ScopeGet: %s", core.GetRealErrorReverse(err))
 	}
 	err = ae.Work(parsed)
 	if err != nil {
-		return core.Wrap(errors.AstEngineProcessError2, err, core.GetRealErrorReverse(err))
+		return core.Wrap(errors.AstEngineProcessError2, err, "%s", core.GetRealErrorReverse(err))
 	}
 	return nil
 }
 
 func (ae *AstEngine) Work(parsed []stringParsing.ParsedNode) core.ErrorInterface {
-	for _, node := range parsed {
-		if err := ae.WorkIter(&node); err != nil {
+	for i := range parsed {
+		if err := ae.WorkIter(&parsed[i]); err != nil {
 			return err
 		}
 	}
@@ -114,14 +117,22 @@ func (ae *AstEngine) Work(parsed []stringParsing.ParsedNode) core.ErrorInterface
 }
 
 func (ae *AstEngine) HasCommand(isMainCmd bool, command string) core.ErrorInterface {
-	_, has := ae.Commands[command]
-	if !has && ae.CanBeUnknown && !isMainCmd {
-		return core.Err("skip", "skip")
-	} else if !has && !ae.CanBeUnknown || isMainCmd && !has && !ae.CanMainNodeBeUnknown {
-		return core.Err(errors.AstEngineUnknown, "Unregistred node: %v", command).
+	_, has := ae.GetCommand(command)
+	if has {
+		return nil
+	}
+	if isMainCmd {
+		if ae.CanMainNodeBeUnknown {
+			return nil
+		}
+		return core.Err(errors.AstEngineUnknown, "Unregistered node: %v", command).
 			WithMeta(core.EMK(0, "string"), command)
 	}
-	return nil
+	if ae.CanBeUnknown {
+		return nil
+	}
+	return core.Err(errors.AstEngineUnknown, "Unregistered node: %v", command).
+		WithMeta(core.EMK(0, "string"), command)
 }
 
 func (ae *AstEngine) WorkIter(node *stringParsing.ParsedNode) core.ErrorInterface {
@@ -129,8 +140,11 @@ func (ae *AstEngine) WorkIter(node *stringParsing.ParsedNode) core.ErrorInterfac
 	if err := ae.HasCommand(false, sw); err != nil {
 		return err
 	}
-	err := ae.Commands[sw].Handler(ae, node)
-	if err != nil {
+	meta, known := ae.GetCommand(sw)
+	if !known {
+		return nil
+	}
+	if err := meta.Handler(ae, node); err != nil {
 		return err
 	}
 	ctx := ae.GetCommandCtx(sw)
@@ -139,48 +153,55 @@ func (ae *AstEngine) WorkIter(node *stringParsing.ParsedNode) core.ErrorInterfac
 		Input: ctx,
 	}, public.AstCommandCallEvent, true)
 	work := true
-	var parrent *stringParsing.ParsedNode
-	containsPath := func(path []string, paths [][]string) bool {
+	var parent *stringParsing.ParsedNode
+	// The documented meaning of these rules is subtree wide, so a node is
+	// matched when the rule path is a prefix of the current path.
+	hasPathPrefix := func(path []string, paths [][]string) bool {
 		for _, p := range paths {
-			if slices.Equal(p, path) {
+			if len(p) <= len(path) && slices.Equal(p, path[:len(p)]) {
 				return true
 			}
 		}
 		return false
 	}
-	err_ := astools.WalkWithPath(node, func(pn *stringParsing.ParsedNode, path []string) error {
-		if containsPath(path, ctx.BreakIf) {
-			work = false
-		}
-		if containsPath(path, ctx.SkipIf) || !work {
+	walkErr := astools.WalkWithPath(node, func(pn *stringParsing.ParsedNode, path []string) error {
+		// The node itself is already handled above; the walk covers descendants.
+		if pn == node {
 			return nil
 		}
-		innersw := pn.Switch
-		if err := ae.HasCommand(false, innersw); err != nil {
+		if hasPathPrefix(path, ctx.BreakIf) {
+			work = false
+		}
+		if hasPathPrefix(path, ctx.SkipIf) || !work {
+			return nil
+		}
+		innerSw := pn.Switch
+		if err := ae.HasCommand(false, innerSw); err != nil {
 			return err
 		}
-		innerctx := ae.GetCommandCtx(innersw)
-		innerctx.Name = innersw
-		innerctx.Parent = parrent
+		innerMeta, innerKnown := ae.GetCommand(innerSw)
+		if !innerKnown {
+			return nil
+		}
+		innerCtx := ae.GetCommandCtx(innerSw)
+		innerCtx.Name = innerSw
+		innerCtx.Parent = parent
 		ae.UEP.Event.CallEvents(&core.EventInput{
-			Input: innerctx,
+			Input: innerCtx,
 		}, public.AstCommandCallEvent, true)
-		err := ae.Commands[innersw].Handler(ae, pn)
-		if err != nil {
+		if err := innerMeta.Handler(ae, pn); err != nil {
 			return err
 		}
-		parrent = pn
+		parent = pn
 		return nil
 	})
-	if err_ != nil {
-		return core.Wrap(errors.AstEngineHandlerError, err, core.GetRealErrorReverse(err))
+	if walkErr != nil {
+		return core.Wrap(errors.AstEngineHandlerError, walkErr, "%s", core.GetRealErrorReverse(walkErr))
 	}
 	return nil
 }
 
-func (ae *AstEngine) NewCommandFull(cmd_switch string,
-	handler astCommandType,
-	doc string) {
+func (ae *AstEngine) NewCommandFull(cmd_switch string, handler astCommandType, doc string) {
 	ae.mu.Lock()
 	defer ae.mu.Unlock()
 	ae.Commands[cmd_switch] = astCommandMeta{
@@ -189,10 +210,8 @@ func (ae *AstEngine) NewCommandFull(cmd_switch string,
 	}
 }
 
-// For interface. o.Input string = doc
-func (ae *AstEngine) NewCommand(cmd_switch string,
-	handler astCommandType,
-	o *core.SimpleInput) error {
+// NewCommand registers a command for the EngineInterface. o.Input string = doc
+func (ae *AstEngine) NewCommand(cmd_switch string, handler astCommandType, o *core.SimpleInput) error {
 	ae.mu.Lock()
 	defer ae.mu.Unlock()
 	doc, ok := o.Input.(string)
@@ -206,17 +225,27 @@ func (ae *AstEngine) NewCommand(cmd_switch string,
 	return nil
 }
 
-// For interface
 func (ae *AstEngine) GetCommands() map[string]astCommandMeta {
-	return ae.Commands
+	ae.mu.RLock()
+	defer ae.mu.RUnlock()
+	res := make(map[string]astCommandMeta, len(ae.Commands))
+	for k, v := range ae.Commands {
+		res[k] = v
+	}
+	return res
 }
 
-// For interface
+func (ae *AstEngine) GetCommand(cmd_switch string) (astCommandMeta, bool) {
+	ae.mu.RLock()
+	defer ae.mu.RUnlock()
+	cmd, ok := ae.Commands[cmd_switch]
+	return cmd, ok
+}
+
 func (ae *AstEngine) GetUep() *core.UniversalEngineParams {
 	return ae.UEP
 }
 
-// For interface
 func (ae *AstEngine) GetParser() stringParser {
 	return ae.Parser
 }

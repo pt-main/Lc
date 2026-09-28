@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/pt-main/lc/public"
@@ -9,10 +10,9 @@ import (
 
 type codetype any
 
-// Generator accumulates code fragments (strings or bytes) into named points
-// (e.g., "pre", "main"). The Pipeline defines the order in which points are
-// emitted. It supports both text and binary generation modes via res_type.
-// Thread‑safe due to internal mutex.
+// Generator accumulates code fragments (strings or bytes) into named pipeline
+// points, and emits them in Pipeline order. The result type is fixed at
+// construction. Thread-safe.
 type Generator struct {
 	mu       sync.RWMutex
 	code     map[string][]codetype
@@ -66,12 +66,12 @@ func (g *Generator) GetBytesRes() ([]byte, ErrorInterface) {
 	}
 	res := []byte{}
 	for _, point := range g.Pipeline {
-		point_code, ok := g.code[point]
+		pointCode, ok := g.code[point]
 		if !ok {
 			return nil, Err(errors.GeneratorGenerationTypeError, "Can't find '%v' pipeline point", point).
 				WithMeta(EMK(0, "string"), point)
 		}
-		for _, code := range point_code {
+		for _, code := range pointCode {
 			if bytes, ok := code.([]byte); ok {
 				res = append(res, bytes...)
 			}
@@ -90,41 +90,34 @@ func (g *Generator) GetStringArrRes() ([]string, ErrorInterface) {
 	}
 	res := []string{}
 	for _, point := range g.Pipeline {
-		point_code, ok := g.code[point]
+		pointCode, ok := g.code[point]
 		if !ok {
 			return nil, Err(errors.GeneratorGenerationTypeError, "Can't find '%v' pipeline point", point).
 				WithMeta(EMK(0, "string"), point)
 		}
-		for _, code := range point_code {
-			if str, ok := code.([]string); ok {
-				res = append(res, str...)
-			} else {
+		for _, code := range pointCode {
+			str, ok := code.([]string)
+			if !ok {
 				return nil, Err(errors.GeneratorGenerationTypeError, "Unexpected type in Generator")
 			}
+			res = append(res, str...)
 		}
 	}
 	return res, nil
 }
 
-// Err errors.GeneratorGenerationTypeError.
+// GetStringRes joins the generated strings with sep between them.
 func GetStringRes(g *Generator, sep string) (string, ErrorInterface) {
-	res := ""
 	arr, err := g.GetStringArrRes()
 	if err != nil {
 		return "", err
 	}
-	for idx, val := range arr {
-		res += val
-		if idx != (len(arr) - 1) {
-			res += sep
-		}
-	}
-	return res, nil
+	return strings.Join(arr, sep), nil
 }
 
 // NewGenerator initializes a Generator with a given resource type
 // (StringResType or ByteResType) and a pipeline slice. Empty code slices are
-// pre‑created for each pipeline point.
+// pre-created for each pipeline point.
 func NewGenerator(res_type public.ResType, pipeline []string) *Generator {
 	g := &Generator{
 		code:     map[string][]codetype{},

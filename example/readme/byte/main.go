@@ -23,7 +23,7 @@ func main() {
 				CommandBytelen:   1,
 				ArgscountBytelen: 1,
 				ArglenBytelen:    2,
-				Endianess:        public.LittleEndian,
+				Endianness:       public.LittleEndian,
 			},
 			Shifter: bytecode.Shift{},
 		},

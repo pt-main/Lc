@@ -12,9 +12,7 @@ import (
 
 const Name = "extensible call loop"
 
-// # ExtensibleCLPlugin
-//
-// Replace standart calloops and add calloops with event hooks.
+// ExtensibleCLPlugin replaces the standard call loops with hookable ones.
 // System plugin.
 type ExtensibleCLPlugin struct {
 	de     events.DefaultEvents
@@ -29,46 +27,43 @@ func New(eu *lc.EngineUniversal) *ExtensibleCLPlugin {
 	if err != nil {
 		panic("Can't add extensible plugin: " + err.Error())
 	}
-	e := uep.Event
 	return &ExtensibleCLPlugin{
 		de:     events.DefaultEvents{},
 		Eu:     eu,
-		Events: e,
+		Events: uep.Event,
 		ETools: core.EventsTools{
-			Events: e,
+			Events: uep.Event,
 		},
-		WasE: nil,
 	}
 }
 
-func (ep *ExtensibleCLPlugin) changeEvents(val bool) (string, error) {
-	euType := ep.Eu.Type
+// changeEvents swaps the core event of the engine's call loop for the
+// hookable one, or restores the original when enable is false.
+func (ep *ExtensibleCLPlugin) changeEvents(enable bool) (string, error) {
 	var name string
 	var event core.EventType
-	switch euType {
+	switch ep.Eu.Type {
 	case public.StringEngineType:
-		name = public.StringCallCalloopEvent
+		name = public.StringCallCallLoopEvent
 	case public.ByteEngineType:
 		name = public.ByteCallHotloopEvent
 	}
-	switch val {
-	case true:
-		var err error
-		ep.WasE, err = ep.ETools.GetCoreEvent(name)
+	if enable {
+		wasE, err := ep.ETools.GetCoreEvent(name)
 		if err != nil {
 			return "", err
 		}
-		switch euType {
+		ep.WasE = wasE
+		switch ep.Eu.Type {
 		case public.StringEngineType:
 			event = ep.StringCallLoopEvent
 		case public.ByteEngineType:
 			event = ep.ByteCallHotLoopEvent
 		}
-	default:
+	} else {
 		event = ep.WasE
 	}
-	err := ep.ETools.ChangeCoreEvent(name, event)
-	if err != nil {
+	if err := ep.ETools.ChangeCoreEvent(name, event); err != nil {
 		return "", err
 	}
 	return name, nil
@@ -99,16 +94,13 @@ func (ep *ExtensibleCLPlugin) Name() string { return Name }
 
 func (ep *ExtensibleCLPlugin) Close() error {
 	_, err := ep.changeEvents(false)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (ep *ExtensibleCLPlugin) Call(string, ...core.Option) (o any, e error) {
-	return
+func (ep *ExtensibleCLPlugin) Call(string, ...core.Option) (any, error) {
+	return nil, nil
 }
 
-func (ep *ExtensibleCLPlugin) Run(input any) (o any, e error) {
-	return
+func (ep *ExtensibleCLPlugin) Run(any) (any, error) {
+	return nil, nil
 }

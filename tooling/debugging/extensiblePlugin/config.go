@@ -1,15 +1,15 @@
 package extensiblePlugin
 
-// Сalloop events
+// Call loop events
 const (
-	CLEPreEvent    = "CalloopE PreEvent"
-	CLEInPreEvent  = "CalloopE InPreEvent"
-	CLEInPostEvent = "CalloopE InPostEvent"
-	CLEPostEvent   = "CalloopE PostEvent"
+	CLEPreEvent    = "CallLoopE PreEvent"
+	CLEInPreEvent  = "CallLoopE InPreEvent"
+	CLEInPostEvent = "CallLoopE InPostEvent"
+	CLEPostEvent   = "CallLoopE PostEvent"
 )
 
 const (
-	CLEScopeData = "ExtensiblePlugin ScopeData CalloopE Data" // Сalloop data (CLEData)
+	CLEScopeData = "ExtensiblePlugin ScopeData CallLoopE Data" // Call loop data (CLEData)
 )
 
 const (

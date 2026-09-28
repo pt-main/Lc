@@ -16,11 +16,10 @@ const (
 )
 
 const (
-	DefaultEventsSystemError          ErrorCodeType = "SYSTEM@DEDAULT_EVENTS"
-	DefaultEventsPanicError           ErrorCodeType = "DEDAULT_EVENTS:PANIC"
-	DefaultEventsCallErrorCmdNotFound ErrorCodeType = "DEDAULT_EVENTS:CMD_NOT_FOUND"
-	DefaultEventsCallErrorContexted   ErrorCodeType = "DEDAULT_EVENTS:CONTEXTED_ERROR"
-	DefaultEventsCallErrorContex      ErrorCodeType = "DEDAULT_EVENTS:CONTEXT_ERROR"
-	DefaultEventsCallErrorHandler     ErrorCodeType = "DEDAULT_EVENTS:HANDLER"
-	DefaultEventsCallErrorUnknown     ErrorCodeType = "DEDAULT_EVENTS:UNKNOWN"
+	DefaultEventsSystemError          ErrorCodeType = "SYSTEM@DEFAULT_EVENTS"
+	DefaultEventsPanicError           ErrorCodeType = "DEFAULT_EVENTS:PANIC"
+	DefaultEventsCallErrorCmdNotFound ErrorCodeType = "DEFAULT_EVENTS:CMD_NOT_FOUND"
+	DefaultEventsCallErrorContexted   ErrorCodeType = "DEFAULT_EVENTS:CONTEXT_ERROR"
+	DefaultEventsCallErrorHandler     ErrorCodeType = "DEFAULT_EVENTS:HANDLER"
+	DefaultEventsCallErrorUnknown     ErrorCodeType = "DEFAULT_EVENTS:UNKNOWN"
 )

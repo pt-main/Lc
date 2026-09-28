@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -9,8 +10,11 @@ import (
 
 	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc"
+	enginepkg "github.com/pt-main/lc/engine"
+	"github.com/pt-main/lc/engine/core"
 	"github.com/pt-main/lc/parsing/stringParsing"
 	"github.com/pt-main/lc/parsing/stringParsing/parser3"
+	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/astools"
 )
 
@@ -117,17 +121,12 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 		if err != nil {
 			return 0, err
 		}
-		for i := 1; i < len(children); i += 2 {
-			if i+1 >= len(children) {
-				break
-			}
-			opNode := &children[i]
-			termNode := &children[i+1]
-			termVal, err := evalExpr(termNode)
+		for i := 1; i+1 < len(children); i += 2 {
+			termVal, err := evalExpr(&children[i+1])
 			if err != nil {
 				return 0, err
 			}
-			switch opNode.Switch {
+			switch children[i].Switch {
 			case "PLUS":
 				val += termVal
 			case "MINUS":
@@ -144,17 +143,12 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 		if err != nil {
 			return 0, err
 		}
-		for i := 1; i < len(children); i += 2 {
-			if i+1 >= len(children) {
-				break
-			}
-			opNode := &children[i]
-			factorNode := &children[i+1]
-			factorVal, err := evalExpr(factorNode)
+		for i := 1; i+1 < len(children); i += 2 {
+			factorVal, err := evalExpr(&children[i+1])
 			if err != nil {
 				return 0, err
 			}
-			switch opNode.Switch {
+			switch children[i].Switch {
 			case "MUL":
 				val *= factorVal
 			case "DIV":
@@ -174,16 +168,44 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 		}
 		child := &children[0]
 		if child.Switch == "NUMBER" {
-			numStr := child.Raw
-			return strconv.ParseFloat(numStr, 64)
+			return strconv.ParseFloat(child.Raw, 64)
 		}
 		if child.Switch == "LPAREN" && len(children) >= 3 {
 			return evalExpr(&children[1])
 		}
-		return 0, errors.New("unknown factor")
+		return 0, errors.New("unknown factor: " + child.Switch)
 	default:
 		return 0, errors.New("unknown node type: " + node.Switch)
 	}
+}
+
+func buildEngine() *lc.EngineUniversal {
+	adapter := &parser3.Adapter{
+		Parser: parser3.NewParser(createLexer(), createGrammar(), "expr", []string{"WHITESPACE"}),
+	}
+
+	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).
+		WithPipeline([]string{"main"}).
+		WithStringParser(adapter).
+		WithDefaultEvents(true).
+		WithContext(context.Background()).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	err = engine.NewCommandString("expr", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+		val, err := evalExpr(node)
+		if err != nil {
+			return core.Wrap("EXPR", err, "eval error")
+		}
+		return se.GetUep().Generator.AddString(strconv.FormatFloat(val, 'f', -1, 64), "main")
+	}, "evaluate expression")
+	if err != nil {
+		panic(err)
+	}
+
+	return engine
 }
 
 func main() {
@@ -194,38 +216,24 @@ func main() {
 		fmt.Println("Example: calc '(2 ** 3) + 4'")
 		os.Exit(1)
 	}
-	expr := os.Args[1]
-	lexer := createLexer()
-	grammar := createGrammar()
-	parser := parser3.NewParser(lexer, grammar, "expr", []string{"WHITESPACE"})
-	parsed, err := parser.Parse(expr)
-	if err != nil {
-		fmt.Println("Parse error:\n", parser3.FormatErrorPretty(err))
-		os.Exit(1)
-	}
-	if len(parsed) == 0 {
-		fmt.Println("No nodes parsed")
-		os.Exit(1)
-	}
-	result, err2 := evalExpr(&parsed[0])
-	if err2 != nil {
-		fmt.Println("Eval error:", err)
-		os.Exit(1)
-	}
-	fmt.Printf("Result: %v\n", result)
-}
 
-/*
-macbook@MacBook-Pro lc % go run ./example/calculator '(2+3)**4'
-Lc version - 1.5.1
-Result: 625
-macbook@MacBook-Pro lc % go run ./example/calculator '2*3+4'
-Lc version - 1.5.1
-Result: 10
-macbook@MacBook-Pro lc % go run ./example/calculator '2-3*4'
-Lc version - 1.5.1
-Result: -10
-macbook@MacBook-Pro lc % go run ./example/calculator '(2-3*4)+(5*2-1)*2'
-Lc version - 1.5.1
-Result: 8
-*/
+	engine := buildEngine()
+	if err := engine.ProcessString(os.Args[1]); err != nil {
+		if perr, ok := parser3.AsParseError(err); ok {
+			fmt.Println("Parse error:\n", parser3.FormatErrorPretty(perr))
+		} else {
+			fmt.Println("Eval error:\n", err.Format())
+		}
+		os.Exit(1)
+	}
+
+	uep, err := engine.GetUEP()
+	if err != nil {
+		panic(err)
+	}
+	out, err := core.GetStringRes(uep.Generator, "\n")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Result:", out)
+}

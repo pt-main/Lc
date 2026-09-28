@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type LogerInterface interface {
+type LoggerInterface interface {
 	GetStatusForm(status string) string
 	SetStatusForm(status, form string)
 	PrintLog(status, message string)
@@ -15,8 +15,7 @@ type LogerInterface interface {
 }
 
 // Logger is a thread-safe structured logger for engine diagnostics.
-// It stores a list of log lines, supports custom status formats, and
-// allows different formatting per status (e.g., "error", "info", "debug").
+// It stores a list of log lines and supports a custom format per status.
 // Typical usage: attach to UniversalEngineParams.Logger.
 type Logger struct {
 	mu                sync.RWMutex
@@ -28,8 +27,7 @@ type Logger struct {
 }
 
 // GetStatusForm returns the format string associated with the given status,
-// falling back to DefaultStatusForm if no custom format is set.
-// Custom formats can be registered by directly assigning to l.Statuses map.
+// falling back to DefaultStatusForm when the status has none.
 func (l *Logger) GetStatusForm(status string) string {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -45,34 +43,35 @@ func (l *Logger) SetStatusForm(status, form string) {
 	l.Statuses[status] = form
 }
 
-// PrintLog writes a log entry to stdout and appends it to the internal slice.
-// The status string determines the format via GetStatusForm (if a custom
-// format for that status exists). The message is inserted into the format.
-// Example: logger.PrintLog("error", "failed to parse token")
+// PrintLog appends a formatted line to the internal slice, and writes it to
+// stdout when the status is enabled in Logging.
 func (l *Logger) PrintLog(status string, message string) {
-	format := l.GetStatusForm(status)
-	line := fmt.Sprintf(format, status, time.Now().UTC(), message)
-	if ok, val := l.Logging[status]; ok && val {
-		fmt.Println(line)
-	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	format := l.DefaultStatusForm
+	if s, ok := l.Statuses[status]; ok {
+		format = s
+	}
+	line := fmt.Sprintf(format, status, time.Now().UTC(), message)
+	if l.Logging[status] {
+		fmt.Println(line)
+	}
 	l.Log = append(l.Log, line)
 	if len(l.Log) > l.MaxLogLength && l.MaxLogLength > 0 {
 		l.Log = l.Log[1:]
 	}
 }
 
-// GetLog returns the entire log as a single string with newline separators.
-// It is useful for saving logs to a file or showing them after execution.
+// GetLog returns the retained log lines joined by newlines.
 func (l *Logger) GetLog() string {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 	return strings.Join(l.Log, "\n")
 }
 
-// NewLogger creates a new Logger with an optional defaultStatusForm.
-// The format uses three placeholders: %s for status, %v for timestamp,
-// and %s for the message. Example default: "%s [%v] [%s]\n"
-// If empty string is passed, the default format is used.
+// NewLogger creates a Logger with an optional defaultStatusForm. The format
+// uses three placeholders: %s for status, %v for timestamp and %s for the
+// message. An empty form selects the default "%s [%v] [%s]\n".
 func NewLogger(defaultStatusForm string) *Logger {
 	if defaultStatusForm == "" {
 		defaultStatusForm = "%s [%v] [%s]\n"

@@ -90,14 +90,6 @@ func NewLexer(rules []LexerRule, config *LexerConfig) *Lexer {
 	}
 }
 
-func snippet(s string, maxRunes int) string {
-	runes := []rune(s)
-	if len(runes) <= maxRunes {
-		return s
-	}
-	return string(runes[:maxRunes]) + "..."
-}
-
 func snippetFromRunes(runes []rune, pos, maxRunes int) string {
 	end := pos + maxRunes
 	if end >= len(runes) {
@@ -124,57 +116,9 @@ func posToLineCol(code string, pos int) (line, col int) {
 	return
 }
 
-// isBracketBalanced checks if the accumulated text has balanced brackets.
-func (l *Lexer) isBracketBalanced(text string) bool {
-	if !l.config.UseBracketBalance || len(l.openToClose) == 0 {
-		return true
-	}
-	stack := make([]string, 0, 8)
-	i := 0
-	n := len(text)
-
-	for i < n {
-		matched := false
-		if candidates, ok := l.openByByte[text[i]]; ok {
-			for _, open := range candidates {
-				if strings.HasPrefix(text[i:], open) {
-					stack = append(stack, open)
-					i += len(open)
-					matched = true
-					break
-				}
-			}
-		}
-		if matched {
-			continue
-		}
-		if candidates, ok := l.closeByByte[text[i]]; ok {
-			for _, close := range candidates {
-				if strings.HasPrefix(text[i:], close) {
-					if len(stack) == 0 {
-						return false
-					}
-					last := stack[len(stack)-1]
-					if open, ok := l.closeToOpen[close]; !ok || last != open {
-						return false
-					}
-					stack = stack[:len(stack)-1]
-					i += len(close)
-					matched = true
-					break
-				}
-			}
-		}
-		if matched {
-			continue
-		}
-		_, size := utf8.DecodeRuneInString(text[i:])
-		i += size
-	}
-	return len(stack) == 0
-}
-
-// bracketBalanceError returns a detailed error if brackets are unbalanced.
+// bracketBalanceError walks text once and reports the first bracket problem,
+// or nil when the text is balanced. The boolean result of the same walk is
+// what isBracketBalanced needs, so both share this single implementation.
 func (l *Lexer) bracketBalanceError(text string) *core.Error {
 	if !l.config.UseBracketBalance || len(l.openToClose) == 0 {
 		return nil
@@ -235,30 +179,38 @@ func (l *Lexer) bracketBalanceError(text string) *core.Error {
 	return nil
 }
 
+// isBracketBalanced checks if the accumulated text has balanced brackets.
+func (l *Lexer) isBracketBalanced(text string) bool {
+	return l.bracketBalanceError(text) == nil
+}
+
 // Parse scans the entire input string and returns a slice of ParsedNode.
 //
 // Err errors.ParsingError:
 //   - If bracket balancing is enabled and the input has unbalanced brackets.
-//     Meta: EMK(0, "string") – the whole input code.
+//     Meta: EMK(0, "string") - the whole input code.
 //   - If a regexp rule fails to match.
-//     Meta: EMK(0, "string") – rule type, EMK(1, "string") – substring being matched.
+//     Meta: EMK(0, "string") - rule type, EMK(1, "string") - substring being matched.
 //   - If no rule matches at the current position.
-//     Meta: EMK(0, "int") – line number, EMK(1, "int") – column number,
-//     EMK(2, "string") – context snippet.
-func (lp *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
-	var log func(string)
-	if len(opts) > 0 && opts[0].UEP != nil && opts[0].UEP.Logger != nil {
-		logger := opts[0].UEP.Logger
-		log = func(text string) {
+//     Meta: EMK(0, "int") - line number, EMK(1, "int") - column number,
+//     EMK(2, "string") - context snippet.
+func (l *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, core.ErrorInterface) {
+	var logger core.LoggerInterface
+	if len(opts) > 0 && opts[0] != nil && opts[0].UEP != nil {
+		logger = opts[0].UEP.Logger
+	}
+	// A nil logger is the common case, and fmt.Sprintf arguments are evaluated
+	// whether or not the result is used, so guard each call instead of
+	// concatenating text that is then dropped.
+	log := func(text string) {
+		if logger != nil {
 			logger.PrintLog(public.LogParsing, "\\n"+text)
 		}
-	} else {
-		log = func(string) {}
 	}
 	log("start parsing code [" + code + "]")
 
-	if lp.config.UseBracketBalance {
-		if err := lp.bracketBalanceError(code); err != nil {
+	if l.config.UseBracketBalance {
+		if err := l.bracketBalanceError(code); err != nil {
 			return nil, core.Wrap(errors.ParsingError, err, "Bracket balance error").
 				WithMeta(core.EMK(0, "string"), code)
 		}
@@ -270,55 +222,57 @@ func (lp *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode,
 	length := len(runes)
 
 	for pos < length {
-		log(fmt.Sprintf("pos %v, length %v", pos, length))
 		matched := false
-		subStr := string(runes[pos:])
 
-		for ruleIdx, rule := range lp.rules {
-			m, err := rule.Pattern.FindStringMatch(subStr)
+		// Matching runs on the shared rune slice starting at pos instead of
+		// on a copy of the tail, which kept Parse quadratic in the input size.
+		for ruleIdx, rule := range l.rules {
+			m, err := rule.Pattern.FindRunesMatchStartingAt(runes, pos)
 			if err != nil {
 				return nil, core.Wrap(errors.ParsingError, err, "Regexp error for rule %q", rule.Type).
 					WithMeta(core.EMK(0, "string"), rule.Type).
-					WithMeta(core.EMK(1, "string"), subStr)
+					WithMeta(core.EMK(1, "string"), code)
 			}
-			log(fmt.Sprintf("rule %v, pos %v, substrLen %v", rule, pos, len(subStr)))
-			if m != nil && m.Index == 0 {
-				tokenRunes := runes[pos : pos+m.Length]
-				tokenValue := string(tokenRunes)
-				startPos := pos
-				endPos := pos + m.Length
-
-				meta := map[string]interface{}{
-					"__raw":   tokenValue,
-					"__value": tokenValue,
-					"__pos":   startPos,
-					"__start": startPos,
-					"__end":   endPos,
-				}
-
-				groupNames := lp.ruleGroups[ruleIdx]
-				for _, name := range groupNames {
-					if name != "0" {
-						grp := m.GroupByName(name)
-						if grp != nil {
-							meta[name] = grp.String()
-						}
-					}
-				}
-
-				if lp.config.UseBracketBalance {
-					meta["__bracket_balanced"] = lp.isBracketBalanced(tokenValue)
-				}
-
-				nodes = append(nodes, ParsedNode{
-					Raw:      tokenValue,
-					Switch:   rule.Type,
-					Metadata: meta,
-				})
-				pos += m.Length
-				matched = true
-				break
+			if logger != nil {
+				log(fmt.Sprintf("rule %v, pos %v, len %v", rule.Type, pos, length-pos))
 			}
+			// A zero-length match makes no progress, so it would loop forever.
+			// The index check keeps the match anchored at pos, as matching a
+			// tail substring from 0 used to guarantee.
+			if m == nil || m.Index != pos || m.Length == 0 {
+				continue
+			}
+			tokenValue := string(runes[pos : pos+m.Length])
+			startPos := pos
+			endPos := pos + m.Length
+
+			meta := map[string]interface{}{
+				"__raw":   tokenValue,
+				"__value": tokenValue,
+				"__pos":   startPos,
+				"__start": startPos,
+				"__end":   endPos,
+			}
+			for _, name := range l.ruleGroups[ruleIdx] {
+				if name == "0" {
+					continue
+				}
+				if grp := m.GroupByName(name); grp != nil {
+					meta[name] = grp.String()
+				}
+			}
+			if l.config.UseBracketBalance {
+				meta["__bracket_balanced"] = l.isBracketBalanced(tokenValue)
+			}
+
+			nodes = append(nodes, ParsedNode{
+				Raw:      tokenValue,
+				Switch:   rule.Type,
+				Metadata: meta,
+			})
+			pos += m.Length
+			matched = true
+			break
 		}
 		if !matched {
 			line, col := posToLineCol(code, pos)

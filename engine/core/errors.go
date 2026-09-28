@@ -26,11 +26,7 @@ type ErrorInterface interface {
 }
 
 func (e *Error) Error() string {
-	var b strings.Builder
-	b.WriteString(string(e.Code))
-	b.WriteString(": ")
-	b.WriteString(e.Msg)
-	return b.String()
+	return string(e.Code) + ": " + e.Msg
 }
 
 func (e *Error) GetCode() string {
@@ -106,91 +102,90 @@ func (e *Error) WithMeta(key errors.ErrorMetaType, value interface{}) *Error {
 	return e
 }
 
-// Error Meta Key n
+// EMK builds a metadata key from an index and the expected value type, so
+// the key and the type cannot drift apart.
 func EMK(n int, valType string) errors.ErrorMetaType {
 	return errors.ErrorMetaType(strconv.Itoa(n) + "_META:" + valType)
 }
 
-func GetMetaValue[T any](in error, n int, valType string) (res T, err error) {
+// GetMetaValue reads back a value stored under EMK(n, valType), checking the
+// declared type against the one the caller expects.
+//
+// Err errors.CorePackageSystemError: wrong error type, missing key or
+// mismatching value type.
+func GetMetaValue[T any](in error, n int, valType string) (T, error) {
+	var res T
 	newE, ok := in.(*Error)
 	if !ok {
-		err = Err(errors.CorePackageSystemError, "Invalid input: error is not lc *Error")
-		return
+		return res, Err(errors.CorePackageSystemError, "Invalid input: error is not lc *Error")
 	}
 	key := EMK(n, valType)
 	val, ok := newE.Meta[key]
 	if !ok {
-		err = Err(errors.CorePackageSystemError, "Key not found: %v", key)
-		return
+		return res, Err(errors.CorePackageSystemError, "Key not found: %v", key)
 	}
 	res, ok = val.(T)
 	if !ok {
-		err = Err(errors.CorePackageSystemError, "Invalid type: meta type and generic type is different")
-		return
+		return res, Err(errors.CorePackageSystemError, "Invalid type: meta type and generic type is different")
 	}
-	return
+	return res, nil
 }
 
+// GetRealError renders the whole cause chain, or an empty string for nil.
 func GetRealError(err error) string {
-	if err != nil {
-		errText := err.Error()
-		if ce, ok := err.(ErrorInterface); ok {
-			errText = ce.Format()
-		}
-		return errText
+	if err == nil {
+		return ""
 	}
-	return ""
+	if ce, ok := err.(ErrorInterface); ok {
+		return ce.Format()
+	}
+	return err.Error()
 }
 
-func GetErr(ei ErrorInterface) (res ErrorInterface) {
-	inner := ei.Unwrap()
-	res, ok := inner.(ErrorInterface)
-	if !ok {
-		res = &Error{
-			Code:  errors.WrappedError,
-			Msg:   inner.Error(),
-			Meta:  make(map[errors.ErrorMetaType]interface{}),
-			Cause: nil,
-		}
+// GetErr unwraps one level. A cause that is a plain error rather than an
+// ErrorInterface is turned into an Error, so the chain stays inspectable.
+func GetErr(ei ErrorInterface) ErrorInterface {
+	if ei == nil {
+		return nil
 	}
-	return
+	inner := ei.Unwrap()
+	if inner == nil {
+		return nil
+	}
+	if typed, ok := inner.(ErrorInterface); ok {
+		return typed
+	}
+	return &Error{
+		Code: errors.WrappedError,
+		Msg:  inner.Error(),
+		Meta: make(map[errors.ErrorMetaType]interface{}),
+	}
 }
 
 var ErrExit = Err(errors.ErrExit, "")
 
+// GetRealErrorReverse renders the chain of plain errors from the innermost
+// one outwards, then the chain of a formatted error. That order reads better
+// in logs, where the root cause matters most.
 func GetRealErrorReverse(err error) string {
 	if err == nil {
 		return ""
 	}
-
 	if ce, ok := err.(ErrorInterface); ok {
 		return ce.Format()
 	}
 
 	var parts []string
-	cur := err
-	for cur != nil {
-
+	for cur := err; cur != nil; cur = goerr.Unwrap(cur) {
 		if ce, ok := cur.(ErrorInterface); ok {
-
-			innerFormatted := ce.Format()
-			if len(parts) > 0 {
-
-				outerMsg := strings.Join(reverse(parts), ": ")
-				return outerMsg + ": " + innerFormatted
+			formatted := ce.Format()
+			if len(parts) == 0 {
+				return formatted
 			}
-			return innerFormatted
+			return strings.Join(reverse(parts), ": ") + ": " + formatted
 		}
-
 		parts = append(parts, cur.Error())
-
-		next := goerr.Unwrap(cur)
-		if next == nil {
-			break
-		}
-		cur = next
 	}
-
 	if len(parts) > 0 {
 		return strings.Join(reverse(parts), ": ")
 	}

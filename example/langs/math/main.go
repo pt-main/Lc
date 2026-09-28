@@ -27,6 +27,7 @@ func main() {
 		{Type: "DIV", Pattern: regexp2.MustCompile(`/`, 0)},
 		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
 		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
+		{Type: "SEMICOLON", Pattern: regexp2.MustCompile(`;`, 0)},
 		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
 	}
 	lexer := stringParsing.NewLexer(lexerRules, &stringParsing.LexerConfig{
@@ -38,8 +39,24 @@ func main() {
 			Name: "program",
 			Expr: parser3.SequenceExpr{
 				Exprs: []parser3.Expr{
-					parser3.RepeatExpr{Expr: parser3.NamedExpr{RuleName: "assign"}, Min: 0},
-					parser3.NamedExpr{RuleName: "expr"}}}},
+					parser3.RepeatExpr{Expr: parser3.NamedExpr{RuleName: "terminated"}},
+					parser3.OptionalExpr{Expr: parser3.NamedExpr{RuleName: "stmt"}}}}},
+		"terminated": {
+			Name: "terminated",
+			Expr: parser3.NodeExpr{
+				NodeType: "terminated",
+				Expr: parser3.SequenceExpr{Exprs: []parser3.Expr{
+					parser3.NamedExpr{RuleName: "stmt"},
+					parser3.TokenExpr{TokenType: "SEMICOLON"},
+				}}}},
+		"stmt": {
+			Name: "stmt",
+			Expr: parser3.NodeExpr{
+				NodeType: "stmt",
+				Expr: parser3.ChoiceExpr{Alternatives: []parser3.Expr{
+					parser3.NamedExpr{RuleName: "assign"},
+					parser3.NamedExpr{RuleName: "expr"},
+				}}}},
 		"assign": {
 			Name: "assign",
 			Expr: parser3.NodeExpr{
@@ -116,40 +133,44 @@ func main() {
 		panic(err)
 	}
 
-	err = engine.NewCommandString("assign", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
-		children := astools.GetChildren(node)
-		if len(children) < 3 {
-			return core.Err("ASSIGN", "invalid assign node")
-		}
-		varName := children[0].Raw
-		exprNode := &children[2]
-		val, err := evalExpr(exprNode, se.GetUep().Scope)
-		if err != nil {
-			return core.Wrap("ASSIGN", err, "eval error")
-		}
-		se.GetUep().Scope[varName] = val
-		return nil
-	}, "assign variable")
+	err = engine.NewCommandString("assign", handleAssign, "assign variable")
 
 	if err != nil {
 		panic(err)
 	}
 
-	err = engine.NewCommandString("expr", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
-		val, err := evalExpr(node, se.GetUep().Scope)
-		if err != nil {
-			return core.Wrap("EXPR", err, "eval error")
-		}
+	err = engine.NewCommandString("expr", handleExpr, "final expression")
 
-		return se.GetUep().Generator.AddString(fmt.Sprintf("%d", val), "main")
-	}, "final expression")
+	if err != nil {
+		panic(err)
+	}
+
+	err = engine.NewCommandString("terminated", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+		children := astools.GetChildren(node)
+		if len(children) == 0 {
+			return core.Err("STMT", "empty statement")
+		}
+		return dispatchStmt(se, &children[0])
+	}, "run a statement followed by a semicolon")
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = engine.NewCommandString("stmt", func(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+		return dispatchStmt(se, node)
+	}, "dispatch a statement to its handler")
 
 	if err != nil {
 		panic(err)
 	}
 
 	if len(os.Args) != 2 {
-		fmt.Println("Can't calculate: expr is not found")
+		fmt.Println(`usage: math "<expression>"
+
+  math "2 + 3"
+  math "x := 2 + 3 * 4; y := x * 2; y + 1"
+  math "(2 + 3) * 4"`)
 		return
 	}
 	input := os.Args[1]
@@ -164,7 +185,48 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if out == "" {
+		fmt.Println("(no final expression: nothing to print)")
+		return
+	}
 	fmt.Println(out)
+}
+
+func dispatchStmt(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+	children := astools.GetChildren(node)
+	if len(children) == 0 {
+		return core.Err("STMT", "empty statement")
+	}
+	switch children[0].Switch {
+	case "assign":
+		return handleAssign(se, &children[0])
+	case "expr":
+		return handleExpr(se, &children[0])
+	default:
+		return core.Err("STMT", "unexpected statement: %v", children[0].Switch)
+	}
+}
+
+func handleAssign(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+	children := astools.GetChildren(node)
+	if len(children) < 3 {
+		return core.Err("ASSIGN", "invalid assign node")
+	}
+	varName := children[0].Raw
+	val, err := evalExpr(&children[2], se.GetUep().Scope)
+	if err != nil {
+		return core.Wrap("ASSIGN", err, "eval error")
+	}
+	core.ScopeSetSynced(se.GetUep().Scope, varName, val)
+	return nil
+}
+
+func handleExpr(se enginepkg.StringEngineInterface, node *stringParsing.ParsedNode) core.ErrorInterface {
+	val, err := evalExpr(node, se.GetUep().Scope)
+	if err != nil {
+		return core.Wrap("EXPR", err, "eval error")
+	}
+	return se.GetUep().Generator.AddString(fmt.Sprintf("%d", val), "main")
 }
 
 func evalExpr(node *stringParsing.ParsedNode, scope core.ScopeType) (int, error) {

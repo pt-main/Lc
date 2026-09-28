@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pt-main/lc/parsing"
 	"github.com/pt-main/lc/public"
 	"github.com/pt-main/lc/tooling/bytecode"
 )
@@ -14,7 +15,7 @@ func TestParser1_Parse(t *testing.T) {
 			CommandBytelen:   1,
 			ArgscountBytelen: 1,
 			ArglenBytelen:    1,
-			Endianess:        public.LittleEndian,
+			Endianness:       public.LittleEndian,
 		},
 		Shifter: bytecode.Shift{},
 	}
@@ -46,7 +47,7 @@ func TestParser1_Parse_Error(t *testing.T) {
 			CommandBytelen:   1,
 			ArgscountBytelen: 1,
 			ArglenBytelen:    1,
-			Endianess:        public.LittleEndian,
+			Endianness:       public.LittleEndian,
 		},
 		Shifter: bytecode.Shift{},
 	}
@@ -55,5 +56,37 @@ func TestParser1_Parse_Error(t *testing.T) {
 	_, err := parser.Parse(code)
 	if err == nil {
 		t.Error("expected error, got nil")
+	}
+}
+
+// Parse read opts[0].UEP.Logger without a nil check, so a caller passing an
+// empty ParseOption crashed instead of parsing.
+func TestParser1_Parse_OptionIsOptional(t *testing.T) {
+	config := Parser1Config{
+		GConfig: bytecode.GenerationConfig{
+			CommandBytelen:   1,
+			ArgscountBytelen: 1,
+			ArglenBytelen:    1,
+			Endianness:       public.LittleEndian,
+		},
+		Shifter: bytecode.Shift{},
+	}
+	parser := &Parser1{Config: config}
+	code := []byte{0x01, 0x01, 0x03, 0x61, 0x62, 0x63}
+
+	cases := map[string][]*parsing.ParseOption{
+		"empty option": {&parsing.ParseOption{}},
+		"nil option":   {nil},
+		"no option":    nil,
+	}
+	for name, opts := range cases {
+		nodes, err := parser.Parse(code, opts...)
+		if err != nil {
+			t.Errorf("%s: Parse returned %v", name, err)
+			continue
+		}
+		if len(nodes) != 1 {
+			t.Errorf("%s: got %d nodes, want 1", name, len(nodes))
+		}
 	}
 }

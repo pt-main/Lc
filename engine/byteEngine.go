@@ -16,9 +16,8 @@ type byteParser = parsing.ParserInterface[[]byte, byteParsing.ParsedBytes]
 type byteCommandType = core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes]
 type byteCommandMeta = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]
 
-// ByteEngine handles binary inputs. Commands are indexed by integer opcodes.
-// It uses a byte parser to decode raw bytes into ParsedBytes structures.
-// The Process method triggers ByteParseEvent and ByteCallEvent in order.
+// ByteEngine handles binary inputs. Commands are indexed by integer opcodes,
+// and Process triggers ByteParseEvent followed by ByteCallEvent.
 type ByteEngine struct {
 	Commands               map[int]byteCommandMeta
 	Parser                 byteParser
@@ -27,77 +26,85 @@ type ByteEngine struct {
 	mu                     sync.RWMutex
 }
 
-// Process transforms a byte slice by parsing it and invoking the registered
-// bytecode handlers.
+// Process parses the byte slice and invokes the registered bytecode handlers.
 //
 // Err errors.ByteEngineProcessError1 | errors.ByteEngineProcessError2.
 // (cause from 'CallEvents')
 func (e *ByteEngine) Process(input []byte) core.ErrorInterface {
 	e.UEP.Scope[public.ByteEngineScopeInput] = input
-	err1 := e.UEP.Event.CallEvents(&core.EventInput{
+	if err := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
-	}, public.ByteParseEvent, false)
-	if err1 != nil {
-		return core.Wrap(errors.ByteEngineProcessError1, err1, core.GetRealErrorReverse(err1))
+	}, public.ByteParseEvent, false); err != nil {
+		return core.Wrap(errors.ByteEngineProcessError1, err, "%s", core.GetRealErrorReverse(err))
 	}
-	err2 := e.UEP.Event.CallEvents(&core.EventInput{
+	if err := e.UEP.Event.CallEvents(&core.EventInput{
 		Input: e,
-	}, public.ByteCallEvent, false)
-	if err2 != nil {
-		return core.Wrap(errors.ByteEngineProcessError2, err2, core.GetRealErrorReverse(err2))
+	}, public.ByteCallEvent, false); err != nil {
+		return core.Wrap(errors.ByteEngineProcessError2, err, "%s", core.GetRealErrorReverse(err))
 	}
 	return nil
 }
 
-// Your handler MUST shift bytecode index if autoBytecodeIndexShift false!
-//
-// Usually it's like a:
-//
-//	AddToBytecodeIdx(1) // next instruction
-//
-// Or:
-//
-//	SetBytecodeIdx(10) // jump
-//	AddToBytecodeIdx(-1) // prev instruction
+// NewCommandFull registers a command directly. A handler registered with
+// autoBytecodeIndexShift false has to move the instruction index itself,
+// through AddToBytecodeIdx or SetBytecodeIdx.
 func (e *ByteEngine) NewCommandFull(
-	cmd_switch int, handler core.CommandType[ByteEngineInterface, byteParsing.ParsedBytes],
-	name string, autoBytecodeIndexShift bool) {
+	opcode int, handler byteCommandType, name string, autoBytecodeIndexShift bool) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Commands[cmd_switch] = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]{
+	e.Commands[opcode] = byteCommandMeta{
 		Handler: handler,
 		Doc:     name,
 	}
-	e.AutoBytecodeIndexShift[cmd_switch] = autoBytecodeIndexShift
+	e.AutoBytecodeIndexShift[opcode] = autoBytecodeIndexShift
 }
 
-// For interface. o.Option.Flags[AutoshiftNewCommandFlag] = autoBytecodeIndexShift, o.Input string = name
+// NewCommand registers a command for the EngineInterface.
+// o.Input string = name, o.Option.Flags[AutoshiftNewCommandFlag] = autoBytecodeIndexShift
 //
 // Err errors.CorePackageSystemError.
-func (e *ByteEngine) NewCommand(
-	cmd_switch int, handler byteCommandType,
-	o *core.SimpleInput) error {
+func (e *ByteEngine) NewCommand(opcode int, handler byteCommandType, o *core.SimpleInput) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	name, ok := o.Input.(string)
 	if !ok {
 		return core.Err(errors.CorePackageSystemError, "Invalid input: 'o.Input' must be string")
 	}
-	autoBytecodeIndexShift := o.Option.HasFlag(AutoshiftNewCommandFlag)
-	e.Commands[cmd_switch] = core.CommandMeta[ByteEngineInterface, byteParsing.ParsedBytes]{
+	e.Commands[opcode] = byteCommandMeta{
 		Handler: handler,
 		Doc:     name,
 	}
-	e.AutoBytecodeIndexShift[cmd_switch] = autoBytecodeIndexShift
+	e.AutoBytecodeIndexShift[opcode] = o.Option.HasFlag(AutoshiftNewCommandFlag)
 	return nil
 }
 
-// For interface
 func (e *ByteEngine) GetCommands() map[int]byteCommandMeta {
-	return e.Commands
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	res := make(map[int]byteCommandMeta, len(e.Commands))
+	for k, v := range e.Commands {
+		res[k] = v
+	}
+	return res
 }
 
-// For interface
+func (e *ByteEngine) GetAutoBytecodeIndexShift() map[int]bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	res := make(map[int]bool, len(e.AutoBytecodeIndexShift))
+	for k, v := range e.AutoBytecodeIndexShift {
+		res[k] = v
+	}
+	return res
+}
+
+func (e *ByteEngine) GetCommand(opcode int) (byteCommandMeta, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	cmd, ok := e.Commands[opcode]
+	return cmd, ok
+}
+
 func (e *ByteEngine) GetUep() *core.UniversalEngineParams {
 	return e.UEP
 }
@@ -121,11 +128,11 @@ func (e *ByteEngine) SetBytecodeIdx(n int) {
 func (e *ByteEngine) GetBytecodeIdx() (*int, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	_idx, ok := e.UEP.Scope[public.ByteEngineScopeBytecodeIdx]
+	raw, ok := e.UEP.Scope[public.ByteEngineScopeBytecodeIdx]
 	if !ok {
 		return nil, core.Err(errors.CorePackageSystemError, "Can't get bytecode index: invalid scope")
 	}
-	idx, ok := _idx.(*int)
+	idx, ok := raw.(*int)
 	if !ok {
 		return nil, core.Err(errors.CorePackageSystemError, "Can't get bytecode index: invalid interface in scope")
 	}

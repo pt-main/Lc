@@ -1,4 +1,4 @@
-// Working with engine/core/Events
+// Working with engine/core/Events.
 
 package main
 
@@ -9,63 +9,63 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
-func test1() { // Basic usage
-	fmt.Println("=== test1 ===")
+// Basic usage: register one handler, then call the event.
+func basicUsage() {
+	fmt.Println("=== basic usage ===")
 	e := core.NewEvents(context.Background())
 
-	// add event 'test'
 	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Test event is active")
 		return nil
 	})
 
-	// call event with empty input and canWorkWithoutHandler=false
-	fmt.Println(e.CallEvents(&core.EventInput{}, "test", false)) // "Test event is active\n<nil>"
+	fmt.Println(e.CallEvents(&core.EventInput{}, "test", false))
 
-	// call unregistered event with canWorkWithoutHandler=false
-	fmt.Println(e.CallEvents(nil, "unknown", false)) // "Event 'unknown' is not found.""
+	// canWorkWithoutHandler=false makes a missing event an error
+	fmt.Println(e.CallEvents(nil, "unknown", false))
 
-	// call unregistered event with canWorkWithoutHandler=true
-	fmt.Println(e.CallEvents(&core.EventInput{}, "unknown", true)) // <nil>
+	// canWorkWithoutHandler=true makes a missing event a no-op
+	fmt.Println(e.CallEvents(&core.EventInput{}, "unknown", true))
 }
 
-func test2() { // Core events
-	fmt.Println("=== test2 ===")
+// Core events: the first registered handler is the core event. NewEvent
+// appends after it, NewEventBefore inserts in front of it.
+func coreEventOrdering() {
+	fmt.Println("=== core events ===")
 	e := core.NewEvents(context.Background())
 
-	// while event is not registred, it's created as core event
 	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Test core event is active")
 		return nil
 	})
 
-	// after creating core event you can append new handlers after core event
 	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's after test core event")
 		return nil
 	})
 
-	// and you can creating events before core event
 	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Call's before test core event")
 		return nil
 	})
 
-	// you can add more events after/before core event
+	// A second insert before the core event goes in front of the first one
 	e.NewEventBefore("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("(1) Call's before test core event")
 		return nil
 	})
 
-	fmt.Println(e.CallEvents(nil, "test", false)) // <nil>
+	fmt.Println(e.CallEvents(nil, "test", false))
 
-	// And you can replace event
+	// ReplaceEvent drops the whole event, so calling it now fails
 	e.ReplaceEvent("test")
-	fmt.Println(e.CallEvents(nil, "test", false)) // "Event 'test' is not found."
+	fmt.Println(e.CallEvents(nil, "test", false))
 }
 
-func test3() { // Core events deeper
-	fmt.Println("=== test3 ===")
+// EventsTools changes the core event in place, leaving the handlers
+// registered around it untouched.
+func coreEventReplacement() {
+	fmt.Println("=== core events replaced ===")
 	e := core.NewEvents(context.Background())
 
 	e.NewEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
@@ -83,12 +83,9 @@ func test3() { // Core events deeper
 		return nil
 	})
 
-	// Creating EventTools for work with core events
 	et := core.EventsTools{
 		Events: e,
 	}
-
-	// Change only core event
 	et.ChangeCoreEvent("test", func(e *core.Events, ei *core.EventInput) core.ErrorInterface {
 		fmt.Println("Not test core event")
 		return nil
@@ -97,8 +94,10 @@ func test3() { // Core events deeper
 	fmt.Println(e.CallEvents(nil, "test", false))
 }
 
-func test4() { // Hard example
-	fmt.Println("=== test4 ===")
+// Handlers of the same event share the scope, so they can pass data along
+// without a return value.
+func scopeSharing() {
+	fmt.Println("=== scope sharing ===")
 	e := core.NewEvents(context.Background())
 
 	e.Scope()["numStr"] = "1"
@@ -132,31 +131,31 @@ func test4() { // Hard example
 }
 
 func main() {
-	test1()
-	test2()
-	test3()
-	test4()
+	basicUsage()
+	coreEventOrdering()
+	coreEventReplacement()
+	scopeSharing()
 }
 
 /*
-=== test1 ===
+=== basic usage ===
 Test event is active
 <nil>
 Event 'unknown' is not found.
 <nil>
-=== test2 ===
+=== core events ===
 (1) Call's before test core event
 Call's before test core event
 Test core event is active
 Call's after test core event
 <nil>
 Event 'test' is not found.
-=== test3 ===
+=== core events replaced ===
 Call's before test core event
 Not test core event
 Call's after test core event
 <nil>
-=== test4 ===
+=== scope sharing ===
 Before: 1
 Call's before test core event. 1 <nil>
 Test core event is active. 4 <nil>

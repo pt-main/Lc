@@ -15,7 +15,7 @@ type ByteCLDType CallLoopData[ByteCallAttr, engine.ByteEngineInterface]
 // Err errors.DefaultEventsSystemError.
 // With meta: EMK(0, "string") - expected type.
 // Cause from core.ScopeGet, e.Parser.Parse.
-func (de *DefaultEvents) ByteParsingEvent(events *core.Events, i *core.EventInput) core.ErrorInterface {
+func (de *DefaultEvents) ByteParsingEvent(_ *core.Events, i *core.EventInput) core.ErrorInterface {
 	e, ok := i.Input.(*engine.ByteEngine)
 	if !ok {
 		return core.Err(errors.DefaultEventsSystemError, "Invalid input: expected *engine.ByteEngine").
@@ -42,13 +42,14 @@ type ByteCallAttr struct {
 // Err errors.DefaultEventsCallErrorCmdNotFound.
 // With meta: EMK(0, "int") - opcode.
 func (de *DefaultEvents) ByteCallPreprocess(
-	parsed []byteParsing.ParsedBytes, endianess public.EndianType,
+	parsed []byteParsing.ParsedBytes, endianness public.EndianType,
 	u bytecode.Utils, abis map[int]bool,
 	cmds map[int]core.CommandMeta[engine.ByteEngineInterface, byteParsing.ParsedBytes],
 ) ([]ByteCallAttr, core.ErrorInterface) {
 	res := make([]ByteCallAttr, 0, len(parsed))
-	for _, node := range parsed {
-		cmdSwitch := u.BytesToInt(node.Switch, endianess)
+	for i := range parsed {
+		node := &parsed[i]
+		cmdSwitch := u.BytesToInt(node.Switch, endianness)
 		handler, ok := cmds[cmdSwitch]
 		if !ok {
 			return nil, core.Err(errors.DefaultEventsCallErrorCmdNotFound, "Opcode %d not registered", cmdSwitch).
@@ -60,7 +61,7 @@ func (de *DefaultEvents) ByteCallPreprocess(
 				WithMeta(core.EMK(0, "int"), cmdSwitch)
 		}
 		res = append(res, ByteCallAttr{
-			RawNode: &node,
+			RawNode: node,
 			Handler: handler.Handler,
 			Abis:    autoshift,
 		})
@@ -74,28 +75,35 @@ func (de *DefaultEvents) ByteCallPreprocess(
 // With meta: EMK(0, "int") - cmd, EMK(1, "int") - bcIdx, EMK(2, "string") - pb.
 func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	var idx *int
-	var parsed2 []ByteCallAttr
+	var attrs []ByteCallAttr
 	var lastCmd int
 	defer func() {
 		if r := recover(); r != nil {
 			err = core.Err(errors.DefaultEventsPanicError, "Panic recovered: %v", r)
 		}
-		if err != nil {
-			if err.Error() == core.ErrExit.Error() {
-				if idx != nil {
-					*idx = -1
-				}
-				return
-			}
-			idxV := 0
-			if idx != nil {
-				idxV = *idx
-			}
-			err = core.Wrap(errors.DefaultEventsCallErrorContexted, err,
-				"Error at cmd=%v, bcIdx=%v", lastCmd, idxV).
-				WithMeta(core.EMK(0, "int"), lastCmd).
-				WithMeta(core.EMK(1, "int"), idxV)
+		if err == nil {
+			return
 		}
+		if err.Error() == core.ErrExit.Error() {
+			if idx != nil {
+				*idx = -1
+			}
+			return
+		}
+		idxVal := 0
+		if idx != nil {
+			idxVal = *idx
+		}
+		// Without an index the hot loop cannot tell which opcode failed, so
+		// the last known one is used instead of an unconditional zero.
+		cmdVal := lastCmd
+		if idx != nil && idxVal >= 0 && idxVal < len(attrs) && attrs[idxVal].RawNode != nil {
+			cmdVal = (&bytecode.Utils{}).BytesToInt(attrs[idxVal].RawNode.Switch, public.LittleEndian)
+		}
+		err = core.Wrap(errors.DefaultEventsCallErrorContexted, err,
+			"Error at cmd=%v, bcIdx=%v", cmdVal, idxVal).
+			WithMeta(core.EMK(0, "int"), cmdVal).
+			WithMeta(core.EMK(1, "int"), idxVal)
 	}()
 	e, ok := i.Input.(*engine.ByteEngine)
 	if !ok {
@@ -111,32 +119,33 @@ func (de *DefaultEvents) ByteCallEvent(events *core.Events, i *core.EventInput) 
 		return core.Err(errors.DefaultEventsSystemError, "Parsed data has wrong type")
 	}
 	u := bytecode.Utils{}
-	endianess, ok := e.GetUep().Scope[public.ByteEngineScopeEndianess].(public.EndianType)
+	endianness, ok := e.GetUep().Scope[public.ByteEngineScopeEndianness].(public.EndianType)
 	if !ok {
-		return core.Err(errors.DefaultEventsSystemError, "Invalid endianess in scope")
+		return core.Err(errors.DefaultEventsSystemError, "Invalid endianness in scope")
 	}
 	idx, err = core.ScopeGet[*int](e.GetUep().Scope, public.ByteEngineScopeBytecodeIdx)
 	if err != nil {
 		return core.Wrap(errors.DefaultEventsSystemError, err, "Cannot get bytecode index")
 	}
 	ctx := e.GetUep().GetContext()
-	cmds := e.Commands
-	abis := e.AutoBytecodeIndexShift
+	// The maps are read without e.mu otherwise, which races with a concurrent
+	// NewCommand and can crash with "concurrent map read and map write".
+	cmds := e.GetCommands()
+	abis := e.GetAutoBytecodeIndexShift()
 
-	parsed2, err = de.ByteCallPreprocess(parsed, endianess, u, abis, cmds)
+	attrs, err = de.ByteCallPreprocess(parsed, endianness, u, abis, cmds)
 	if err != nil {
 		return core.Wrap(errors.DefaultEventsSystemError, err, "Preprocessing failed")
 	}
 
 	if err = events.CallEvents(&core.EventInput{Input: ByteCLDType{
-		Ctx: ctx, Parsed: parsed2, Engine: e, Idx: idx, Other: &parsed,
+		Ctx: ctx, Parsed: attrs, Engine: e, Idx: idx, Other: &parsed,
 	}}, public.ByteCallHotloopEvent, false); err != nil {
 		return core.Wrap(errors.DefaultEventsCallErrorContexted, err, "Hot-loop event failed")
 	}
 	return nil
 }
 
-// Err errors.DefaultEventsCallErrorContex.
 // Err errors.DefaultEventsCallErrorContexted.
 func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.EventInput) (err core.ErrorInterface) {
 	hld, ok := i.Input.(ByteCLDType)
@@ -157,9 +166,11 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 	}
 	for {
 		iter++
-		if iter&int(checkInterval) == 0 {
+		// The first iteration is always checked, otherwise a program shorter
+		// than checkPeriod would finish without ever seeing a cancelled ctx.
+		if iter == 1 || iter&checkInterval == 0 {
 			if ctx.Err() != nil {
-				return core.Wrap(errors.DefaultEventsCallErrorContex, ctx.Err(), "Context cancelled (at %v iter)", iter)
+				return core.Wrap(errors.DefaultEventsCallErrorContexted, ctx.Err(), "Context cancelled (at %v iter)", iter)
 			}
 		}
 		idxN := *idx
@@ -167,9 +178,8 @@ func (de *DefaultEvents) ByteCallHotLoopEvent(events *core.Events, i *core.Event
 			break
 		}
 		node := &parsed[idxN]
-		//go:inline
 		if err = de.ByteCallEventIteration(idx, node, e); err != nil {
-			if node.Abis == true {
+			if node.Abis {
 				(*idx)--
 			}
 			return core.Wrap(errors.DefaultEventsCallErrorHandler, err, "Handler failed")
@@ -186,6 +196,5 @@ func (de *DefaultEvents) ByteCallEventIteration(
 	if parsed.Abis {
 		*idx++
 	}
-	//go:inline
 	return parsed.Handler(e, parsed.RawNode)
 }

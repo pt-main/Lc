@@ -1,4 +1,4 @@
-// Work with engine.core.Logger
+// Working with engine.core.Logger.
 
 package main
 
@@ -9,51 +9,48 @@ import (
 	"github.com/pt-main/lc/engine/core"
 )
 
-func test1() { // Simple example
-	fmt.Println("=== test1 ===")
-	l := core.NewLogger("") // logger with default status form
-
-	// setup logging
+// PrintLog writes to stdout only for the statuses enabled in Logging, but
+// always keeps the line in the internal log.
+func levelFiltering() {
+	fmt.Println("=== level filtering ===")
+	l := core.NewLogger("")
 	l.Logging["info"] = true
 
-	// log will print if l.Logging["info"] is true
-	l.PrintLog("info", "test info log")   // printing
-	l.PrintLog("debug", "test debug log") // not printing
+	l.PrintLog("info", "test info log")
+	l.PrintLog("debug", "test debug log")
 }
 
-func test2() { // Hard example
-	fmt.Println("=== test2 ===")
-	// change default status form
-	// 3 values input, colored output
-	// using tap.colors for coloring text
+// MaxLogLength bounds the retained log: once exceeded, the oldest line is
+// dropped.
+func logTrimming() {
+	fmt.Println("=== log trimming ===")
+	// The format takes three values: status, time and text
 	l := core.NewLogger("Status:[?RD]%v [?RT]Time:[?BE][%v] [?RT]Text:[?GN][%v][?RT]")
 
-	l.MaxLogLength = 4 // set the saving logs limit to 4
+	l.MaxLogLength = 4
 	l.Logging["info"] = true
 
-	// add 12 logs
+	// 12 lines are written, only the last 4 are kept
 	l.PrintLog("info", "first info log")
 	for range 10 {
 		l.PrintLog("debug", "test debug log")
 	}
 	l.PrintLog("info", "last info log")
 
-	// print only 4 logs
-	fmt.Println("\n[" + strings.Join(l.Log, "]\n[") + "]\n") // print all logs
-	// or just
+	fmt.Println("\n[" + strings.Join(l.Log, "]\n[") + "]\n")
 	fmt.Println(l.GetLog())
 }
 
 func main() {
-	test1()
-	test2()
+	levelFiltering()
+	logTrimming()
 }
 
 /*
-=== test1 ===
+=== level filtering ===
 info [2026-08-04 19:55:38.651721 +0000 UTC] [test info log]
 
-=== test2 ===
+=== log trimming ===
 Status:info Time:[2026-08-04 19:55:38.651797 +0000 UTC] Text:[first info log]
 Status:info Time:[2026-08-04 19:55:38.651977 +0000 UTC] Text:[last info log]
 

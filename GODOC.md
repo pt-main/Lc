@@ -9,26 +9,26 @@ import "github.com/pt-main/lc"
 ## Index
 
 - [Constants](<#constants>)
-- [func NewByteEngine\(generator\_res\_type public.ResType, pipeline \[\]string, add\_default\_events bool, parser byteParser, endianess public.EndianType, colorEnable bool, context context.Context\) \*engine.ByteEngine](<#NewByteEngine>)
-- [func NewStringEngine\(generator\_res\_type public.ResType, pipeline \[\]string, add\_default\_events bool, parser stringParser, colorEnable bool, context context.Context\) \*engine.StringEngine](<#NewStringEngine>)
+- [func NewAstEngine\(generatorResType public.ResType, pipeline \[\]string, addDefaultEvents bool, parser stringParser, ctx context.Context, canNodeBeUnknown, canMainNodeBeUnknown bool\) \*engine.AstEngine](<#NewAstEngine>)
+- [func NewByteEngine\(generatorResType public.ResType, pipeline \[\]string, addDefaultEvents bool, parser byteParser, endianness public.EndianType, ctx context.Context\) \*engine.ByteEngine](<#NewByteEngine>)
+- [func NewStringEngine\(generatorResType public.ResType, pipeline \[\]string, addDefaultEvents bool, parser stringParser, ctx context.Context\) \*engine.StringEngine](<#NewStringEngine>)
 - [type EngineBuilder](<#EngineBuilder>)
   - [func NewEngineBuilder\(engineType public.EngineType, resType public.ResType\) \*EngineBuilder](<#NewEngineBuilder>)
   - [func \(b \*EngineBuilder\) Build\(\) \(\*EngineUniversal, error\)](<#EngineBuilder.Build>)
   - [func \(b \*EngineBuilder\) WithByteParser\(parser byteParser\) \*EngineBuilder](<#EngineBuilder.WithByteParser>)
-  - [func \(b \*EngineBuilder\) WithColors\(\) \*EngineBuilder](<#EngineBuilder.WithColors>)
   - [func \(b \*EngineBuilder\) WithContext\(ctx context.Context\) \*EngineBuilder](<#EngineBuilder.WithContext>)
   - [func \(b \*EngineBuilder\) WithDefaultEvents\(add bool\) \*EngineBuilder](<#EngineBuilder.WithDefaultEvents>)
-  - [func \(b \*EngineBuilder\) WithEndianess\(endianess public.EndianType\) \*EngineBuilder](<#EngineBuilder.WithEndianess>)
+  - [func \(b \*EngineBuilder\) WithEndianness\(endianness public.EndianType\) \*EngineBuilder](<#EngineBuilder.WithEndianness>)
   - [func \(b \*EngineBuilder\) WithLogger\(logger \*core.Logger\) \*EngineBuilder](<#EngineBuilder.WithLogger>)
   - [func \(b \*EngineBuilder\) WithPipeline\(pipeline \[\]string\) \*EngineBuilder](<#EngineBuilder.WithPipeline>)
   - [func \(b \*EngineBuilder\) WithPlugins\(plugins ...plugin.PluginInterface\) \*EngineBuilder](<#EngineBuilder.WithPlugins>)
   - [func \(b \*EngineBuilder\) WithScope\(scope core.ScopeType\) \*EngineBuilder](<#EngineBuilder.WithScope>)
   - [func \(b \*EngineBuilder\) WithStringParser\(parser stringParser\) \*EngineBuilder](<#EngineBuilder.WithStringParser>)
 - [type EngineUniversal](<#EngineUniversal>)
-  - [func \(e \*EngineUniversal\) CheckEnded\(\) \(err core.ErrorInterface\)](<#EngineUniversal.CheckEnded>)
+  - [func \(e \*EngineUniversal\) CheckEnded\(\) core.ErrorInterface](<#EngineUniversal.CheckEnded>)
   - [func \(e \*EngineUniversal\) End\(\) \(err error\)](<#EngineUniversal.End>)
   - [func \(e \*EngineUniversal\) GetUEP\(\) \(\*core.UniversalEngineParams, error\)](<#EngineUniversal.GetUEP>)
-  - [func \(e \*EngineUniversal\) NewCommandByte\(opcode int, handler core.CommandType\[engine.ByteEngineInterface, byteParsing.ParsedBytes\], name string, autoByecodeIdxShift bool\) error](<#EngineUniversal.NewCommandByte>)
+  - [func \(e \*EngineUniversal\) NewCommandByte\(opcode int, handler core.CommandType\[engine.ByteEngineInterface, byteParsing.ParsedBytes\], name string, autoBytecodeIdxShift bool\) error](<#EngineUniversal.NewCommandByte>)
   - [func \(e \*EngineUniversal\) NewCommandString\(cmdSwitch string, handler core.CommandType\[engine.StringEngineInterface, stringParsing.ParsedNode\], doc string\) error](<#EngineUniversal.NewCommandString>)
   - [func \(e \*EngineUniversal\) ProcessBytes\(input \[\]byte\) core.ErrorInterface](<#EngineUniversal.ProcessBytes>)
   - [func \(e \*EngineUniversal\) ProcessBytesWithCtx\(input \[\]byte, ctx context.Context\) core.ErrorInterface](<#EngineUniversal.ProcessBytesWithCtx>)
@@ -41,46 +41,40 @@ import "github.com/pt-main/lc"
 <a name="Version"></a>
 
 ```go
-const Version = "1.5.8"
+const Version = "2.0.0"
 ```
+
+<a name="NewAstEngine"></a>
+## func [NewAstEngine](<https://github.com/pt-main/Lc/blob/main/main.go#L78-L86>)
+
+```go
+func NewAstEngine(generatorResType public.ResType, pipeline []string, addDefaultEvents bool, parser stringParser, ctx context.Context, canNodeBeUnknown, canMainNodeBeUnknown bool) *engine.AstEngine
+```
+
+NewAstEngine creates an AST engine that dispatches over the whole parsed tree. canNodeBeUnknown and canMainNodeBeUnknown decide whether an unregistered node type is an error or is silently skipped.
 
 <a name="NewByteEngine"></a>
-## func [NewByteEngine](<https://github.com/pt-main/Lc/blob/main/main.go#L58-L66>)
+## func [NewByteEngine](<https://github.com/pt-main/Lc/blob/main/main.go#L45-L52>)
 
 ```go
-func NewByteEngine(generator_res_type public.ResType, pipeline []string, add_default_events bool, parser byteParser, endianess public.EndianType, colorEnable bool, context context.Context) *engine.ByteEngine
+func NewByteEngine(generatorResType public.ResType, pipeline []string, addDefaultEvents bool, parser byteParser, endianness public.EndianType, ctx context.Context) *engine.ByteEngine
 ```
 
-NewByteEngine creates a byte\-oriented engine for binary formats or bytecode.
-
-The endianess parameter \(e.g., bytecode.LittleEndian\) is stored in scope.
-
-It registers default events when add\_default\_events is true.
-
-The parser must implement paraing.ParserInterface.
+NewByteEngine creates a byte\-oriented engine for binary formats or bytecode. The endianness is stored in scope, and addDefaultEvents registers the standard parsing and call events.
 
 <a name="NewStringEngine"></a>
-## func [NewStringEngine](<https://github.com/pt-main/Lc/blob/main/main.go#L26-L33>)
+## func [NewStringEngine](<https://github.com/pt-main/Lc/blob/main/main.go#L19-L25>)
 
 ```go
-func NewStringEngine(generator_res_type public.ResType, pipeline []string, add_default_events bool, parser stringParser, colorEnable bool, context context.Context) *engine.StringEngine
+func NewStringEngine(generatorResType public.ResType, pipeline []string, addDefaultEvents bool, parser stringParser, ctx context.Context) *engine.StringEngine
 ```
 
-NewStringEngine creates a ready\-to\-use string\-based engine. Parameters:
-
-```
-generator_res_type – core.StringResType (usually) for text generation.
-pipeline – ordered list of generation points (e.g., []string{"pre","main"}).
-add_default_events – if true, registers standard parsing and call events.
-parser – an implementation parser.ParserInterface.
-```
-
-Returns a StringEngine with empty command map and initialized UEP.
+NewStringEngine creates a ready\-to\-use string\-based engine with an empty command map and an initialized UEP. addDefaultEvents registers the standard parsing and call events.
 
 <a name="EngineBuilder"></a>
-## type [EngineBuilder](<https://github.com/pt-main/Lc/blob/main/builder.go#L22-L37>)
+## type [EngineBuilder](<https://github.com/pt-main/Lc/blob/main/builder.go#L23-L37>)
 
-EngineBuilder is a fluent builder for constructing universal engines. It allows to configure pipeline stages, event handling, logging, custom parsers, scope variables, and byte order before calling Build\(\). Use NewEngineBuilder to create a builder instance.
+EngineBuilder is a fluent builder for universal engines. It configures pipeline stages, event handling, logging, custom parsers, scope variables and byte order before Build produces the engine.
 
 ```go
 type EngineBuilder struct {
@@ -89,31 +83,25 @@ type EngineBuilder struct {
 ```
 
 <a name="NewEngineBuilder"></a>
-### func [NewEngineBuilder](<https://github.com/pt-main/Lc/blob/main/builder.go#L48>)
+### func [NewEngineBuilder](<https://github.com/pt-main/Lc/blob/main/builder.go#L42>)
 
 ```go
 func NewEngineBuilder(engineType public.EngineType, resType public.ResType) *EngineBuilder
 ```
 
-NewEngineBuilder creates a new EngineBuilder for the given engine type. engineType must be either ByteEngineType or StringEngineType. Defaults: pipeline = \[\]string\{"main"\}, default events enabled, endianess = bytecode.LittleEndian, empty scope. Example:
-
-```
-builder := lc.NewEngineBuilder(lc.StringEngineType).
-            WithPipeline([]string{"pre","main"}).
-            WithStringParser(myParser)
-```
+NewEngineBuilder creates a builder for the given engine and result type. Defaults: pipeline = \[\]string\{"main"\}, default events enabled, endianness = public.LittleEndian, empty scope.
 
 <a name="EngineBuilder.Build"></a>
-### func \(\*EngineBuilder\) [Build](<https://github.com/pt-main/Lc/blob/main/builder.go#L117>)
+### func \(\*EngineBuilder\) [Build](<https://github.com/pt-main/Lc/blob/main/builder.go#L104>)
 
 ```go
 func (b *EngineBuilder) Build() (*EngineUniversal, error)
 ```
 
-Build constructs and returns an EngineUniversal or an error if required components are missing \(e.g., a string parser for a StringEngine\). The returned engineUniversal can process strings or bytes depending on its type and provides methods to register commands.
+Build constructs the EngineUniversal, or returns an error when a required component is missing, such as a parser for the selected engine type.
 
 <a name="EngineBuilder.WithByteParser"></a>
-### func \(\*EngineBuilder\) [WithByteParser](<https://github.com/pt-main/Lc/blob/main/builder.go#L97>)
+### func \(\*EngineBuilder\) [WithByteParser](<https://github.com/pt-main/Lc/blob/main/builder.go#L86>)
 
 ```go
 func (b *EngineBuilder) WithByteParser(parser byteParser) *EngineBuilder
@@ -121,17 +109,8 @@ func (b *EngineBuilder) WithByteParser(parser byteParser) *EngineBuilder
 
 
 
-<a name="EngineBuilder.WithColors"></a>
-### func \(\*EngineBuilder\) [WithColors](<https://github.com/pt-main/Lc/blob/main/builder.go#L87>)
-
-```go
-func (b *EngineBuilder) WithColors() *EngineBuilder
-```
-
-
-
 <a name="EngineBuilder.WithContext"></a>
-### func \(\*EngineBuilder\) [WithContext](<https://github.com/pt-main/Lc/blob/main/builder.go#L65>)
+### func \(\*EngineBuilder\) [WithContext](<https://github.com/pt-main/Lc/blob/main/builder.go#L59>)
 
 ```go
 func (b *EngineBuilder) WithContext(ctx context.Context) *EngineBuilder
@@ -140,7 +119,7 @@ func (b *EngineBuilder) WithContext(ctx context.Context) *EngineBuilder
 
 
 <a name="EngineBuilder.WithDefaultEvents"></a>
-### func \(\*EngineBuilder\) [WithDefaultEvents](<https://github.com/pt-main/Lc/blob/main/builder.go#L70>)
+### func \(\*EngineBuilder\) [WithDefaultEvents](<https://github.com/pt-main/Lc/blob/main/builder.go#L64>)
 
 ```go
 func (b *EngineBuilder) WithDefaultEvents(add bool) *EngineBuilder
@@ -148,17 +127,17 @@ func (b *EngineBuilder) WithDefaultEvents(add bool) *EngineBuilder
 
 
 
-<a name="EngineBuilder.WithEndianess"></a>
-### func \(\*EngineBuilder\) [WithEndianess](<https://github.com/pt-main/Lc/blob/main/builder.go#L102>)
+<a name="EngineBuilder.WithEndianness"></a>
+### func \(\*EngineBuilder\) [WithEndianness](<https://github.com/pt-main/Lc/blob/main/builder.go#L91>)
 
 ```go
-func (b *EngineBuilder) WithEndianess(endianess public.EndianType) *EngineBuilder
+func (b *EngineBuilder) WithEndianness(endianness public.EndianType) *EngineBuilder
 ```
 
 
 
 <a name="EngineBuilder.WithLogger"></a>
-### func \(\*EngineBuilder\) [WithLogger](<https://github.com/pt-main/Lc/blob/main/builder.go#L75>)
+### func \(\*EngineBuilder\) [WithLogger](<https://github.com/pt-main/Lc/blob/main/builder.go#L69>)
 
 ```go
 func (b *EngineBuilder) WithLogger(logger *core.Logger) *EngineBuilder
@@ -167,7 +146,7 @@ func (b *EngineBuilder) WithLogger(logger *core.Logger) *EngineBuilder
 
 
 <a name="EngineBuilder.WithPipeline"></a>
-### func \(\*EngineBuilder\) [WithPipeline](<https://github.com/pt-main/Lc/blob/main/builder.go#L60>)
+### func \(\*EngineBuilder\) [WithPipeline](<https://github.com/pt-main/Lc/blob/main/builder.go#L54>)
 
 ```go
 func (b *EngineBuilder) WithPipeline(pipeline []string) *EngineBuilder
@@ -176,7 +155,7 @@ func (b *EngineBuilder) WithPipeline(pipeline []string) *EngineBuilder
 
 
 <a name="EngineBuilder.WithPlugins"></a>
-### func \(\*EngineBuilder\) [WithPlugins](<https://github.com/pt-main/Lc/blob/main/builder.go#L107>)
+### func \(\*EngineBuilder\) [WithPlugins](<https://github.com/pt-main/Lc/blob/main/builder.go#L96>)
 
 ```go
 func (b *EngineBuilder) WithPlugins(plugins ...plugin.PluginInterface) *EngineBuilder
@@ -185,7 +164,7 @@ func (b *EngineBuilder) WithPlugins(plugins ...plugin.PluginInterface) *EngineBu
 
 
 <a name="EngineBuilder.WithScope"></a>
-### func \(\*EngineBuilder\) [WithScope](<https://github.com/pt-main/Lc/blob/main/builder.go#L80>)
+### func \(\*EngineBuilder\) [WithScope](<https://github.com/pt-main/Lc/blob/main/builder.go#L74>)
 
 ```go
 func (b *EngineBuilder) WithScope(scope core.ScopeType) *EngineBuilder
@@ -194,7 +173,7 @@ func (b *EngineBuilder) WithScope(scope core.ScopeType) *EngineBuilder
 
 
 <a name="EngineBuilder.WithStringParser"></a>
-### func \(\*EngineBuilder\) [WithStringParser](<https://github.com/pt-main/Lc/blob/main/builder.go#L92>)
+### func \(\*EngineBuilder\) [WithStringParser](<https://github.com/pt-main/Lc/blob/main/builder.go#L81>)
 
 ```go
 func (b *EngineBuilder) WithStringParser(parser stringParser) *EngineBuilder
@@ -203,9 +182,9 @@ func (b *EngineBuilder) WithStringParser(parser stringParser) *EngineBuilder
 
 
 <a name="EngineUniversal"></a>
-## type [EngineUniversal](<https://github.com/pt-main/Lc/blob/main/engine.go#L17-L26>)
+## type [EngineUniversal](<https://github.com/pt-main/Lc/blob/main/engine.go#L20-L29>)
 
-
+EngineUniversal is the engine the builder returns: it holds the concrete engine of its type, the plugin manager and the lifecycle state.
 
 ```go
 type EngineUniversal struct {
@@ -221,25 +200,25 @@ type EngineUniversal struct {
 ```
 
 <a name="EngineUniversal.CheckEnded"></a>
-### func \(\*EngineUniversal\) [CheckEnded](<https://github.com/pt-main/Lc/blob/main/engine.go#L141>)
+### func \(\*EngineUniversal\) [CheckEnded](<https://github.com/pt-main/Lc/blob/main/engine.go#L183>)
 
 ```go
-func (e *EngineUniversal) CheckEnded() (err core.ErrorInterface)
+func (e *EngineUniversal) CheckEnded() core.ErrorInterface
 ```
 
-
+CheckEnded reports the lifecycle error when End has already been called.
 
 <a name="EngineUniversal.End"></a>
-### func \(\*EngineUniversal\) [End](<https://github.com/pt-main/Lc/blob/main/engine.go#L123>)
+### func \(\*EngineUniversal\) [End](<https://github.com/pt-main/Lc/blob/main/engine.go#L143>)
 
 ```go
 func (e *EngineUniversal) End() (err error)
 ```
 
-End \- function for stop engines lifecycle.
+End stops the engine lifecycle: it cancels the context, releases the scope guards, drops the engines and closes every plugin.
 
 <a name="EngineUniversal.GetUEP"></a>
-### func \(\*EngineUniversal\) [GetUEP](<https://github.com/pt-main/Lc/blob/main/engine.go#L65>)
+### func \(\*EngineUniversal\) [GetUEP](<https://github.com/pt-main/Lc/blob/main/engine.go#L80>)
 
 ```go
 func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error)
@@ -248,25 +227,25 @@ func (e *EngineUniversal) GetUEP() (*core.UniversalEngineParams, error)
 
 
 <a name="EngineUniversal.NewCommandByte"></a>
-### func \(\*EngineUniversal\) [NewCommandByte](<https://github.com/pt-main/Lc/blob/main/engine.go#L78-L81>)
+### func \(\*EngineUniversal\) [NewCommandByte](<https://github.com/pt-main/Lc/blob/main/engine.go#L92-L95>)
 
 ```go
-func (e *EngineUniversal) NewCommandByte(opcode int, handler core.CommandType[engine.ByteEngineInterface, byteParsing.ParsedBytes], name string, autoByecodeIdxShift bool) error
+func (e *EngineUniversal) NewCommandByte(opcode int, handler core.CommandType[engine.ByteEngineInterface, byteParsing.ParsedBytes], name string, autoBytecodeIdxShift bool) error
 ```
 
-NewCommandByte registers a bytecode command identified by an opcode. If opcode == \-1, the engine automatically assigns the next available opcode. handler receives \(\*ByteEngine, ParsedBytes\).
+NewCommandByte registers a bytecode command under the given opcode. An opcode of \-1 makes the engine assign the next free one.
 
 <a name="EngineUniversal.NewCommandString"></a>
-### func \(\*EngineUniversal\) [NewCommandString](<https://github.com/pt-main/Lc/blob/main/engine.go#L107-L109>)
+### func \(\*EngineUniversal\) [NewCommandString](<https://github.com/pt-main/Lc/blob/main/engine.go#L127-L129>)
 
 ```go
 func (e *EngineUniversal) NewCommandString(cmdSwitch string, handler core.CommandType[engine.StringEngineInterface, stringParsing.ParsedNode], doc string) error
 ```
 
-NewCommandString registers a text\-based command in a StringEngine. cmdSwitch is the command name \(e.g., "print"\). handler must have signature func\(\[\]interface\{\}\) error where arguments are \(\*StringEngine, ParsedNode\). doc is an optional documentation string.
+NewCommandString registers a text\-based command under the given name, with an optional documentation string.
 
 <a name="EngineUniversal.ProcessBytes"></a>
-### func \(\*EngineUniversal\) [ProcessBytes](<https://github.com/pt-main/Lc/blob/main/engine.go#L61>)
+### func \(\*EngineUniversal\) [ProcessBytes](<https://github.com/pt-main/Lc/blob/main/engine.go#L70>)
 
 ```go
 func (e *EngineUniversal) ProcessBytes(input []byte) core.ErrorInterface
@@ -275,7 +254,7 @@ func (e *EngineUniversal) ProcessBytes(input []byte) core.ErrorInterface
 ProcessBytes feeds a byte slice into the engine \(ByteEngineType only\). The input is passed via scope under key "input\_\[\]byte", then parsed and processed.
 
 <a name="EngineUniversal.ProcessBytesWithCtx"></a>
-### func \(\*EngineUniversal\) [ProcessBytesWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L40>)
+### func \(\*EngineUniversal\) [ProcessBytesWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L43>)
 
 ```go
 func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context) core.ErrorInterface
@@ -284,16 +263,16 @@ func (e *EngineUniversal) ProcessBytesWithCtx(input []byte, ctx context.Context)
 
 
 <a name="EngineUniversal.ProcessString"></a>
-### func \(\*EngineUniversal\) [ProcessString](<https://github.com/pt-main/Lc/blob/main/engine.go#L55>)
+### func \(\*EngineUniversal\) [ProcessString](<https://github.com/pt-main/Lc/blob/main/engine.go#L58>)
 
 ```go
 func (e *EngineUniversal) ProcessString(input string) core.ErrorInterface
 ```
 
-ProcessString feeds a string input into the engine. It works only for engines of type StringEngineType; otherwise returns an core.ErrorInterface. Internally triggers the parse and call events, executing registered handlers.
+ProcessString feeds a string input into the engine. It works only for engines of type StringEngineType; otherwise returns a core.ErrorInterface. Internally triggers the parse and call events, executing registered handlers.
 
 <a name="EngineUniversal.ProcessStringWithCtx"></a>
-### func \(\*EngineUniversal\) [ProcessStringWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L28>)
+### func \(\*EngineUniversal\) [ProcessStringWithCtx](<https://github.com/pt-main/Lc/blob/main/engine.go#L31>)
 
 ```go
 func (e *EngineUniversal) ProcessStringWithCtx(input string, ctx context.Context) core.ErrorInterface

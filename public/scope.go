@@ -2,9 +2,9 @@ package public
 
 const (
 	ByteEngineScopeParsed                = "PARSED []ParsedBytes"
-	ByteEngineScopeEndianess             = "ENDIANESS int"
+	ByteEngineScopeEndianness            = "ENDIANNESS int"
 	ByteEngineScopeBytecodeIdx           = "BYTECODE_IDX *int"
-	ByteEngineScopeHotloopCtxCheckPeriod = "CTX_CKECK_PERIOD int"
+	ByteEngineScopeHotloopCtxCheckPeriod = "CTX_CHECK_PERIOD int"
 	ByteEngineScopeInput                 = "INPUT []byte"
 )
 

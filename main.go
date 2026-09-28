@@ -11,33 +11,27 @@ import (
 	"github.com/pt-main/lc/public"
 )
 
-const Version = "1.6.0"
+const Version = "2.0.0"
 
-// NewStringEngine creates a ready-to-use string-based engine.
-// Parameters:
-//
-//	generator_res_type – core.StringResType (usually) for text generation.
-//	pipeline – ordered list of generation points (e.g., []string{"pre","main"}).
-//	add_default_events – if true, registers standard parsing and call events.
-//	parser – an implementation parser.ParserInterface.
-//
-// Returns a StringEngine with empty command map and initialized UEP.
+// NewStringEngine creates a ready-to-use string-based engine with an empty
+// command map and an initialized UEP. addDefaultEvents registers the standard
+// parsing and call events.
 func NewStringEngine(
-	generator_res_type public.ResType,
+	generatorResType public.ResType,
 	pipeline []string,
-	add_default_events bool,
+	addDefaultEvents bool,
 	parser stringParser,
-	context context.Context,
+	ctx context.Context,
 ) *engine.StringEngine {
-	e := core.NewEvents(context)
-	if add_default_events {
+	e := core.NewEvents(ctx)
+	if addDefaultEvents {
 		de := events.DefaultEvents{}
 		e.NewEvent(public.StringParseEvent, de.StringParsingEvent)
 		e.NewEvent(public.StringCallEvent, de.StringCallEvent)
-		e.NewEvent(public.StringCallCalloopEvent, de.StringCallLoopEvent)
+		e.NewEvent(public.StringCallCallLoopEvent, de.StringCallLoopEvent)
 	}
-	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(generator_res_type, pipeline),
-		e, make(core.ScopeType), core.NewLogger(""), context)
+	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(generatorResType, pipeline),
+		e, make(core.ScopeType), core.NewLogger(""), ctx)
 	return &engine.StringEngine{
 		UEP:      uep,
 		Commands: make(map[string]core.CommandMeta[engine.StringEngineInterface, stringParsing.ParsedNode]),
@@ -46,34 +40,30 @@ func NewStringEngine(
 }
 
 // NewByteEngine creates a byte-oriented engine for binary formats or bytecode.
-//
-// The endianess parameter (e.g., bytecode.LittleEndian) is stored in scope.
-//
-// It registers default events when add_default_events is true.
-//
-// The parser must implement paraing.ParserInterface.
+// The endianness is stored in scope, and addDefaultEvents registers the
+// standard parsing and call events.
 func NewByteEngine(
-	generator_res_type public.ResType,
+	generatorResType public.ResType,
 	pipeline []string,
-	add_default_events bool,
+	addDefaultEvents bool,
 	parser byteParser,
-	endianess public.EndianType,
-	context context.Context,
+	endianness public.EndianType,
+	ctx context.Context,
 ) *engine.ByteEngine {
 	idx := 0
-	e := core.NewEvents(context)
-	if add_default_events {
+	e := core.NewEvents(ctx)
+	if addDefaultEvents {
 		de := events.DefaultEvents{}
 		e.NewEvent(public.ByteParseEvent, de.ByteParsingEvent)
 		e.NewEvent(public.ByteCallEvent, de.ByteCallEvent)
 		e.NewEvent(public.ByteCallHotloopEvent, de.ByteCallHotLoopEvent)
 	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(
-		generator_res_type, pipeline,
+		generatorResType, pipeline,
 	), e, core.ScopeType{
-		public.ByteEngineScopeEndianess:   endianess,
+		public.ByteEngineScopeEndianness:  endianness,
 		public.ByteEngineScopeBytecodeIdx: &idx,
-	}, core.NewLogger(""), context)
+	}, core.NewLogger(""), ctx)
 	return &engine.ByteEngine{
 		UEP:                    uep,
 		AutoBytecodeIndexShift: make(map[int]bool),
@@ -82,19 +72,26 @@ func NewByteEngine(
 	}
 }
 
+// NewAstEngine creates an AST engine that dispatches over the whole parsed
+// tree. canNodeBeUnknown and canMainNodeBeUnknown decide whether an
+// unregistered node type is an error or is silently skipped.
 func NewAstEngine(
-	generator_res_type public.ResType,
+	generatorResType public.ResType,
 	pipeline []string,
-	add_default_events bool,
+	addDefaultEvents bool,
 	parser stringParser,
-	context context.Context,
+	ctx context.Context,
 	canNodeBeUnknown,
 	canMainNodeBeUnknown bool,
 ) *engine.AstEngine {
-	e := core.NewEvents(context)
+	e := core.NewEvents(ctx)
+	if addDefaultEvents {
+		de := events.DefaultEvents{}
+		e.NewEvent(public.StringParseEvent, de.AstParsingEvent)
+	}
 	uep, _ := core.NewUniversalEngineParams(core.NewGenerator(
-		generator_res_type, pipeline,
-	), e, core.ScopeType{}, core.NewLogger(""), context)
+		generatorResType, pipeline,
+	), e, core.ScopeType{}, core.NewLogger(""), ctx)
 	return &engine.AstEngine{
 		UEP:                  uep,
 		Parser:               parser,
