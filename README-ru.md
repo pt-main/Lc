@@ -784,6 +784,11 @@ go test -benchmem -run=^$ -bench ^BenchmarkByteProcessing$ ./example/tests/speed
 `packages/engine/engines/string` и `packages/engine/engines/byte` - заглушки,
 пока ничего не делают.
 
+## Ченджлог
+
+Все значимые изменения перечислены в [docs/changelog-ru.md](docs/changelog-ru.md),
+английская версия - в [docs/changelog.md](docs/changelog.md).
+
 ## Лицензия
 
 Apache 2.0 - см. [LICENSE](LICENSE).

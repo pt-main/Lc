@@ -785,6 +785,11 @@ is what matters.
 `packages/engine/engines/string` and `packages/engine/engines/byte` are
 placeholders and do not do anything yet.
 
+## Changelog
+
+All notable changes are listed in [docs/changelog.md](docs/changelog.md), also
+available in [Russian](docs/changelog-ru.md).
+
 ## License
 
 Apache 2.0 - see [LICENSE](LICENSE).
