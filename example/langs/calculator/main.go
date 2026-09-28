@@ -9,13 +9,13 @@ import (
 	"strconv"
 
 	"github.com/dlclark/regexp2"
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/parsing/stringParsing/parser3"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/astools"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/astools"
 )
 
 func createLexer() *stringParsing.Lexer {

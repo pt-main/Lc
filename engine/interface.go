@@ -1,10 +1,10 @@
 package engine
 
 import (
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/parsing/byteParsing"
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/parsing/byteParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 // EngineInterface is the contract every engine backend satisfies. CmdT is the

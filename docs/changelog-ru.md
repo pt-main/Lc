@@ -10,12 +10,19 @@
 ## [2.0.0] - 2026-09-28
 
 Релиз о согласованности, корректности и документации. Архитектура не менялась:
-пути всех пакетов и `go.mod` остались прежними, переименований нет. Основная
-работа - сплошная вычитка публичного API, потокобезопасность, переработка
-`parser3` и лексера, миграция документации на двуязычные README.
+переименований и перестройки пакетов нет. Основная работа - сплошная вычитка
+публичного API, потокобезопасность, переработка `parser3` и лексера, миграция
+документации на двуязычные README.
 
 ### Breaking
 
+- Путь модуля теперь соответствует правилу семантического версионирования
+  импортов и равен `github.com/pt-main/lc/v2`. Все импорты фреймворка, включая
+  подпакеты, должны оканчиваться на `/v2`: `github.com/pt-main/lc/engine/core`
+  становится `github.com/pt-main/lc/v2/engine/core`. Без суффикса прокси Go
+  отклоняет релиз, потому что тег `v2.0.0` не совпадает с путём модуля.
+  Миграция: переписать импорты и выполнить
+  `go get github.com/pt-main/lc/v2@v2.0.0`.
 - Глобальное исправление опечаток в публичном API: `Endianess` -> `Endianness`
   (`EngineBuilder.WithEndianness`, `public.ByteEngineScopeEndianness`,
   `bytecode.GenerationConfig.Endianness`), `Calloop` -> `CallLoop`
@@ -1152,5 +1159,5 @@
 ## Ссылки
 
 - [GitHub](https://github.com/pt-main/lc)
-- [Go Reference](https://pkg.go.dev/github.com/pt-main/lc)
+- [Go Reference](https://pkg.go.dev/github.com/pt-main/lc/v2)
 - [Project Wiki](https://github.com/pt-main/lc/wiki)

@@ -3,11 +3,11 @@ package engine
 import (
 	"sync"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 type stringParser = parsing.ParserInterface[string, stringParsing.ParsedNode]

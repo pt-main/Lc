@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/public"
 )
 
 // A byte generator only accepts bytes, and emits them in pipeline order.

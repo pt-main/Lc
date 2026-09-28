@@ -29,16 +29,16 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/parsing/stringParsing/parser3"
-	"github.com/pt-main/lc/public"
-	lce "github.com/pt-main/lc/public/errors"
-	"github.com/pt-main/lc/tooling/astools"
-	"github.com/pt-main/lc/tooling/debugging/extensiblePlugin"
-	"github.com/pt-main/lc/tooling/debugging/profiler"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
+	"github.com/pt-main/lc/v2/public"
+	lce "github.com/pt-main/lc/v2/public/errors"
+	"github.com/pt-main/lc/v2/tooling/astools"
+	"github.com/pt-main/lc/v2/tooling/debugging/extensiblePlugin"
+	"github.com/pt-main/lc/v2/tooling/debugging/profiler"
 )
 
 func main() {

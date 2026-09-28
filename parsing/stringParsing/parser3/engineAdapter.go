@@ -3,9 +3,9 @@ package parser3
 import (
 	"reflect"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 // Adapter wraps a Parser for the engine: it runs the parse and unwraps the

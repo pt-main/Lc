@@ -3,9 +3,9 @@ package extensiblePlugin
 import (
 	"context"
 
-	"github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/events"
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/events"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 type CLEData[I, P, E any] struct {

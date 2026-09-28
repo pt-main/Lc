@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/public"
 )
 
 func main() {

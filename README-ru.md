@@ -3,7 +3,7 @@
   <img alt="lc-banner" src="https://github.com/user-attachments/assets/8fa74598-5cee-403e-a9dc-417e86d22dcd" />
 </p>
 <p align="center">
-  <a href="https://pkg.go.dev/github.com/pt-main/lc"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white" alt="Go Reference"></a>
+  <a href="https://pkg.go.dev/github.com/pt-main/lc/v2"><img src="https://img.shields.io/badge/Go-Reference-007d9c?logo=go&logoColor=white" alt="Go Reference"></a>
   <a href="https://github.com/pt-main/lc/releases"><img src="https://img.shields.io/github/v/release/pt-main/lc?color=blue" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow" alt="License Apache 2.0"></a>
   <a href="https://github.com/pt-main/lc/wiki"><img src="https://img.shields.io/badge/Project-Wiki-red" alt="Project Wiki"></a>
@@ -21,7 +21,7 @@
 язык - грамматика, команды, семантика - пишет пользователь.
 
 ```bash
-go get github.com/pt-main/lc
+go get github.com/pt-main/lc/v2
 ```
 
 ## Содержание
@@ -187,11 +187,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/public"
 )
 
 func main() {
@@ -251,12 +251,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/byteParsing"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/byteParsing"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/bytecode"
 )
 
 func main() {
@@ -564,7 +564,7 @@ parser := &byteParsing.Parser1{
 плагинов. Плагины не изолированы: у них есть доступ к движку и к менеджеру.
 
 ```go
-import "github.com/pt-main/lc/tooling/plugin"
+import "github.com/pt-main/lc/v2/tooling/plugin"
 
 myPlugin := plugin.NewPlugin(
 	"my_plugin",  // имя
@@ -711,11 +711,11 @@ go run ./example/readme/byte
 
 ```bash
 $ go run ./example/langs/calculator '(2+3)**4'
-Lc version - 1.6.0
+Lc version - 2.0.0
 Result: 625
 
 $ go run ./example/langs/calculator '(2-3*4)+(5*2-1)*2'
-Lc version - 1.6.0
+Lc version - 2.0.0
 Result: 8
 
 $ go run ./example/langs/math 'a := 5
@@ -729,7 +729,7 @@ a + b'
 
 ```bash
 $ go run ./example/langs/calculator '2 +'
-Lc version - 1.6.0
+Lc version - 2.0.0
 Parse error:
  parser3/Expect: expected "MUL", got "PLUS" (raw: "+") at idx=2 start=2-3
 ```
@@ -738,7 +738,7 @@ Parse error:
 
 ```bash
 $ go run ./example/langs/calculator '1/0'
-Lc version - 1.6.0
+Lc version - 2.0.0
 Eval error:
  String:PROCESS_ERR2: EVENT_ERROR: Event handler failed
   Caused by:
@@ -749,7 +749,7 @@ Eval error:
 
 ```bash
 $ go run ./example/langs/configLang
-Lc version - 1.6.0
+Lc version - 2.0.0
 Profiler report (0.00 sec total):
 
   String commands:

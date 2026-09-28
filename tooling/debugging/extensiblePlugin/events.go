@@ -1,9 +1,9 @@
 package extensiblePlugin
 
 import (
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/engine/events"
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/engine/events"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 // StringCallLoopEvent is the main loop for string-based command execution.

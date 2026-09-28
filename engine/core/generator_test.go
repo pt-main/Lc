@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/v2/public"
 )
 
 func TestGenerator_AddAndGetString(t *testing.T) {

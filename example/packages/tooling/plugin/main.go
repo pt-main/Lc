@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/tooling/plugin"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/tooling/plugin"
 )
 
 func main() {

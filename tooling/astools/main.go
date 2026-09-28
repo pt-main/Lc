@@ -1,6 +1,6 @@
 package astools
 
-import "github.com/pt-main/lc/parsing/stringParsing"
+import "github.com/pt-main/lc/v2/parsing/stringParsing"
 
 // GetChildren returns the child slice stored in the node metadata. The slice
 // shares its backing array with the tree, so &children[i] is a real pointer

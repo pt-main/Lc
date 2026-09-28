@@ -7,7 +7,7 @@ structured grammar and builds a real syntax tree. It is the parser to reach for
 when input has nested structure: expressions, config with blocks, small languages.
 
 ```go
-import "github.com/pt-main/lc/parsing/stringParsing/parser3"
+import "github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
 ```
 
 ## Pipeline

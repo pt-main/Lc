@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/bytecode"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/bytecode"
 )
 
 func TestParser1_Parse(t *testing.T) {

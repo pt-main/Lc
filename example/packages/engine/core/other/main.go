@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/v2/engine/core"
 )
 
 // ScopeType is a plain map, so a plain write keeps working.

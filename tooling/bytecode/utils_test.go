@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/pt-main/lc/public"
+	"github.com/pt-main/lc/v2/public"
 )
 
 var endianness = []public.EndianType{public.BigEndian, public.LittleEndian}

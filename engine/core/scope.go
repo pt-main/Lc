@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 // ScopeType stays a plain map so that existing code writing scope[k] = v

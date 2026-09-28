@@ -3,7 +3,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/v2/engine/core"
 )
 
 func TestNewPluginKeepsResultKeysApart(t *testing.T) {

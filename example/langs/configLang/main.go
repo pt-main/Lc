@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pt-main/lc"
-	enginepkg "github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/debugging/extensiblePlugin"
-	"github.com/pt-main/lc/tooling/debugging/profiler"
+	"github.com/pt-main/lc/v2"
+	enginepkg "github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/debugging/extensiblePlugin"
+	"github.com/pt-main/lc/v2/tooling/debugging/profiler"
 )
 
 func Process(config string) (string, error) {

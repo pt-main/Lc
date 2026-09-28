@@ -1,6 +1,6 @@
 package stringParsing
 
-import "github.com/pt-main/lc/engine/core"
+import "github.com/pt-main/lc/v2/engine/core"
 
 // ParsedNode is a single token or syntactic unit in text mode.
 type ParsedNode struct {

@@ -19,7 +19,7 @@ Complete languages running on the engine.
 
 ```bash
 $ go run ./example/langs/calculator '(2+3)**4'
-Lc version - 1.6.0
+Lc version - 2.0.0
 Result: 625
 
 $ go run ./example/langs/math 'a := 5
@@ -29,13 +29,13 @@ a + b'
 
 $ go run ./example/langs/listLang 'fn fact(n) { if n <= 1 { return 1 } return n * fact(n - 1) }
 print(fact(10))'
-Lc version - 1.6.0
+Lc version - 2.0.0
 3628800
 Profiler report (0.01 sec total):
   ...
 
 $ go run ./example/langs/configLang
-Lc version - 1.6.0
+Lc version - 2.0.0
 Profiler report (0.00 sec total):
   ...
 {

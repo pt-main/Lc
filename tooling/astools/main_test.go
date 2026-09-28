@@ -3,7 +3,7 @@ package astools
 import (
 	"testing"
 
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 func nodeWithChildren(sw string, children ...stringParsing.ParsedNode) *stringParsing.ParsedNode {

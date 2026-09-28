@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 // Token position metadata keys injected by the lexer.

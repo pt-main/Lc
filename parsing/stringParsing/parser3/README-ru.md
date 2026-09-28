@@ -8,7 +8,7 @@
 вложенная структура: выражения, конфиги с блоками, маленькие языки.
 
 ```go
-import "github.com/pt-main/lc/parsing/stringParsing/parser3"
+import "github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
 ```
 
 ## Как это работает

@@ -3,8 +3,8 @@ package core
 import (
 	"context"
 
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 // UniversalEngineParams bundles what every command handler needs: the

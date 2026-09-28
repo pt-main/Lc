@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/parsing/byteParsing"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/plugin"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/parsing/byteParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/plugin"
 )
 
 type (

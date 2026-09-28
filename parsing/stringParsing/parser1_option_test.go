@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/pt-main/lc/parsing"
+	"github.com/pt-main/lc/v2/parsing"
 )
 
 // Parse dereferenced opts[0].UEP without checking it, so a caller that passed

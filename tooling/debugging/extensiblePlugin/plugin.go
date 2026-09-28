@@ -3,11 +3,11 @@ package extensiblePlugin
 import (
 	"fmt"
 
-	"github.com/pt-main/lc"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/engine/events"
-	"github.com/pt-main/lc/public"
-	"github.com/pt-main/lc/tooling/plugin"
+	"github.com/pt-main/lc/v2"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/engine/events"
+	"github.com/pt-main/lc/v2/public"
+	"github.com/pt-main/lc/v2/tooling/plugin"
 )
 
 const Name = "extensible call loop"

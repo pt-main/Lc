@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"github.com/pt-main/lc"
-	"github.com/pt-main/lc/parsing/stringParsing"
-	"github.com/pt-main/lc/parsing/stringParsing/parser3"
+	"github.com/pt-main/lc/v2"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
 )
 
 func lexer() *stringParsing.Lexer {

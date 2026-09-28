@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 type Error struct {

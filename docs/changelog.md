@@ -10,12 +10,19 @@ versioning follows [SemVer](https://semver.org/).
 ## [2.0.0] - 2026-09-28
 
 A release about consistency, correctness and documentation. The architecture did
-not change: all package paths and `go.mod` stayed the same, no renames. The bulk
-of the work is a full pass over the public API, thread safety, a rewrite of
-`parser3` and the lexer, and the migration of documentation to bilingual READMEs.
+not change: no renames and no reorganisation of packages. The bulk of the work
+is a full pass over the public API, thread safety, a rewrite of `parser3` and
+the lexer, and the migration of documentation to bilingual READMEs.
 
 ### Breaking
 
+- The module path now follows the semantic import versioning rule and is
+  `github.com/pt-main/lc/v2`. Every import of the framework, including
+  subpackages, must end in `/v2`: `github.com/pt-main/lc/engine/core` becomes
+  `github.com/pt-main/lc/v2/engine/core`. Without the suffix the Go module proxy
+  refuses the release, because the `v2.0.0` tag would not match the module path.
+  Migrate with `go get github.com/pt-main/lc/v2@v2.0.0` after rewriting the
+  imports.
 - Global typo fixes across the public API: `Endianess` -> `Endianness`
   (`EngineBuilder.WithEndianness`, `public.ByteEngineScopeEndianness`,
   `bytecode.GenerationConfig.Endianness`), `Calloop` -> `CallLoop`
@@ -1146,5 +1153,5 @@ The first public release.
 ## Links
 
 - [GitHub](https://github.com/pt-main/lc)
-- [Go Reference](https://pkg.go.dev/github.com/pt-main/lc)
+- [Go Reference](https://pkg.go.dev/github.com/pt-main/lc/v2)
 - [Project Wiki](https://github.com/pt-main/lc/wiki)

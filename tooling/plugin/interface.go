@@ -1,6 +1,6 @@
 package plugin
 
-import "github.com/pt-main/lc/engine/core"
+import "github.com/pt-main/lc/v2/engine/core"
 
 type PluginInterface interface {
 	Name() string

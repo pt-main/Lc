@@ -3,9 +3,9 @@ package stringParsing
 import (
 	"strings"
 
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing"
-	"github.com/pt-main/lc/public/errors"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing"
+	"github.com/pt-main/lc/v2/public/errors"
 )
 
 // Parser2 is a simple command-args line parser.

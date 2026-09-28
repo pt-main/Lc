@@ -1,6 +1,6 @@
 package bytecode
 
-import "github.com/pt-main/lc/public"
+import "github.com/pt-main/lc/v2/public"
 
 // GenerationConfig describes the fixed field layout of one instruction.
 type GenerationConfig struct {

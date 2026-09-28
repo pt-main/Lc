@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/v2/engine/core"
 )
 
 // Plugin is the event-based PluginInterface realization. Method calls are

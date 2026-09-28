@@ -7,11 +7,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pt-main/lc"
-	"github.com/pt-main/lc/engine"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/engine/events"
-	"github.com/pt-main/lc/parsing/byteParsing"
+	"github.com/pt-main/lc/v2"
+	"github.com/pt-main/lc/v2/engine"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/engine/events"
+	"github.com/pt-main/lc/v2/parsing/byteParsing"
 )
 
 func test1(ITERATIONS int) int {

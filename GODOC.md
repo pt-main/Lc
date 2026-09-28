@@ -3,7 +3,7 @@
 # lc
 
 ```go
-import "github.com/pt-main/lc"
+import "github.com/pt-main/lc/v2"
 ```
 
 ## Index

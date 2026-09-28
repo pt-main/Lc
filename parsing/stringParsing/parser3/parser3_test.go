@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/dlclark/regexp2"
-	"github.com/pt-main/lc/engine/core"
-	"github.com/pt-main/lc/parsing/stringParsing"
+	"github.com/pt-main/lc/v2/engine/core"
+	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 func newCalcLexer() *stringParsing.Lexer {

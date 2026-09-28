@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pt-main/lc/engine/core"
+	"github.com/pt-main/lc/v2/engine/core"
 )
 
 // Basic usage: register one handler, then call the event.
