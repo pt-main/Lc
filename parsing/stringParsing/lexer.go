@@ -2,11 +2,12 @@ package stringParsing
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2/engine/core"
 	"github.com/pt-main/lc/v2/parsing"
 	"github.com/pt-main/lc/v2/public"
@@ -16,7 +17,59 @@ import (
 // LexerRule defines a single token type and its regular expression pattern.
 type LexerRule struct {
 	Type    string
-	Pattern *regexp2.Regexp
+	Pattern string
+}
+
+// The regular expressions follow .NET semantics for the character classes,
+// where \s covers the Unicode separators and \d accepts every script's digits.
+// The standard library keeps those classes ASCII-only, so the classes below
+// are substituted at compile time to keep the accepted token set identical.
+// Each one was verified against the .NET definitions over every code point
+// from U+0000 to U+10FFFF.
+const (
+	netSpaceClass = `[\p{Z}\t\n\v\f\r\x{0085}]`
+	netDigitClass = `\p{Nd}`
+	// .NET counts the join controls U+200C and U+200D as word characters,
+	// which no Unicode general category covers.
+	netWordClass = `[\p{L}\p{Mn}\p{Nd}\p{Pc}\x{200C}\x{200D}]`
+)
+
+// translatePattern rewrites the .NET character classes to their
+// standard-library equivalents. Only the class shorthands are touched; every
+// other construct is copied verbatim so regexp.Compile still rejects anything
+// it cannot honour instead of silently matching something else.
+func translatePattern(pattern string) string {
+	if !strings.ContainsAny(pattern, `\sSdDwW`) {
+		return pattern
+	}
+	var b strings.Builder
+	b.Grow(len(pattern) + 64)
+	rs := []rune(pattern)
+	for i := 0; i < len(rs); i++ {
+		if rs[i] != '\\' || i+1 >= len(rs) {
+			b.WriteRune(rs[i])
+			continue
+		}
+		i++
+		switch c := rs[i]; c {
+		case 's':
+			b.WriteString(netSpaceClass)
+		case 'd':
+			b.WriteString(netDigitClass)
+		case 'w':
+			b.WriteString(netWordClass)
+		case 'S':
+			b.WriteString("[^" + netSpaceClass[1:])
+		case 'D':
+			b.WriteString("[^" + netDigitClass + "]")
+		case 'W':
+			b.WriteString("[^" + netWordClass[1:])
+		default:
+			b.WriteByte('\\')
+			b.WriteRune(c)
+		}
+	}
+	return b.String()
 }
 
 // LexerConfig holds configuration options for the lexer.
@@ -25,19 +78,32 @@ type LexerConfig struct {
 	Brackets          [][2]string
 }
 
+// compiledRule is one rule ready for scanning: the pattern is already
+// translated and compiled, so the token loop never touches a raw string.
+type compiledRule struct {
+	typ    string
+	re     *regexp.Regexp
+	names  []string
+	groups []string
+}
+
 // Lexer converts a source string into a sequence of ParsedNode objects.
 type Lexer struct {
 	rules       []LexerRule
+	compiled    []compiledRule
 	config      LexerConfig
 	openToClose map[string]string
 	closeToOpen map[string]string
-	ruleGroups  [][]string
 	openByByte  map[byte][]string
 	closeByByte map[byte][]string
 }
 
 // NewLexer creates a lexer with the given rule set and optional configuration.
-func NewLexer(rules []LexerRule, config *LexerConfig) *Lexer {
+//
+// Rules whose pattern does not compile are rejected rather than silently
+// skipped, so a broken grammar surfaces at construction rather than as a
+// confusing "no rule matched" later.
+func NewLexer(rules []LexerRule, config *LexerConfig) (*Lexer, core.ErrorInterface) {
 	cfg := LexerConfig{}
 	if config != nil {
 		cfg = *config
@@ -74,20 +140,33 @@ func NewLexer(rules []LexerRule, config *LexerConfig) *Lexer {
 		})
 	}
 
-	ruleGroups := make([][]string, len(rules))
-	for i, rule := range rules {
-		ruleGroups[i] = rule.Pattern.GetGroupNames()
+	compiled := make([]compiledRule, 0, len(rules))
+	for _, rule := range rules {
+		re, err := regexp.Compile(translatePattern(rule.Pattern))
+		if err != nil {
+			return nil, core.Err(errors.ParsingError, "Invalid pattern for rule %q: %s", rule.Type, err.Error()).
+				WithMeta(core.EMK(0, "string"), rule.Type).
+				WithMeta(core.EMK(1, "string"), rule.Pattern)
+		}
+		names := re.SubexpNames()
+		// A named capture is exposed under its name and a plain capture under
+		// its index, which is what the previous engine produced.
+		groups := make([]string, len(names))
+		for i := 1; i < len(names); i++ {
+			groups[i] = strconv.Itoa(i)
+		}
+		compiled = append(compiled, compiledRule{typ: rule.Type, re: re, names: names, groups: groups})
 	}
 
 	return &Lexer{
 		rules:       rules,
+		compiled:    compiled,
 		config:      cfg,
 		openToClose: openToClose,
 		closeToOpen: closeToOpen,
-		ruleGroups:  ruleGroups,
 		openByByte:  openByByte,
 		closeByByte: closeByByte,
-	}
+	}, nil
 }
 
 func snippetFromRunes(runes []rune, pos, maxRunes int) string {
@@ -201,13 +280,16 @@ func (l *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, 
 	}
 	// A nil logger is the common case, and fmt.Sprintf arguments are evaluated
 	// whether or not the result is used, so guard each call instead of
-	// concatenating text that is then dropped.
+	// concatenating text that is then dropped. The entry message embeds the
+	// whole input, so building it eagerly copied the source on every call.
 	log := func(text string) {
 		if logger != nil {
 			logger.PrintLog(public.LogParsing, "\\n"+text)
 		}
 	}
-	log("start parsing code [" + code + "]")
+	if logger != nil {
+		log("start parsing code [" + code + "]")
+	}
 
 	if l.config.UseBracketBalance {
 		if err := l.bracketBalanceError(code); err != nil {
@@ -216,67 +298,82 @@ func (l *Lexer) Parse(code string, opts ...*parsing.ParseOption) ([]ParsedNode, 
 		}
 	}
 
-	var nodes []ParsedNode
+	// Positions are kept as rune indices for the token metadata, while the
+	// scan itself works on byte offsets, which is what the standard engine
+	// indexes by.
 	runes := []rune(code)
-	pos := 0
+	// The token count is unknown up front, so size the slice from a cheap
+	// estimate: at least one rune per token, with headroom for the common case
+	// where rules split the input into several tokens.
+	nodes := make([]ParsedNode, 0, len(runes)+len(runes)/2+8)
+	balanceEnabled := l.config.UseBracketBalance
+
+	bytePos := 0
+	runePos := 0
 	length := len(runes)
 
-	for pos < length {
+	for runePos < length {
 		matched := false
 
-		// Matching runs on the shared rune slice starting at pos instead of
-		// on a copy of the tail, which kept Parse quadratic in the input size.
-		for ruleIdx, rule := range l.rules {
-			m, err := rule.Pattern.FindRunesMatchStartingAt(runes, pos)
-			if err != nil {
-				return nil, core.Wrap(errors.ParsingError, err, "Regexp error for rule %q", rule.Type).
-					WithMeta(core.EMK(0, "string"), rule.Type).
-					WithMeta(core.EMK(1, "string"), code)
-			}
+		for _, rule := range l.compiled {
 			if logger != nil {
-				log(fmt.Sprintf("rule %v, pos %v, len %v", rule.Type, pos, length-pos))
+				log(fmt.Sprintf("rule %v, pos %v, len %v", rule.typ, runePos, length-runePos))
 			}
+			loc := rule.re.FindStringIndex(code[bytePos:])
 			// A zero-length match makes no progress, so it would loop forever.
-			// The index check keeps the match anchored at pos, as matching a
-			// tail substring from 0 used to guarantee.
-			if m == nil || m.Index != pos || m.Length == 0 {
+			// The index check keeps the match anchored at the scan position.
+			if loc == nil || loc[0] != 0 || loc[1] == 0 {
 				continue
 			}
-			tokenValue := string(runes[pos : pos+m.Length])
-			startPos := pos
-			endPos := pos + m.Length
+			matchedRunes := utf8.RuneCountInString(code[bytePos : bytePos+loc[1]])
+			tokenValue := code[bytePos : bytePos+loc[1]]
+			startPos := runePos
+			endPos := runePos + matchedRunes
 
-			meta := map[string]interface{}{
-				"__raw":   tokenValue,
-				"__value": tokenValue,
-				"__pos":   startPos,
-				"__start": startPos,
-				"__end":   endPos,
-			}
-			for _, name := range l.ruleGroups[ruleIdx] {
-				if name == "0" {
-					continue
+			// Presize to the five fixed keys plus the named groups this rule
+			// declares, so the map never has to grow while filling.
+			meta := make(map[string]interface{}, 5+2*len(rule.groups))
+			meta["__raw"] = tokenValue
+			meta["__value"] = tokenValue
+			meta["__pos"] = startPos
+			meta["__start"] = startPos
+			meta["__end"] = endPos
+			if len(rule.groups) > 1 {
+				sub := rule.re.FindStringSubmatchIndex(code[bytePos:])
+				for i := 1; i < len(rule.groups); i++ {
+					key := rule.groups[i]
+					if named := rule.names[i]; named != "" {
+						key = named
+					}
+					s, e := sub[2*i], sub[2*i+1]
+					if s < 0 || e < s {
+						// The group took no part in the match; it is reported
+						// as empty, matching the previous engine.
+						meta[key] = ""
+						continue
+					}
+					meta[key] = code[bytePos+s : bytePos+e]
 				}
-				if grp := m.GroupByName(name); grp != nil {
-					meta[name] = grp.String()
-				}
 			}
-			if l.config.UseBracketBalance {
+			// A single rune may itself be an unbalanced bracket, so the walk
+			// runs whenever balance checking is on.
+			if balanceEnabled {
 				meta["__bracket_balanced"] = l.isBracketBalanced(tokenValue)
 			}
 
 			nodes = append(nodes, ParsedNode{
 				Raw:      tokenValue,
-				Switch:   rule.Type,
+				Switch:   rule.typ,
 				Metadata: meta,
 			})
-			pos += m.Length
+			bytePos += loc[1]
+			runePos += matchedRunes
 			matched = true
 			break
 		}
 		if !matched {
-			line, col := posToLineCol(code, pos)
-			context := snippetFromRunes(runes, pos, 20)
+			line, col := posToLineCol(code, runePos)
+			context := snippetFromRunes(runes, runePos, 20)
 			return nil, core.Err(errors.ParsingError, "Unexpected sequence near %q at line %d, col %d", context, line, col).
 				WithMeta(core.EMK(0, "int"), line).
 				WithMeta(core.EMK(1, "int"), col).

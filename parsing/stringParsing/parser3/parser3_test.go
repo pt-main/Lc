@@ -4,23 +4,36 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2/engine/core"
 	"github.com/pt-main/lc/v2/parsing/stringParsing"
 )
 
 func newCalcLexer() *stringParsing.Lexer {
 	rules := []stringParsing.LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-		{Type: "PLUS", Pattern: regexp2.MustCompile(`\+`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "STAR", Pattern: regexp2.MustCompile(`\*`, 0)},
-		{Type: "SLASH", Pattern: regexp2.MustCompile(`/`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "NUMBER", Pattern: `\d+`},
+		{Type: "PLUS", Pattern: `\+`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "STAR", Pattern: `\*`},
+		{Type: "SLASH", Pattern: `/`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "WHITESPACE", Pattern: `\s+`},
 	}
-	return stringParsing.NewLexer(rules, &stringParsing.LexerConfig{})
+	lex, err := stringParsing.NewLexer(rules, &stringParsing.LexerConfig{})
+	if err != nil {
+		panic(err)
+	}
+	return lex
+}
+
+// mustLexer builds a lexer for a test and panics on invalid rules, which keeps
+// the test call sites free of error plumbing.
+func mustLexer(rules []stringParsing.LexerRule, cfg *stringParsing.LexerConfig) *stringParsing.Lexer {
+	lex, err := stringParsing.NewLexer(rules, cfg)
+	if err != nil {
+		panic(err)
+	}
+	return lex
 }
 
 func calcGrammar() Grammar {
@@ -350,10 +363,10 @@ func TestSeparatedRepeatExpr(t *testing.T) {
 		}},
 	}
 	rules := []stringParsing.LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
+		{Type: "NUMBER", Pattern: `\d+`},
+		{Type: "COMMA", Pattern: `,`},
 	}
-	p := NewParser(stringParsing.NewLexer(rules, nil), g, "start", nil)
+	p := NewParser(mustLexer(rules, nil), g, "start", nil)
 
 	nodes, err := p.Parse("1,2,3")
 	if err != nil {
@@ -378,9 +391,9 @@ func TestSeparatedRepeatExpr(t *testing.T) {
 // digitLexer matches one digit per token, so repetition counts are observable.
 func digitLexer() *stringParsing.Lexer {
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
 	}
-	return stringParsing.NewLexer(rules, nil)
+	return mustLexer(rules, nil)
 }
 
 // onlyChild unwraps the single node produced by a start rule.
@@ -503,10 +516,10 @@ func TestPrattExprRightAssoc(t *testing.T) {
 		Infixes: map[string]InfixInfo{"POWER": {Precedence: 1, Assoc: RightAssoc}},
 	}
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "POWER", Pattern: regexp2.MustCompile(`\^`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "POWER", Pattern: `\^`},
 	}
-	p := NewParser(stringParsing.NewLexer(rules, nil), pratt2Grammar(pratt), "start", nil)
+	p := NewParser(mustLexer(rules, nil), pratt2Grammar(pratt), "start", nil)
 
 	nodes, err := p.Parse("2^3^4")
 	if err != nil {
@@ -528,10 +541,10 @@ func TestPrattExprNonAssoc(t *testing.T) {
 		Infixes: map[string]InfixInfo{"CMP": {Precedence: 1, Assoc: NonAssoc}},
 	}
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "CMP", Pattern: regexp2.MustCompile(`=`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "CMP", Pattern: `=`},
 	}
-	p := NewParser(stringParsing.NewLexer(rules, nil), pratt2Grammar(pratt), "start", nil)
+	p := NewParser(mustLexer(rules, nil), pratt2Grammar(pratt), "start", nil)
 
 	if _, err := p.Parse("1=2"); err != nil {
 		t.Fatalf("a single non-associative operator must parse: %v", err)
@@ -621,10 +634,10 @@ func TestMemoizationIsPerPosition(t *testing.T) {
 		"item": {Name: "item", Expr: TokenExpr{TokenType: "DIGIT"}},
 	}
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "COMMA", Pattern: `,`},
 	}
-	p := NewParser(stringParsing.NewLexer(rules, nil), g, "start", nil)
+	p := NewParser(mustLexer(rules, nil), g, "start", nil)
 
 	nodes, err := p.Parse("1,2")
 	if err != nil {
@@ -717,15 +730,15 @@ func TestNilExprReportsGrammarError(t *testing.T) {
 
 func TestStaleErrorFromRolledBackOptional(t *testing.T) {
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
-		{Type: "WS", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "COMMA", Pattern: `,`},
+		{Type: "WS", Pattern: `\s+`},
 	}
 	g := Grammar{"start": {Name: "start", Expr: OptionalExpr{Expr: SequenceExpr{Exprs: []Expr{
 		TokenExpr{TokenType: "DIGIT"},
 		TokenExpr{TokenType: "COMMA"},
 	}}}}}
-	p := NewParser(stringParsing.NewLexer(rules, nil), g, "start", []string{"WS"})
+	p := NewParser(mustLexer(rules, nil), g, "start", []string{"WS"})
 	_, err := p.Parse("5 5")
 	if err == nil {
 		t.Fatal("expected an error for unconsumed input")
@@ -770,9 +783,9 @@ func TestFormatErrorKeepsMsg(t *testing.T) {
 
 func TestPrattPrefixBindsTighterThanAnyInfix(t *testing.T) {
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "HIGH", Pattern: regexp2.MustCompile(`@`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "HIGH", Pattern: `@`},
 	}
 	for _, precedence := range []int{1, 99, 100, 200} {
 		pratt := &PrattExpr{
@@ -781,7 +794,7 @@ func TestPrattPrefixBindsTighterThanAnyInfix(t *testing.T) {
 			Infixes:  map[string]InfixInfo{"HIGH": {Precedence: precedence, Assoc: LeftAssoc}},
 		}
 		g := Grammar{"start": {Name: "start", Expr: pratt}}
-		p := NewParser(stringParsing.NewLexer(rules, nil), g, "start", nil)
+		p := NewParser(mustLexer(rules, nil), g, "start", nil)
 
 		nodes, err := p.Parse("-1@2")
 		if err != nil {
@@ -850,8 +863,8 @@ func TestActionRejectionSurvivesRepeat(t *testing.T) {
 
 func TestActionRejectionSurvivesSeparatedRepeat(t *testing.T) {
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "COMMA", Pattern: `,`},
 	}
 	g := Grammar{"start": {Name: "start", Expr: SeparatedRepeatExpr{
 		Element: ActionExpr{
@@ -865,7 +878,7 @@ func TestActionRejectionSurvivesSeparatedRepeat(t *testing.T) {
 		},
 		Sep: "COMMA",
 	}}}
-	p := NewParser(stringParsing.NewLexer(rules, nil), g, "start", nil)
+	p := NewParser(mustLexer(rules, nil), g, "start", nil)
 	_, err := p.Parse("1,2,9")
 	if err == nil {
 		t.Fatal("a rejection inside a separated repetition must abort the parse")
@@ -910,10 +923,10 @@ func ambiguousGrammar() Grammar {
 
 func listLexer() *stringParsing.Lexer {
 	rules := []stringParsing.LexerRule{
-		{Type: "DIGIT", Pattern: regexp2.MustCompile(`\d`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
+		{Type: "DIGIT", Pattern: `\d`},
+		{Type: "COMMA", Pattern: `,`},
 	}
-	return stringParsing.NewLexer(rules, nil)
+	return mustLexer(rules, nil)
 }
 
 func BenchmarkAmbiguousGrammar(b *testing.B) {

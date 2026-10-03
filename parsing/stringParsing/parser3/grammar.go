@@ -34,6 +34,12 @@ type Rule struct {
 type Grammar map[string]Rule
 
 func joinRaw(nodes []stringParsing.ParsedNode) string {
+	switch len(nodes) {
+	case 0:
+		return ""
+	case 1:
+		return nodes[0].Raw
+	}
 	var b strings.Builder
 	for i := range nodes {
 		b.WriteString(nodes[i].Raw)
@@ -60,6 +66,15 @@ type SequenceExpr struct {
 }
 
 func (s SequenceExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInterface) {
+	if len(s.Exprs) == 0 {
+		return nil, nil
+	}
+	if len(s.Exprs) == 1 {
+		if s.Exprs[0] == nil {
+			return nil, &GrammarError{Phase: "SequenceExpr", Msg: "sequence has a nil element"}
+		}
+		return s.Exprs[0].Parse(p)
+	}
 	children := make([]stringParsing.ParsedNode, 0, len(s.Exprs))
 	for _, e := range s.Exprs {
 		if e == nil {
@@ -126,7 +141,7 @@ func (p *Parser) noAlternative(startPos, bestPos int, bestErr core.ErrorInterfac
 	return &ParseError{
 		Phase:    PhasePeek,
 		TokenIdx: startPos,
-		TokenPos: tokenPos(p.tokens, startPos),
+		TokenPos: p.posAt(startPos),
 		Got:      p.tokenTypeAt(startPos),
 		Raw:      p.tokenRawAt(startPos),
 		Found:    found,
@@ -154,7 +169,7 @@ func (p *Parser) tokenRawAt(pos int) string {
 // tokenAt returns the first non-ignored token at or after pos.
 func (p *Parser) tokenAt(pos int) (stringParsing.ParsedNode, bool) {
 	for i := pos; i < len(p.tokens); i++ {
-		if !p.ignore[p.tokens[i].Switch] {
+		if !p.ignoredAt(i) {
 			return p.tokens[i], true
 		}
 	}
@@ -240,7 +255,7 @@ func (r RepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInte
 			Phase:    "RepeatExpr",
 			Expected: fmt.Sprintf("at least %d repetition(s)", r.Min),
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
+			TokenPos: p.posAt(p.pos),
 			Got:      p.tokenTypeAt(p.pos),
 			Found:    p.tokenTypesAt(p.pos),
 			Msg:      fmt.Sprintf("repetition stopped after %d", count),
@@ -290,7 +305,7 @@ func (n NamedExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInter
 		}
 	}
 
-	key := memoKey{rule: n.RuleName, pos: p.pos}
+	key := memoKeyFor(p.ruleIDs[n.RuleName], p.pos)
 	if entry, ok := p.memo[key]; ok {
 		// Replaying a cached rule must also replay the tokens it consumed.
 		p.pos = entry.end
@@ -300,7 +315,7 @@ func (n NamedExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInter
 	if p.activeRules[key] {
 		return nil, &GrammarError{
 			Phase: "NamedExpr",
-			Msg:   fmt.Sprintf("rule %q is left-recursive at %s; add an optional base case", n.RuleName, tokenPos(p.tokens, p.pos)),
+			Msg:   fmt.Sprintf("rule %q is left-recursive at %s; add an optional base case", n.RuleName, p.posAt(p.pos)),
 		}
 	}
 	if p.depth >= maxRuleDepth {
@@ -373,16 +388,23 @@ func (n NotExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.ErrorInterfa
 	_, err := n.Expr.Parse(p)
 	p.pos = savedPos
 	if err == nil {
-		return nil, &ParseError{
-			Phase:    "NotExpr",
-			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
-			Got:      p.tokenTypeAt(p.pos),
-			Raw:      p.tokenRawAt(p.pos),
-			Msg:      "token was not expected here",
-		}
+		return nil, p.notExpectedAt()
 	}
 	return nil, nil
+}
+
+// notExpectedAt builds the error a failed negative lookahead produces. The
+// inner expression usually fails, so this only runs on the rejected case and
+// never on the speculative path.
+func (p *Parser) notExpectedAt() *ParseError {
+	return &ParseError{
+		Phase:    "NotExpr",
+		TokenIdx: p.pos,
+		TokenPos: p.posAt(p.pos),
+		Got:      p.tokenTypeAt(p.pos),
+		Raw:      p.tokenRawAt(p.pos),
+		Msg:      "token was not expected here",
+	}
 }
 
 // AndExpr succeeds when Expr matches, but consumes nothing.
@@ -413,7 +435,7 @@ func (pk PeekExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, core.ErrorInt
 			Phase:    PhasePeek,
 			Expected: pk.TokenType,
 			TokenIdx: prs.pos,
-			TokenPos: tokenPos(prs.tokens, prs.pos),
+			TokenPos: prs.posAt(prs.pos),
 			Cause:    err,
 		}
 	}
@@ -424,7 +446,7 @@ func (pk PeekExpr) Parse(prs *Parser) ([]stringParsing.ParsedNode, core.ErrorInt
 			Got:      tok.Switch,
 			Raw:      tok.Raw,
 			TokenIdx: prs.pos,
-			TokenPos: tokenPos(prs.tokens, prs.pos),
+			TokenPos: prs.posAt(prs.pos),
 		}
 	}
 	return nil, nil
@@ -465,7 +487,7 @@ func (s SeparatedRepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.
 					Phase:    "SeparatedRepeatExpr",
 					Expected: fmt.Sprintf("at least %d element(s) separated by %q", s.Min, s.Sep),
 					TokenIdx: p.pos,
-					TokenPos: tokenPos(p.tokens, p.pos),
+					TokenPos: p.posAt(p.pos),
 					Got:      p.tokenTypeAt(p.pos),
 					Found:    p.tokenTypesAt(p.pos),
 					Cause:    err,
@@ -487,7 +509,7 @@ func (s SeparatedRepeatExpr) Parse(p *Parser) ([]stringParsing.ParsedNode, core.
 			Phase:    "SeparatedRepeatExpr",
 			Expected: fmt.Sprintf("at least %d element(s) separated by %q", s.Min, s.Sep),
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
+			TokenPos: p.posAt(p.pos),
 			Got:      p.tokenTypeAt(p.pos),
 			Found:    p.tokenTypesAt(p.pos),
 			Msg:      fmt.Sprintf("got %d", count),
@@ -580,7 +602,7 @@ func (p *PrattExpr) parseExpression(prs *Parser, minPrec, depth, prefixPrec int)
 				Got:      next.Switch,
 				Raw:      next.Raw,
 				TokenIdx: prs.pos,
-				TokenPos: tokenPos(prs.tokens, prs.pos),
+				TokenPos: prs.posAt(prs.pos),
 				Msg:      "operator is non-associative and cannot repeat here",
 			}
 		}
@@ -623,7 +645,7 @@ func (p *PrattExpr) parsePrefix(prs *Parser, depth, prefixPrec int) (stringParsi
 		return stringParsing.ParsedNode{}, &ParseError{
 			Phase:    PhaseEOF,
 			TokenIdx: prs.pos,
-			TokenPos: tokenPos(prs.tokens, prs.pos),
+			TokenPos: prs.posAt(prs.pos),
 			Msg:      "expected an operand or prefix operator",
 		}
 	}
@@ -655,7 +677,7 @@ func (p *PrattExpr) parsePrefix(prs *Parser, depth, prefixPrec int) (stringParsi
 		return stringParsing.ParsedNode{}, &ParseError{
 			Phase:    "PrattExpr",
 			TokenIdx: prs.pos,
-			TokenPos: tokenPos(prs.tokens, prs.pos),
+			TokenPos: prs.posAt(prs.pos),
 			Got:      prs.tokenTypeAt(prs.pos),
 			Msg:      "atom matched no tokens",
 		}

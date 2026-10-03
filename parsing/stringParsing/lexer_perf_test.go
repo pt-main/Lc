@@ -4,15 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dlclark/regexp2"
 )
 
 func perfLexer() *Lexer {
-	return NewLexer([]LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+(\.\d+)?`, 0)},
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-z]+`, 0)},
-		{Type: "WS", Pattern: regexp2.MustCompile(`[ \t\r\n]+`, 0)},
+	lex, err := NewLexer([]LexerRule{
+		{Type: "NUMBER", Pattern: `\d+(\.\d+)?`},
+		{Type: "IDENT", Pattern: `[a-z]+`},
+		{Type: "WS", Pattern: `[ \t\r\n]+`},
 	}, &LexerConfig{UseBracketBalance: false})
+	if err != nil {
+		panic(err)
+	}
+	return lex
 }
 
 // Parse used to copy the whole remaining input into a fresh string at every
@@ -46,9 +49,9 @@ func TestLexer_ParseIsLinearInInputSize(t *testing.T) {
 // earlier position: the old code matched a copy of the tail, so a match away
 // from position 0 was invisible, and the new code has to keep that behaviour.
 func TestLexer_MatchMustBeAnchoredAtPosition(t *testing.T) {
-	lexer := NewLexer([]LexerRule{
-		{Type: "LATE", Pattern: regexp2.MustCompile(`bc`, 0)},
-		{Type: "A", Pattern: regexp2.MustCompile(`a`, 0)},
+	lexer := mustLexer(t, []LexerRule{
+		{Type: "LATE", Pattern: `bc`},
+		{Type: "A", Pattern: `a`},
 	}, nil)
 
 	nodes, err := lexer.Parse("abc")

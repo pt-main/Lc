@@ -6,22 +6,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2"
 	"github.com/pt-main/lc/v2/parsing/stringParsing"
 	"github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
 )
 
-func lexer() *stringParsing.Lexer {
+func lexer() (*stringParsing.Lexer, error) {
 	rules := []stringParsing.LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+(\.\d+)?`, 0)},
-		{Type: "PLUS", Pattern: regexp2.MustCompile(`\+`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "STAR", Pattern: regexp2.MustCompile(`\*`, 0)},
-		{Type: "SLASH", Pattern: regexp2.MustCompile(`/`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "NUMBER", Pattern: `\d+(\.\d+)?`},
+		{Type: "PLUS", Pattern: `\+`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "STAR", Pattern: `\*`},
+		{Type: "SLASH", Pattern: `/`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "WHITESPACE", Pattern: `\s+`},
 	}
 	return stringParsing.NewLexer(rules, &stringParsing.LexerConfig{UseBracketBalance: false})
 }
@@ -104,7 +103,12 @@ func main() {
 	fmt.Println("Lc version -", lc.Version)
 
 	expression := "3 + 5 * (2 - 1)"
-	parser := parser3.NewParser(lexer(), calcGrammar(), "expr", ignore())
+	lex, lerr := lexer()
+	if lerr != nil {
+		fail(lerr)
+		return
+	}
+	parser := parser3.NewParser(lex, calcGrammar(), "expr", ignore())
 
 	nodes, err := parser.Parse(expression)
 	if err != nil {
@@ -132,7 +136,12 @@ func main() {
 // tighter than any infix operator.
 func precedenceDemo() {
 	fmt.Println("\n=== Pratt precedence ===")
-	parser := parser3.NewParser(lexer(), prattGrammar(), "start", ignore())
+	lex, lerr := lexer()
+	if lerr != nil {
+		fail(lerr)
+		return
+	}
+	parser := parser3.NewParser(lex, prattGrammar(), "start", ignore())
 	for _, code := range []string{"1 + 2 * 3", "1 * 2 + 3", "-1 + 2", "1 - 2 - 3"} {
 		nodes, err := parser.Parse(code)
 		if err != nil {
@@ -166,7 +175,12 @@ func shape(n stringParsing.ParsedNode) string {
 // errorDemo shows what a failure looks like in plain text and in color.
 func errorDemo() {
 	fmt.Println("\n=== Errors ===")
-	parser := parser3.NewParser(lexer(), calcGrammar(), "expr", ignore())
+	lex, lerr := lexer()
+	if lerr != nil {
+		fail(lerr)
+		return
+	}
+	parser := parser3.NewParser(lex, calcGrammar(), "expr", ignore())
 
 	for _, code := range []string{"3 + * 4", "3 + 4)", "3 +"} {
 		_, err := parser.Parse(code)

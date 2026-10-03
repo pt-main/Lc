@@ -42,11 +42,45 @@ func FindChildIndex(node *stringParsing.ParsedNode, switchName string) int {
 
 // FindChildren returns every child with the given switch name.
 func FindChildren(node *stringParsing.ParsedNode, switchName string) []stringParsing.ParsedNode {
-	var result []stringParsing.ParsedNode
 	children := GetChildren(node)
+	matches := 0
+	for i := range children {
+		if children[i].Switch == switchName {
+			matches++
+		}
+	}
+	if matches == 0 {
+		return nil
+	}
+	result := make([]stringParsing.ParsedNode, 0, matches)
 	for i := range children {
 		if children[i].Switch == switchName {
 			result = append(result, children[i])
+		}
+	}
+	return result
+}
+
+// FindChildrenPointers returns a pointer to every child with the given switch
+// name. Unlike FindChildren, which returns copies, the pointers address the
+// nodes in the tree, so a write through one reaches the tree itself. The
+// pointers share their backing array with the tree, so re-look-up after any
+// mutation instead of caching one across it.
+func FindChildrenPointers(node *stringParsing.ParsedNode, switchName string) []*stringParsing.ParsedNode {
+	children := GetChildren(node)
+	matches := 0
+	for i := range children {
+		if children[i].Switch == switchName {
+			matches++
+		}
+	}
+	if matches == 0 {
+		return nil
+	}
+	result := make([]*stringParsing.ParsedNode, 0, matches)
+	for i := range children {
+		if children[i].Switch == switchName {
+			result = append(result, &children[i])
 		}
 	}
 	return result
@@ -96,6 +130,45 @@ func Walk(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedNode) err
 	return nil
 }
 
+// pathArena hands out path slices carved from a few large blocks instead of
+// one make per node. Every slice keeps its backing array private by capping it
+// to its own length, so a caller that appends to a path cannot reach a
+// sibling's storage and a path stays valid after the walk has moved on.
+type pathArena struct {
+	block []string
+	used  int
+	size  int
+}
+
+// Blocks grow geometrically: a fixed size wastes the unusable tail of every
+// chunk, while with a growing one the waste stays proportional to the largest
+// block instead of to the whole tree.
+const (
+	pathArenaFirstBlock = 64
+	pathArenaMaxBlock   = 4096
+)
+
+func (a *pathArena) next(n int) []string {
+	if len(a.block)-a.used < n {
+		size := a.size
+		switch {
+		case size == 0:
+			size = pathArenaFirstBlock
+		case size < pathArenaMaxBlock:
+			size *= 2
+		}
+		if n > size {
+			size = n
+		}
+		a.size = size
+		a.block = make([]string, size)
+		a.used = 0
+	}
+	start := a.used
+	a.used += n
+	return a.block[start:a.used:a.used]
+}
+
 func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedNode, []string) error) error {
 	if node == nil {
 		return nil
@@ -105,7 +178,10 @@ func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedN
 		node *stringParsing.ParsedNode
 		path []string
 	}
-	stack := []frame{{node, []string{getNodeName(node)}}}
+	stack := make([]frame, 0, 16)
+	var arena pathArena
+	stack = append(stack, frame{node, arena.next(1)})
+	stack[0].path[0] = getNodeName(node)
 
 	for len(stack) > 0 {
 		f := stack[len(stack)-1]
@@ -116,17 +192,25 @@ func WalkWithPath(node *stringParsing.ParsedNode, fn func(*stringParsing.ParsedN
 		}
 
 		children := GetChildren(f.node)
+		if len(children) == 0 {
+			continue
+		}
 
+		// One slice holds the child paths back to back, so a parent with n
+		// children costs a single allocation instead of n. Every slot is
+		// sized len(f.path)+1 and trimmed to its length, keeping the backing
+		// array private to that child.
+		stride := len(f.path) + 1
+		names := arena.next(len(children) * stride)
 		for i := len(children) - 1; i >= 0; i-- {
 			child := &children[i]
-			// A fresh slice per child: appending to f.path directly would let
-			// siblings share one backing array and overwrite each other.
-			childPath := make([]string, len(f.path), len(f.path)+1)
+			childPath := names[i*stride : i*stride+stride : i*stride+stride]
 			copy(childPath, f.path)
-			childPath = append(childPath, getNodeName(child))
+			childPath[stride-1] = getNodeName(child)
 			stack = append(stack, frame{child, childPath})
 		}
 	}
+
 	return nil
 }
 

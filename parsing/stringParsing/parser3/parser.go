@@ -16,22 +16,34 @@ const (
 	metaEnd   = "__end"
 )
 
-// tokenPos returns a human-readable position string for the token at idx.
-func tokenPos(tokens []stringParsing.ParsedNode, idx int) string {
-	if idx < 0 || idx >= len(tokens) {
+// posAt returns a human-readable position string for the token at idx.
+func (p *Parser) posAt(idx int) string {
+	if idx < 0 || idx >= len(p.tokens) {
 		return "EOF"
 	}
-	tok := tokens[idx]
-	start, hasStart := toInt(tok.Metadata[metaStart])
-	end, hasEnd := toInt(tok.Metadata[metaEnd])
-	switch {
-	case hasStart && hasEnd:
-		return "idx=" + strconv.Itoa(idx) + " start=" + strconv.Itoa(start) + "-" + strconv.Itoa(end)
-	case hasStart:
-		return "idx=" + strconv.Itoa(idx) + " start=" + strconv.Itoa(start)
-	default:
+	start, hasStart := toInt(p.tokens[idx].Metadata[metaStart])
+	if !hasStart {
 		return "idx=" + strconv.Itoa(idx)
 	}
+	end, hasEnd := toInt(p.tokens[idx].Metadata[metaEnd])
+	if !hasEnd {
+		return "idx=" + strconv.Itoa(idx) + " start=" + strconv.Itoa(start)
+	}
+	var b strings.Builder
+	b.Grow(len("idx= start=-"))
+	b.WriteString("idx=")
+	b.WriteString(strconv.Itoa(idx))
+	b.WriteString(" start=")
+	b.WriteString(strconv.Itoa(start))
+	b.WriteByte('-')
+	b.WriteString(strconv.Itoa(end))
+	return b.String()
+}
+
+// ignoredAt reports whether the token at idx is of an ignored type. The answer
+// is precomputed per token so the hot paths never hash a token type.
+func (p *Parser) ignoredAt(idx int) bool {
+	return idx < len(p.ignored) && p.ignored[idx]
 }
 
 func toInt(v interface{}) (int, bool) {
@@ -75,6 +87,10 @@ type Parser struct {
 	tokens []stringParsing.ParsedNode
 	pos    int
 
+	// ignored marks the tokens the parser must step over. It is derived once
+	// per parse so the hot loops never hash a token type.
+	ignored []bool
+
 	// depth bounds rule nesting so a pathological grammar cannot exhaust
 	// the goroutine stack.
 	depth int
@@ -83,11 +99,13 @@ type Parser struct {
 	// position higher in the stack; entering it again would never terminate.
 	// A rule may re-enter at a different position - that is how nested
 	// constructs like parenthesised expressions work.
-	activeRules map[memoKey]bool
+	// Keys are rule ids packed with the token index, so no string hashing
+	// happens on the recursive path.
+	activeRules map[uint64]bool
 
 	// memo caches NamedExpr results so a rule referenced from several
 	// alternatives is parsed once per position instead of once per path.
-	memo map[memoKey]memoEntry
+	memo map[uint64]memoEntry
 
 	// deepPos/deepErr remember the furthest a speculative branch ever got.
 	// A repeat or optional that stops early is normal, so the failure is
@@ -95,6 +113,49 @@ type Parser struct {
 	// is the error the author actually wants to see.
 	deepPos int
 	deepErr core.ErrorInterface
+
+	// ruleIDs maps a rule name to its index in ruleOrder, giving every rule a
+	// small integer usable as a map key.
+	ruleIDs   map[string]int
+	ruleOrder []string
+}
+
+// memoKey packs a rule id and a token index into one comparable key.
+func memoKeyFor(ruleID, pos int) uint64 {
+	return uint64(uint32(ruleID))<<32 | uint64(uint32(pos))
+}
+
+// resetCaches empties the memo and recursion tables while keeping their
+// allocated buckets, so a reused parser does not reallocate them per parse.
+// clear leaves a nil map nil, hence the explicit rebuild.
+func (p *Parser) resetCaches() {
+	if p.memo == nil {
+		p.memo = make(map[uint64]memoEntry, len(p.grammar))
+	} else {
+		clear(p.memo)
+	}
+	if p.activeRules == nil {
+		p.activeRules = make(map[uint64]bool, len(p.grammar))
+	} else {
+		clear(p.activeRules)
+	}
+}
+
+// prepare builds the per-token lookup tables. It reuses the existing slices
+// so a reused parser does not reallocate them on every Parse call.
+func (p *Parser) prepare(tokens []stringParsing.ParsedNode) {
+	if cap(p.ignored) < len(tokens) {
+		p.ignored = make([]bool, len(tokens))
+	} else {
+		p.ignored = p.ignored[:len(tokens)]
+	}
+	if len(p.ignore) == 0 {
+		clear(p.ignored)
+		return
+	}
+	for i := range tokens {
+		p.ignored[i] = p.ignore[tokens[i].Switch]
+	}
 }
 
 // note records an error seen during a speculative branch if it got further
@@ -119,11 +180,6 @@ func fatal(err core.ErrorInterface) bool {
 	}
 }
 
-type memoKey struct {
-	rule string
-	pos  int
-}
-
 type memoEntry struct {
 	nodes []stringParsing.ParsedNode
 	end   int // token index just past the rule
@@ -141,12 +197,20 @@ func NewParser(lexer *stringParsing.Lexer, grammar Grammar, startRule string, ig
 	for _, t := range ignoreTypes {
 		ignore[t] = true
 	}
+	ruleIDs := make(map[string]int, len(grammar))
+	ruleOrder := make([]string, 0, len(grammar))
+	for name := range grammar {
+		ruleIDs[name] = len(ruleOrder)
+		ruleOrder = append(ruleOrder, name)
+	}
 	return &Parser{
 		lexer:       lexer,
 		grammar:     grammar,
 		startRule:   startRule,
 		ignore:      ignore,
-		activeRules: make(map[memoKey]bool),
+		ruleIDs:     ruleIDs,
+		ruleOrder:   ruleOrder,
+		activeRules: make(map[uint64]bool),
 	}
 }
 
@@ -172,8 +236,8 @@ func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsi
 	p.tokens = tokens
 	p.pos = 0
 	p.depth = 0
-	p.activeRules = make(map[memoKey]bool, len(p.grammar))
-	p.memo = make(map[memoKey]memoEntry, len(p.grammar))
+	p.prepare(tokens)
+	p.resetCaches()
 	p.deepPos = 0
 	p.deepErr = nil
 
@@ -206,7 +270,7 @@ func (p *Parser) Parse(code string, opts ...*parsing.ParseOption) ([]stringParsi
 		return nil, &ParseError{
 			Phase:    PhaseEnd,
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
+			TokenPos: p.posAt(p.pos),
 			Got:      p.tokens[p.pos].Switch,
 			Raw:      p.tokens[p.pos].Raw,
 			Found:    p.tokenTypesAt(p.pos),
@@ -232,14 +296,14 @@ func (p *Parser) wrap(err core.ErrorInterface) core.ErrorInterface {
 	if pe, ok := AsParseError(err); ok {
 		if pe.TokenIdx == 0 && pe.TokenPos == "" {
 			pe.TokenIdx = p.pos
-			pe.TokenPos = tokenPos(p.tokens, p.pos)
+			pe.TokenPos = p.posAt(p.pos)
 		}
 		return pe
 	}
 	return &ParseError{
 		Phase:    PhaseStart,
 		TokenIdx: p.pos,
-		TokenPos: tokenPos(p.tokens, p.pos),
+		TokenPos: p.posAt(p.pos),
 		Cause:    err,
 	}
 }
@@ -247,6 +311,12 @@ func (p *Parser) wrap(err core.ErrorInterface) core.ErrorInterface {
 // ruleNames returns the defined rule names in a stable order so error
 // messages do not change between runs.
 func (p *Parser) ruleNames() []string {
+	if len(p.ruleOrder) == len(p.grammar) {
+		names := make([]string, len(p.ruleOrder))
+		copy(names, p.ruleOrder)
+		sortStrings(names)
+		return names
+	}
 	names := make([]string, 0, len(p.grammar))
 	for k := range p.grammar {
 		names = append(names, k)
@@ -257,7 +327,7 @@ func (p *Parser) ruleNames() []string {
 
 // SkipIgnored advances past every ignored token at the current position.
 func (p *Parser) SkipIgnored() {
-	for p.pos < len(p.tokens) && p.ignore[p.tokens[p.pos].Switch] {
+	for p.pos < len(p.ignored) && p.ignored[p.pos] {
 		p.pos++
 	}
 }
@@ -269,7 +339,7 @@ func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
 		return stringParsing.ParsedNode{}, &ParseError{
 			Phase:    PhaseEOF,
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
+			TokenPos: p.posAt(p.pos),
 			Msg:      "unexpected end of input",
 		}
 	}
@@ -279,28 +349,47 @@ func (p *Parser) NextToken() (stringParsing.ParsedNode, error) {
 }
 
 // Expect consumes the next token and fails unless it has the given type.
+//
+// The common case is a successful match, so the token type is compared before
+// any error is built: a mismatch during backtracking discards the error, and
+// formatting one there costs an allocation per failed token.
 func (p *Parser) Expect(tokenType string) (stringParsing.ParsedNode, core.ErrorInterface) {
-	tok, err := p.NextToken()
-	if err != nil {
-		return stringParsing.ParsedNode{}, &ParseError{
+	p.SkipIgnored()
+	if p.pos < len(p.tokens) && p.tokens[p.pos].Switch == tokenType {
+		tok := p.tokens[p.pos]
+		p.pos++
+		return tok, nil
+	}
+	return stringParsing.ParsedNode{}, p.expectFailed(tokenType)
+}
+
+// expectFailed builds the error for a token that did not match, after
+// SkipIgnored has already advanced past any ignored tokens.
+func (p *Parser) expectFailed(tokenType string) core.ErrorInterface {
+	if p.pos >= len(p.tokens) {
+		return &ParseError{
 			Phase:    PhaseExpect,
 			Expected: tokenType,
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
-			Cause:    err,
+			TokenPos: p.posAt(p.pos),
+			Cause: &ParseError{
+				Phase:    PhaseEOF,
+				TokenIdx: p.pos,
+				TokenPos: p.posAt(p.pos),
+				Msg:      "unexpected end of input",
+			},
 		}
 	}
-	if tok.Switch != tokenType {
-		return stringParsing.ParsedNode{}, &ParseError{
-			Phase:    PhaseExpect,
-			Expected: tokenType,
-			Got:      tok.Switch,
-			Raw:      tok.Raw,
-			TokenIdx: p.pos - 1,
-			TokenPos: tokenPos(p.tokens, p.pos-1),
-		}
+	tok := p.tokens[p.pos]
+	p.pos++
+	return &ParseError{
+		Phase:    PhaseExpect,
+		Expected: tokenType,
+		Got:      tok.Switch,
+		Raw:      tok.Raw,
+		TokenIdx: p.pos - 1,
+		TokenPos: p.posAt(p.pos - 1),
 	}
-	return tok, nil
 }
 
 // Peek returns the next significant token without consuming it.
@@ -310,7 +399,7 @@ func (p *Parser) Peek() (stringParsing.ParsedNode, error) {
 		return stringParsing.ParsedNode{}, &ParseError{
 			Phase:    PhaseEOF,
 			TokenIdx: p.pos,
-			TokenPos: tokenPos(p.tokens, p.pos),
+			TokenPos: p.posAt(p.pos),
 			Msg:      "no more tokens",
 		}
 	}

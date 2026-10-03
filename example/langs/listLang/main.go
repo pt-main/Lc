@@ -28,7 +28,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2"
 	enginepkg "github.com/pt-main/lc/v2/engine"
 	"github.com/pt-main/lc/v2/engine/core"
@@ -223,7 +222,11 @@ type interpreter struct {
 }
 
 func newInterpreter() (*interpreter, error) {
-	parser := parser3.NewParser(newLexer(), newGrammar(), "program", []string{"WHITESPACE", "COMMENT"})
+	lex, err := newLexer()
+	if err != nil {
+		return nil, err
+	}
+	parser := parser3.NewParser(lex, newGrammar(), "program", []string{"WHITESPACE", "COMMENT"})
 	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).
 		WithPipeline([]string{"main"}).
 		WithStringParser(&parser3.Adapter{Parser: parser}).
@@ -299,14 +302,14 @@ func (in *interpreter) registerCommands() error {
 
 // Lexer.
 
-func newLexer() *stringParsing.Lexer {
+func newLexer() (*stringParsing.Lexer, error) {
 	keyword := func(name, word string) stringParsing.LexerRule {
-		return stringParsing.LexerRule{Type: name, Pattern: regexp2.MustCompile(word+`\b`, 0)}
+		return stringParsing.LexerRule{Type: name, Pattern: word + `\b`}
 	}
 	rules := []stringParsing.LexerRule{
-		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//[^\n]*`, 0)},
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-		{Type: "STRING", Pattern: regexp2.MustCompile(`"(\\.|[^"\\])*"`, 0)},
+		{Type: "COMMENT", Pattern: `//[^\n]*`},
+		{Type: "NUMBER", Pattern: `\d+`},
+		{Type: "STRING", Pattern: `"(\\.|[^"\\])*"`},
 		keyword("FN", "fn"),
 		keyword("IF", "if"),
 		keyword("ELSE", "else"),
@@ -318,32 +321,32 @@ func newLexer() *stringParsing.Lexer {
 		keyword("CONTINUE", "continue"),
 		keyword("TRUE", "true"),
 		keyword("FALSE", "false"),
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0)},
-		{Type: "DECLARE", Pattern: regexp2.MustCompile(`:=`, 0)},
-		{Type: "EQ", Pattern: regexp2.MustCompile(`==`, 0)},
-		{Type: "NE", Pattern: regexp2.MustCompile(`!=`, 0)},
-		{Type: "LE", Pattern: regexp2.MustCompile(`<=`, 0)},
-		{Type: "GE", Pattern: regexp2.MustCompile(`>=`, 0)},
-		{Type: "ASSIGN", Pattern: regexp2.MustCompile(`=`, 0)},
-		{Type: "LT", Pattern: regexp2.MustCompile(`<`, 0)},
-		{Type: "GT", Pattern: regexp2.MustCompile(`>`, 0)},
-		{Type: "PLUS", Pattern: regexp2.MustCompile(`\+`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "STAR", Pattern: regexp2.MustCompile(`\*`, 0)},
-		{Type: "SLASH", Pattern: regexp2.MustCompile(`/`, 0)},
-		{Type: "PERCENT", Pattern: regexp2.MustCompile(`%`, 0)},
-		{Type: "BANG", Pattern: regexp2.MustCompile(`!`, 0)},
-		{Type: "AND", Pattern: regexp2.MustCompile(`&&`, 0)},
-		{Type: "OR", Pattern: regexp2.MustCompile(`\|\|`, 0)},
-		{Type: "LBRACKET", Pattern: regexp2.MustCompile(`\[`, 0)},
-		{Type: "RBRACKET", Pattern: regexp2.MustCompile(`\]`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "LBRACE", Pattern: regexp2.MustCompile(`\{`, 0)},
-		{Type: "RBRACE", Pattern: regexp2.MustCompile(`\}`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
-		{Type: "SEMICOLON", Pattern: regexp2.MustCompile(`;`, 0)},
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "IDENT", Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
+		{Type: "DECLARE", Pattern: `:=`},
+		{Type: "EQ", Pattern: `==`},
+		{Type: "NE", Pattern: `!=`},
+		{Type: "LE", Pattern: `<=`},
+		{Type: "GE", Pattern: `>=`},
+		{Type: "ASSIGN", Pattern: `=`},
+		{Type: "LT", Pattern: `<`},
+		{Type: "GT", Pattern: `>`},
+		{Type: "PLUS", Pattern: `\+`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "STAR", Pattern: `\*`},
+		{Type: "SLASH", Pattern: `/`},
+		{Type: "PERCENT", Pattern: `%`},
+		{Type: "BANG", Pattern: `!`},
+		{Type: "AND", Pattern: `&&`},
+		{Type: "OR", Pattern: `\|\|`},
+		{Type: "LBRACKET", Pattern: `\[`},
+		{Type: "RBRACKET", Pattern: `\]`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "LBRACE", Pattern: `\{`},
+		{Type: "RBRACE", Pattern: `\}`},
+		{Type: "COMMA", Pattern: `,`},
+		{Type: "SEMICOLON", Pattern: `;`},
+		{Type: "WHITESPACE", Pattern: `\s+`},
 	}
 	return stringParsing.NewLexer(rules, &stringParsing.LexerConfig{UseBracketBalance: true})
 }

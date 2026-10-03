@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2"
 	enginepkg "github.com/pt-main/lc/v2/engine"
 	"github.com/pt-main/lc/v2/engine/core"
@@ -18,21 +17,25 @@ import (
 
 func main() {
 	lexerRules := []stringParsing.LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0)},
-		{Type: "ASSIGN", Pattern: regexp2.MustCompile(`:=`, 0)},
-		{Type: "PLUS", Pattern: regexp2.MustCompile(`\+`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "MUL", Pattern: regexp2.MustCompile(`\*`, 0)},
-		{Type: "DIV", Pattern: regexp2.MustCompile(`/`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "SEMICOLON", Pattern: regexp2.MustCompile(`;`, 0)},
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "NUMBER", Pattern: `\d+`},
+		{Type: "IDENT", Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
+		{Type: "ASSIGN", Pattern: `:=`},
+		{Type: "PLUS", Pattern: `\+`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "MUL", Pattern: `\*`},
+		{Type: "DIV", Pattern: `/`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "SEMICOLON", Pattern: `;`},
+		{Type: "WHITESPACE", Pattern: `\s+`},
 	}
-	lexer := stringParsing.NewLexer(lexerRules, &stringParsing.LexerConfig{
+	lexer, lerr := stringParsing.NewLexer(lexerRules, &stringParsing.LexerConfig{
 		UseBracketBalance: false,
 	})
+	if lerr != nil {
+		fmt.Println(lerr.Error())
+		return
+	}
 
 	grammar := parser3.Grammar{
 		"program": {

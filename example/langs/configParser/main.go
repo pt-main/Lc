@@ -8,21 +8,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2/engine/core"
 	"github.com/pt-main/lc/v2/parsing/stringParsing"
 	"github.com/pt-main/lc/v2/parsing/stringParsing/parser3"
 )
 
-func lexer() *stringParsing.Lexer {
+func lexer() (*stringParsing.Lexer, error) {
 	rules := []stringParsing.LexerRule{
-		{Type: "LBRACE", Pattern: regexp2.MustCompile(`\{`, 0)},
-		{Type: "RBRACE", Pattern: regexp2.MustCompile(`\}`, 0)},
-		{Type: "ASSIGN", Pattern: regexp2.MustCompile(`=`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`, 0)},
-		{Type: "WS", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "LBRACE", Pattern: `\{`},
+		{Type: "RBRACE", Pattern: `\}`},
+		{Type: "ASSIGN", Pattern: `=`},
+		{Type: "COMMA", Pattern: `,`},
+		{Type: "NUMBER", Pattern: `\d+`},
+		{Type: "IDENT", Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
+		{Type: "WS", Pattern: `\s+`},
 	}
 	return stringParsing.NewLexer(rules, nil)
 }
@@ -75,7 +74,12 @@ func grammar() parser3.Grammar {
 }
 
 func main() {
-	p := parser3.NewParser(lexer(), grammar(), "config", []string{"WS"})
+	lex, err := lexer()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	p := parser3.NewParser(lex, grammar(), "config", []string{"WS"})
 
 	source := "name = 10\nlimits {\n  cpu = 4\n  mem = 32\n}"
 	fmt.Println("source:")

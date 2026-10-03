@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2"
 	enginepkg "github.com/pt-main/lc/v2/engine"
 	"github.com/pt-main/lc/v2/engine/core"
@@ -19,10 +18,14 @@ import (
 )
 
 func main() {
-	lexer := stringParsing.NewLexer([]stringParsing.LexerRule{
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-z]+`, 0)},
-		{Type: "WS", Pattern: regexp2.MustCompile(`\s+`, 0)},
+	lexer, lerr := stringParsing.NewLexer([]stringParsing.LexerRule{
+		{Type: "IDENT", Pattern: `[a-z]+`},
+		{Type: "WS", Pattern: `\s+`},
 	}, nil)
+	if lerr != nil {
+		fmt.Println(lerr.Error())
+		return
+	}
 
 	// root is the entry node Work() starts from; the "word" nodes are nested
 	// inside it and get visited by the depth-first walk.

@@ -5,29 +5,39 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2/engine/core"
 	"github.com/pt-main/lc/v2/parsing"
 )
 
+// mustLexer builds a lexer for a test and fails the run on invalid rules,
+// keeping the call sites free of error plumbing.
+func mustLexer(tb testing.TB, rules []LexerRule, config *LexerConfig) *Lexer {
+	tb.Helper()
+	lex, err := NewLexer(rules, config)
+	if err != nil {
+		tb.Fatalf("NewLexer: %v", err)
+	}
+	return lex
+}
+
 func TestLexer_Parse(t *testing.T) {
 	rules := []LexerRule{
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
-		{Type: "BLOCK", Pattern: regexp2.MustCompile(`(?s)\s*begin\{(.*)?\}end`, 0)},
-		{Type: "COMMENT", Pattern: regexp2.MustCompile(`(?s)/\*\s*@(.+?)@\*/`, 0)},
-		{Type: "COMMENT", Pattern: regexp2.MustCompile(`//@.*`, 0)},
-		{Type: "IDENT", Pattern: regexp2.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]+`, 0)},
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`[0-9]+(?:\.[0-9]+)?`, 0)},
-		{Type: "STRING", Pattern: regexp2.MustCompile(`"(?:[^"\\]|\\.)*"`, 0)},
-		{Type: "LBRACE", Pattern: regexp2.MustCompile(`\{`, 0)},
-		{Type: "RBRACE", Pattern: regexp2.MustCompile(`\}`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "COMMA", Pattern: regexp2.MustCompile(`,`, 0)},
-		{Type: "EQ", Pattern: regexp2.MustCompile(`=`, 0)},
+		{Type: "WHITESPACE", Pattern: `\s+`},
+		{Type: "BLOCK", Pattern: `(?s)\s*begin\{(.*)?\}end`},
+		{Type: "COMMENT", Pattern: `(?s)/\*\s*@(.+?)@\*/`},
+		{Type: "COMMENT", Pattern: `//@.*`},
+		{Type: "IDENT", Pattern: `[a-zA-Z_][a-zA-Z0-9_]+`},
+		{Type: "NUMBER", Pattern: `[0-9]+(?:\.[0-9]+)?`},
+		{Type: "STRING", Pattern: `"(?:[^"\\]|\\.)*"`},
+		{Type: "LBRACE", Pattern: `\{`},
+		{Type: "RBRACE", Pattern: `\}`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "COMMA", Pattern: `,`},
+		{Type: "EQ", Pattern: `=`},
 	}
 
-	lexer := NewLexer(rules, &LexerConfig{
+	lexer := mustLexer(t, rules, &LexerConfig{
 		UseBracketBalance: true,
 		Brackets:          [][2]string{{"begin{", "}end"}},
 	})
@@ -58,10 +68,10 @@ begin{
 
 func TestLexer_ZeroLengthMatchDoesNotHang(t *testing.T) {
 	rules := []LexerRule{
-		{Type: "EMPTY", Pattern: regexp2.MustCompile(`x*`, 0)},
-		{Type: "A", Pattern: regexp2.MustCompile(`a`, 0)},
+		{Type: "EMPTY", Pattern: `x*`},
+		{Type: "A", Pattern: `a`},
 	}
-	lexer := NewLexer(rules, nil)
+	lexer := mustLexer(t, rules, nil)
 
 	done := make(chan struct{})
 	var nodes []ParsedNode

@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/dlclark/regexp2"
 	"github.com/pt-main/lc/v2"
 	enginepkg "github.com/pt-main/lc/v2/engine"
 	"github.com/pt-main/lc/v2/engine/core"
@@ -18,17 +17,17 @@ import (
 	"github.com/pt-main/lc/v2/tooling/astools"
 )
 
-func createLexer() *stringParsing.Lexer {
+func createLexer() (*stringParsing.Lexer, error) {
 	rules := []stringParsing.LexerRule{
-		{Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+(\.\d+)?`, 0)},
-		{Type: "PLUS", Pattern: regexp2.MustCompile(`\+`, 0)},
-		{Type: "MINUS", Pattern: regexp2.MustCompile(`-`, 0)},
-		{Type: "POW", Pattern: regexp2.MustCompile(`\*\*`, 0)},
-		{Type: "MUL", Pattern: regexp2.MustCompile(`\*`, 0)},
-		{Type: "DIV", Pattern: regexp2.MustCompile(`/`, 0)},
-		{Type: "LPAREN", Pattern: regexp2.MustCompile(`\(`, 0)},
-		{Type: "RPAREN", Pattern: regexp2.MustCompile(`\)`, 0)},
-		{Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+		{Type: "NUMBER", Pattern: `\d+(\.\d+)?`},
+		{Type: "PLUS", Pattern: `\+`},
+		{Type: "MINUS", Pattern: `-`},
+		{Type: "POW", Pattern: `\*\*`},
+		{Type: "MUL", Pattern: `\*`},
+		{Type: "DIV", Pattern: `/`},
+		{Type: "LPAREN", Pattern: `\(`},
+		{Type: "RPAREN", Pattern: `\)`},
+		{Type: "WHITESPACE", Pattern: `\s+`},
 	}
 	config := &stringParsing.LexerConfig{
 		UseBracketBalance: false,
@@ -180,8 +179,13 @@ func evalExpr(node *stringParsing.ParsedNode) (float64, error) {
 }
 
 func buildEngine() *lc.EngineUniversal {
+	lex, err := createLexer()
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 	adapter := &parser3.Adapter{
-		Parser: parser3.NewParser(createLexer(), createGrammar(), "expr", []string{"WHITESPACE"}),
+		Parser: parser3.NewParser(lex, createGrammar(), "expr", []string{"WHITESPACE"}),
 	}
 
 	engine, err := lc.NewEngineBuilder(public.StringEngineType, public.StringResType).

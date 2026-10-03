@@ -5,10 +5,13 @@ import "testing"
 // isBracketBalanced and bracketBalanceError must never disagree. The case
 // with a multi-byte word also pins down that the balance scan is rune aware.
 func TestBracketChecksAgree(t *testing.T) {
-	lex := NewLexer(nil, &LexerConfig{
+	lex, lerr := NewLexer(nil, &LexerConfig{
 		UseBracketBalance: true,
 		Brackets:          [][2]string{{"(", ")"}, {"[", "]"}, {"{", "}"}},
 	})
+	if lerr != nil {
+		t.Fatalf("NewLexer: %v", lerr)
+	}
 	cases := []string{
 		"(a)", "(a", "a)", "[(a)]", "([a)]", "{[()]}", "", "()[]{}",
 		"([)]", "(((", "a(b)c", "unicode (текст) ok",

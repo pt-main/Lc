@@ -53,9 +53,7 @@ func AstMakeCommandCtx(name string, breakif, skipif [][]string) *AstCommandCtx {
 
 func (ctx *AstCommandCtx) FindChildren(command string, pn *stringParsing.ParsedNode, children []string) *AstCommandCtx {
 	for _, child := range children {
-		for _, foundChild := range astools.FindChildren(pn, child) {
-			ctx.CurrentChildren[child] = append(ctx.CurrentChildren[child], &foundChild)
-		}
+		ctx.CurrentChildren[child] = append(ctx.CurrentChildren[child], astools.FindChildrenPointers(pn, child)...)
 	}
 	return ctx
 }
