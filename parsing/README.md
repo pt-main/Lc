@@ -24,7 +24,7 @@ used is up to the parser.
 
 | Parser | Behaviour | Typical use |
 |---|---|---|
-| `Lexer` | Token-based lexer on `regexp2` rules, optional bracket balance, prev/next links on nodes | Tokenization, input for a grammar |
+| `Lexer` | Token-based lexer on standard library regex rules, optional bracket balance, prev/next links on nodes | Tokenization, input for a grammar |
 | `Parser1` | Regex grammar with line continuation, bracket balancing, block trimming | Line-oriented DSLs, config formats |
 | `Parser2` | Simple `command args` line parser | Prototyping, shell-like languages |
 | `Parser3` | Recursive descent with combinators, actions and operator precedence | Real grammars, AST generation |

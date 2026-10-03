@@ -23,10 +23,10 @@ holds the matched sub-nodes.
 ## Quick start
 
 ```go
-lexer := stringParsing.NewLexer([]stringParsing.LexerRule{
-    {Type: "NUMBER", Pattern: regexp2.MustCompile(`\d+`, 0)},
-    {Type: "PLUS",  Pattern: regexp2.MustCompile(`\+`, 0)},
-    {Type: "WHITESPACE", Pattern: regexp2.MustCompile(`\s+`, 0)},
+lexer, err := stringParsing.NewLexer([]stringParsing.LexerRule{
+    {Type: "NUMBER", Pattern: `\d+`},
+    {Type: "PLUS",  Pattern: `\+`},
+    {Type: "WHITESPACE", Pattern: `\s+`},
 }, nil)
 
 grammar := parser3.Grammar{
@@ -41,6 +41,10 @@ grammar := parser3.Grammar{
         }},
     }},
     "number": {Name: "number", Expr: parser3.TokenExpr{TokenType: "NUMBER"}},
+}
+
+if err != nil {
+    return err
 }
 
 p := parser3.NewParser(lexer, grammar, "sum", []string{"WHITESPACE"})

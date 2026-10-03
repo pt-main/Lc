@@ -5,7 +5,7 @@ Text parsers for the string engine. Each implements
 
 | Parser | Behaviour |
 |---|---|
-| `Lexer` | Token-based lexer on `regexp2` rules, optional bracket balance, prev/next links on nodes |
+| `Lexer` | Token-based lexer on standard library regex rules, optional bracket balance, prev/next links on nodes |
 | `Parser1` | Regex grammar with line continuation, bracket balancing, block trimming |
 | `Parser2` | Line parser for `command args ...` |
 | `Parser3` | Grammar-driven recursive descent, see [parser3](parser3) |

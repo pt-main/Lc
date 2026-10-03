@@ -3,7 +3,6 @@ package stringParsing
 import (
 	"testing"
 	"time"
-
 )
 
 func perfLexer() *Lexer {

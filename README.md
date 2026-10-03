@@ -519,7 +519,7 @@ in `public/errors`.
 
 | Parser | Behaviour | Typical use |
 |---|---|---|
-| `Lexer` | Token-based lexer on `regexp2` rules, bracket balance, prev/next links | Tokenization, grammar input |
+| `Lexer` | Token-based lexer on standard library regex rules, bracket balance, prev/next links | Tokenization, grammar input |
 | `Parser1` | Regex grammar with line continuation and bracket balancing | Line-oriented DSLs, config formats |
 | `Parser2` | Simple `command args` line parser | Prototyping, shell-like languages |
 | `Parser3` | Recursive descent with combinators, actions and operator precedence | Real grammars, AST generation |
