@@ -12,6 +12,7 @@ type LoggerInterface interface {
 	SetStatusForm(status, form string)
 	PrintLog(status, message string)
 	GetLog() string
+	GetLoggingMap() map[string]bool
 }
 
 // Logger is a thread-safe structured logger for engine diagnostics.
@@ -24,6 +25,10 @@ type Logger struct {
 	MaxLogLength      int
 	Statuses          map[string]string
 	DefaultStatusForm string
+}
+
+func (l *Logger) GetLoggingMap() map[string]bool {
+	return l.Logging
 }
 
 // GetStatusForm returns the format string associated with the given status,

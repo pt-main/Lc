@@ -93,18 +93,17 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			WithMeta(core.EMK(2, "int"), *idx)
 	}()
 
-	log := func(text string) {
-		if len(opts) > 0 && opts[0] != nil && opts[0].UEP != nil {
-			logger := opts[0].UEP.Logger
-			if logger != nil {
-				logger.PrintLog(public.LogParsing, text)
-			}
-		}
+	isLogging := false
+	if len(opts) > 0 && opts[0] != nil && opts[0].UEP != nil && opts[0].UEP.Logger != nil {
+		isLogging, _ = opts[0].UEP.Logger.GetLoggingMap()[public.LogParsing]
 	}
 
-	log("=========== START ===========")
-	log(fmt.Sprintf("start parsing code: '%v'", code))
-	log(fmt.Sprintf("config: %v", p.Config))
+	if isLogging {
+		logger := opts[0].UEP.Logger
+		logger.PrintLog(public.LogParsing, "=========== START ===========")
+		logger.PrintLog(public.LogParsing, fmt.Sprintf("start parsing code: '%v'", code))
+		logger.PrintLog(public.LogParsing, fmt.Sprintf("config: %v", p.Config))
+	}
 
 	u := bytecode.Utils{}
 	shift := p.Config.Shifter.ShiftError
@@ -127,14 +126,14 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 		}
 		argscount := u.BytesToInt(argscountBytes, p.Config.GConfig.Endianness)
 		if argscount < 0 {
-			// BytesToInt sign-extends, so a count with the high bit set decodes
-			// negative. It must be rejected instead of yielding a 0-arg node.
 			return nil, core.Err(errors.ParsingError, "Negative argument count: %d", argscount).
 				WithMeta(core.EMK(0, "int"), argscount)
 		}
-		args := [][]byte{}
+		args := make([][]byte, 0, argscount)
 		lastCmdSwitch = command
-		log(fmt.Sprintf("cmd %v, argscount %v", command, argscount))
+		if isLogging {
+			opts[0].UEP.Logger.PrintLog(public.LogParsing, fmt.Sprintf("cmd %v, argscount %v", command, argscount))
+		}
 
 		for argNum := 0; argNum < argscount; argNum++ {
 			arglenBytes, err := shift(p.Config.GConfig.ArglenBytelen)
@@ -145,7 +144,9 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 					WithMeta(core.EMK(2, "int"), argNum)
 			}
 			arglen := u.BytesToInt(arglenBytes, p.Config.GConfig.Endianness)
-			log(fmt.Sprintf("arglen %v", arglen))
+			if isLogging {
+				opts[0].UEP.Logger.PrintLog(public.LogParsing, fmt.Sprintf("arglen %v", arglen))
+			}
 			if arglen == 0 {
 				return nil, core.Err(errors.ParsingError, "Zero argument length").
 					WithMeta(core.EMK(0, "int"), argNum)
@@ -157,7 +158,9 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 					WithMeta(core.EMK(1, "int"), *idx).
 					WithMeta(core.EMK(2, "int"), argNum)
 			}
-			log(fmt.Sprintf("arglen, args %v; %v", arglen, args))
+			if isLogging {
+				opts[0].UEP.Logger.PrintLog(public.LogParsing, fmt.Sprintf("arglen, args %v; %v", arglen, args))
+			}
 			args = append(args, arg)
 		}
 		raw = code[idxStart:*idx]
@@ -168,8 +171,11 @@ func (p *Parser1) Parse(code []byte, opts ...*parsing.ParseOption) (result []Par
 			Metadata: make(map[string]interface{}),
 		})
 	}
-	log(fmt.Sprintf("end parsing code:\n %v", result))
-	log("=========== END ===========")
+	if isLogging {
+		logger := opts[0].UEP.Logger
+		logger.PrintLog(public.LogParsing, fmt.Sprintf("end parsing code:\n %v", result))
+		logger.PrintLog(public.LogParsing, "=========== END ===========")
+	}
 	return result, nil
 }
 

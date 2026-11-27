@@ -11,7 +11,7 @@ import (
 	"github.com/pt-main/lc/v2/public"
 )
 
-const Version = "2.1.0"
+const Version = "2.1.1"
 
 // NewStringEngine creates a ready-to-use string-based engine with an empty
 // command map and an initialized UEP. addDefaultEvents registers the standard
